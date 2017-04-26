@@ -109,8 +109,14 @@ main (gint argc, gchar **argv)
             gchar *accession = g_strdup (strtok (NULL, " "));
             gchar *sequence  = g_mapped_file_get_contents (mirnas_map) + ftell (mirnas_f);
 
+            gsize remaining = g_mapped_file_get_length (mirnas_map) - ftell (mirnas_f);
+            gchar *next_sequence = memchr (sequence, '>', remaining);
+            gsize sequence_len = next_sequence == NULL ? remaining - 1 : next_sequence - sequence - 1;
+
             MirbookingMirna *mirna = mirbooking_mirna_new (accession);
-            mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), sequence, 12);
+            mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna),
+                                              sequence,
+                                              sequence_len);
 
             g_hash_table_insert (sequences_hash, accession, mirna);
         }
@@ -124,8 +130,14 @@ main (gint argc, gchar **argv)
             gchar *accession = g_strdup (strtok (line + 1, " "));
             gchar *sequence  = g_mapped_file_get_contents (targets_map) + ftell (targets_f);
 
+            gsize remaining = g_mapped_file_get_length (targets_map) - ftell (targets_f);
+            gchar *next_sequence = memchr (sequence, '>', remaining);
+            gsize sequence_len = next_sequence == NULL ? remaining - 1 : next_sequence - sequence - 1;
+
             MirbookingTarget *target = mirbooking_target_new (accession);
-            mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), sequence, 12);
+            mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target),
+                                              sequence,
+                                              sequence_len);
 
             g_hash_table_insert (sequences_hash, accession, target);
         }
