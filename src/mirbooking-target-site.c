@@ -97,13 +97,19 @@ mirbooking_target_site_class_init (MirbookingTargetSiteClass *klass)
 MirbookingTargetSite *
 mirbooking_target_site_new (MirbookingTarget *target, gsize offset)
 {
-    return g_object_new (MIRBOOKING_TYPE_TARGET_SITE, "target", target, NULL);
+    MirbookingTargetSite *ret;
+
+    ret = g_object_new (MIRBOOKING_TYPE_TARGET_SITE, "target", target, NULL);
+
+    ret->priv->offset = offset;
+
+    return ret;
 }
 
 gsize
 mirbooking_target_site_get_offset (MirbookingTargetSite *self)
 {
-    return 0;
+    return self->priv->offset;
 }
 
 void

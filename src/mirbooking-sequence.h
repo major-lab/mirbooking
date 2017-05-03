@@ -18,6 +18,7 @@ const gchar * mirbooking_sequence_get_sequence  (MirbookingSequence *self, gsize
 void          mirbooking_sequence_set_sequence  (MirbookingSequence *self,
                                                  const gchar        *sequence,
                                                  gsize               sequence_len);
+gsize         mirbooking_sequence_get_sequence_length (MirbookingSequence *self);
 const gchar * mirbooking_sequence_get_subsequence (MirbookingSequence *self,
                                                    gsize               subsequence_offset,
                                                    gsize               subsequence_len);

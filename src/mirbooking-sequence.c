@@ -189,6 +189,13 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
     }
 }
 
+gsize
+mirbooking_sequence_get_sequence_length (MirbookingSequence *self)
+{
+    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+    return priv->sequence_len;
+}
+
 guint
 mirbooking_sequence_hash (const MirbookingSequence *self)
 {

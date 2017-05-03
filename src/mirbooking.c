@@ -168,9 +168,10 @@ mirbooking_run (Mirbooking *self, GError **error)
     for (target = self->priv->targets; target != NULL; target = target->next)
     {
         gsize offset;
-        for (offset = 0; offset < 1; offset++)
+        for (offset = 0; offset < 7; offset++)
         {
-            MirbookingTargetSite *target_site = mirbooking_target_site_new (target->data, offset);
+            MirbookingTargetSite *target_site = mirbooking_target_site_new (target->data,
+                                                                            random () % mirbooking_sequence_get_sequence_length (target->data));
 
             GSList *mirna;
             for (mirna = self->priv->mirnas; mirna != NULL; mirna = mirna->next)
