@@ -196,6 +196,8 @@ main (gint argc, gchar **argv)
         }
     }
 
+    g_hash_table_unref (sequences_hash);
+
     if (!mirbooking_run (mirbooking, &error))
     {
         g_printerr ("%s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);
