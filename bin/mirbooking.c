@@ -31,6 +31,54 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {NULL}
 };
 
+static void
+read_sequences_from_fasta (FILE        *file,
+                           GMappedFile *mapped_file,
+                           guint        accession_column,
+                           GHashTable  *sequences_hash)
+{
+    gchar *accession;
+    gchar *seq;
+    gchar line[1024];
+
+    while (fgets (line, sizeof (line), file))
+    {
+        if (line[0] == '>')
+        {
+            accession = strtok (line + 1, " ");
+
+            gint i;
+            for (i = 0; i < accession_column; i++)
+            {
+                accession = strtok (NULL, " ");
+            }
+
+            seq = g_mapped_file_get_contents (mapped_file) + ftell (file);
+
+            gsize remaining = g_mapped_file_get_length (mapped_file) - ftell (file);
+            gchar *next_seq = memchr (seq, '>', remaining);
+            gsize seq_len = next_seq == NULL ? remaining - 1 : next_seq - seq - 1;
+
+            MirbookingSequence *sequence;
+
+            if (g_str_has_prefix (accession, "MIMAT"))
+            {
+                sequence = MIRBOOKING_SEQUENCE (mirbooking_mirna_new (accession));
+            }
+            else
+            {
+                sequence = MIRBOOKING_SEQUENCE (mirbooking_target_new (accession));
+            }
+
+            mirbooking_sequence_set_sequence (sequence,
+                                              seq,
+                                              seq_len);
+
+            g_hash_table_insert (sequences_hash, g_strdup (accession), sequence);
+        }
+    }
+}
+
 int
 main (gint argc, gchar **argv)
 {
@@ -90,97 +138,61 @@ main (gint argc, gchar **argv)
     g_return_val_if_fail (output_f != NULL, EXIT_FAILURE);
 
     // accession -> #MirbookingSequence
-    g_autoptr (GHashTable) sequences_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_object_unref);
+    g_autoptr (GHashTable) sequences_hash = g_hash_table_new_full (g_str_hash,
+                                                                   g_str_equal,
+                                                                   g_free,
+                                                                   g_object_unref);
 
     // mapped sequences
-    g_autoptr (GMappedFile) mirnas_map = g_mapped_file_new_from_fd (fileno (mirnas_f), FALSE, NULL);
-    g_autoptr (GMappedFile) targets_map = g_mapped_file_new_from_fd (fileno (targets_f), FALSE, NULL);
+    g_autoptr (GMappedFile) mirnas_map = g_mapped_file_new_from_fd (fileno (mirnas_f),
+                                                                    FALSE,
+                                                                    NULL);
 
-    //
+    if (mirnas_map == NULL)
+    {
+        g_printerr ("Could not map the miRNAs file.\n");
+        return EXIT_FAILURE;
+    }
+
+    g_autoptr (GMappedFile) targets_map = g_mapped_file_new_from_fd (fileno (targets_f),
+                                                                     FALSE,
+                                                                     NULL);
+
+    if (targets_map == NULL)
+    {
+        g_printerr ("Could not map the targets file.\n");
+        return EXIT_FAILURE;
+    }
+
+    // precondition mirnas and targets
+    read_sequences_from_fasta (mirnas_f, mirnas_map, 1, sequences_hash);
+    read_sequences_from_fasta (targets_f, targets_map, 0, sequences_hash);
+
     gchar line[1024];
-
-    // precondition mirnas
-    while (fgets (line, sizeof (line), mirnas_f))
-    {
-        if (line[0] == '>')
-        {
-            strtok (line + 1, " ");
-
-            gchar *accession = g_strdup (strtok (NULL, " "));
-            gchar *sequence  = g_mapped_file_get_contents (mirnas_map) + ftell (mirnas_f);
-
-            gsize remaining = g_mapped_file_get_length (mirnas_map) - ftell (mirnas_f);
-            gchar *next_sequence = memchr (sequence, '>', remaining);
-            gsize sequence_len = next_sequence == NULL ? remaining - 1 : next_sequence - sequence - 1;
-
-            MirbookingMirna *mirna = mirbooking_mirna_new (accession);
-            mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna),
-                                              sequence,
-                                              sequence_len);
-
-            g_hash_table_insert (sequences_hash, accession, mirna);
-        }
-    }
-
-    // precondition targets
-    while (fgets (line, sizeof (line), targets_f))
-    {
-        if (line[0] == '>')
-        {
-            gchar *accession = g_strdup (strtok (line + 1, " "));
-            gchar *sequence  = g_mapped_file_get_contents (targets_map) + ftell (targets_f);
-
-            gsize remaining = g_mapped_file_get_length (targets_map) - ftell (targets_f);
-            gchar *next_sequence = memchr (sequence, '>', remaining);
-            gsize sequence_len = next_sequence == NULL ? remaining - 1 : next_sequence - sequence - 1;
-
-            MirbookingTarget *target = mirbooking_target_new (accession);
-            mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target),
-                                              sequence,
-                                              sequence_len);
-
-            g_hash_table_insert (sequences_hash, accession, target);
-        }
-    }
-
     while (fgets (line, sizeof (line), quantities_f))
     {
         gchar *accession = strtok (line, "\t");
         gdouble quantity = g_strtod (strtok (NULL, "\t"), NULL);
-        if (g_str_has_prefix (accession, "MIMAT"))
-        {
-            MirbookingMirna *mirna = g_hash_table_lookup (sequences_hash, accession);
 
-            if (mirna == NULL || !MIRBOOKING_IS_MIRNA (mirna))
-            {
-                g_printerr ("Skipping unknown miRNA '%s'.\n", accession);
-                continue;
-            }
-            else
-            {
-                mirbooking_set_mirna_quantity (mirbooking,
-                                               mirna,
-                                               quantity);
-                g_hash_table_remove (sequences_hash, accession);
-            }
+        MirbookingSequence *sequence = g_hash_table_lookup (sequences_hash, accession);
+
+        if (sequence == NULL)
+        {
+            g_printerr ("Unknown sequence with accession '%s'.\n", accession);
         }
-        else
-        {
-            MirbookingTarget *target = g_hash_table_lookup (sequences_hash, accession);
 
-            if (target == NULL || !MIRBOOKING_IS_TARGET (target))
-            {
-                g_printerr ("Skipping unknown target '%s'.\n", accession);
-                continue;
-            }
-            else
-            {
-                // assume a target
-                mirbooking_set_target_quantity (mirbooking,
-                                                target,
-                                                quantity);
-                g_hash_table_remove (sequences_hash, accession);
-            }
+        if (MIRBOOKING_IS_MIRNA (sequence))
+        {
+            mirbooking_set_mirna_quantity (mirbooking,
+                                           MIRBOOKING_MIRNA (sequence),
+                                           quantity);
+        }
+
+        if (MIRBOOKING_IS_TARGET (sequence))
+        {
+            mirbooking_set_target_quantity (mirbooking,
+                                            MIRBOOKING_TARGET (sequence),
+                                            quantity);
         }
     }
 
