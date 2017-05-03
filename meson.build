@@ -7,3 +7,4 @@ gio_dep = dependency('gio-2.0')
 
 subdir('src')
 subdir('bin')
+subdir('tests')

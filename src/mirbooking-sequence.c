@@ -29,9 +29,6 @@ G_DEFINE_TYPE_WITH_PRIVATE (MirbookingSequence, mirbooking_sequence, G_TYPE_OBJE
 static void
 mirbooking_sequence_init (MirbookingSequence *self)
 {
-    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (MIRBOOKING_SEQUENCE (self));
-
-    priv->sequence_skips = g_ptr_array_new ();
 }
 
 static void
@@ -117,12 +114,18 @@ mirbooking_sequence_set_sequence (MirbookingSequence *self, const gchar *sequenc
     priv->sequence     = sequence;
     priv->sequence_len = sequence_len;
 
-    // g_ptr_array_clear (priv->sequence_skips);
+    if (priv->sequence_skips)
+    {
+        g_ptr_array_unref (priv->sequence_skips);
+    }
+
+    priv->sequence_skips = g_ptr_array_sized_new (sequence_len / 80); // line feed every 80 characters
 
     const gchar* seq = priv->sequence;
-    while ((seq = memchr (seq, '\n', priv->sequence_len)))
+    while ((seq = memchr (seq, '\n', priv->sequence_len - (seq - priv->sequence))))
     {
         g_ptr_array_add (priv->sequence_skips, (gpointer) seq);
+        seq++; // jump right after the line feed
     }
 }
 
@@ -133,61 +136,57 @@ mirbooking_sequence_set_sequence (MirbookingSequence *self, const gchar *sequenc
  * trimmed
  */
 const gchar*
-mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize offset, gsize len)
+mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence_offset, gsize subsequence_len)
 {
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+    gboolean subsequence_used = FALSE;
 
     static gchar subsequence[64];
+    memset(subsequence, 0, sizeof subsequence);
 
-    return subsequence;
+    gsize subsequence_so_far = 0;
 
-    /*
+    g_return_val_if_fail (subsequence_len <= sizeof (subsequence), NULL);
 
-    g_return_val_if_fail (len <= sizeof (subsequence), NULL);
-    g_return_val_if_fail (offset + len < priv->sequence_len, NULL);
-
-    gchar *trimmed_sequence = g_malloc (priv->sequence_len);
-
-    GSList *list;
-    for (list = priv->sequence_skips; list != NULL; list = list->next)
+    gint i;
+    for (i = 0; i < priv->sequence_skips->len; i++)
     {
+        gchar *linefeed = priv->sequence_skips->pdata[i];
+        gsize  linefeed_offset = linefeed - priv->sequence;
+        if (linefeed_offset <= subsequence_offset)
+        {
+            subsequence_offset++; // move the subsequence right
+        }
+        else if (linefeed_offset < subsequence_offset + subsequence_len)
+        {
+            // length until the next linefeed
+            gsize len_to_copy = linefeed_offset - subsequence_offset;
+
+            memcpy (subsequence + subsequence_so_far, priv->sequence + subsequence_offset, len_to_copy);
+
+            subsequence_so_far += len_to_copy;
+            subsequence_offset = subsequence_offset + len_to_copy + 1; // jump right after the linefeed
+            subsequence_used = TRUE;
+        }
+        else
+        {
+            break; // linefeed supersedes the subsequence
+        }
     }
 
-    if (memchr (priv->sequence, '\n', priv->sequence_len))
+    if (subsequence_used)
     {
-        g_debug ("The sequence with accession '%s' contains line feeds and will be copied internally.", priv->accession);
-
-        const gchar *original_sequence = priv->sequence;
-        gsize  original_sequence_len   = priv->sequence_len;
-
-        gchar *line_feed;
-        ptrdiff_t offset = 0;
-        while ((line_feed = memchr (original_sequence, '\n', original_sequence_len)))
+        if (subsequence_so_far < subsequence_len)
         {
-            offset = line_feed - original_sequence;
-            memcpy (trimmed_sequence + offset, original_sequence, original_sequence_len - offset);
-
-            original_sequence      = line_feed + 1; // skip the line feed
-            original_sequence_len -= line_feed - original_sequence - 1;
-
-            // drop the line feed
-            priv->sequence_len--;
+            memcpy (subsequence + subsequence_so_far, priv->sequence + subsequence_offset, subsequence_len - subsequence_so_far);
         }
 
-        // copy any remaining nucleotides
-        if (original_sequence_len > 0)
-        {
-            memcpy (trimmed_sequence, original_sequence, original_sequence_len);
-        }
-
-        // mark it to be freed internally
-        priv->sequence = trimmed_sequence;
+        return subsequence;
     }
     else
     {
-        return priv->sequence + offset;
+        return priv->sequence + subsequence_offset;
     }
-    */
 }
 
 guint
