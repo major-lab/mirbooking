@@ -50,6 +50,15 @@ test_sequence_trim_line_feed ()
     g_assert (strncmp ("\nAC\n\nTG\n", seq, 8) == 0);
     trimmed_seq = mirbooking_sequence_get_subsequence (sequence, 0, 4);
     g_assert_cmpstr (g_strndup (trimmed_seq, 4), ==, "ACTG");
+
+    // worst, worst-case scenario
+    mirbooking_sequence_set_sequence (sequence, "\nAC\n\nTG\n\n\n\nATAT", 15);
+    seq = mirbooking_sequence_get_sequence (sequence, &seq_len);
+    g_assert (seq_len == 15);
+    g_assert (strncmp ("\nAC\n\nTG\n\n\n\nATAT", seq, 15) == 0);
+    trimmed_seq = mirbooking_sequence_get_subsequence (sequence, 2, 2);
+    g_assert_cmpstr (g_strndup (trimmed_seq, 2), ==, "TG");
+    g_assert (trimmed_seq == seq + 5); // zero-copy
 }
 
 int main (int argc, gchar **argv)
