@@ -77,27 +77,32 @@ mirbooking_score_table_new_precomputed (GBytes *precomputed_table)
     return ret;
 }
 
-static guint
+static gsize
 sequence_index (const gchar *seq, gsize seq_len)
 {
     gint i;
-    guint index = 0;
+    gsize index = 0;
+
+    // note: 4**i = 2**2i = 2 << 2i - 1
+    // for i = 0, we do it manually as it would result in a negative shift
 
     for (i = 0; i < seq_len; i++)
     {
-        switch (seq[i])
+        gint base = i == 0 ? 1 : (2 << (2 * i - 1));
+        switch (seq[seq_len - i - 1])
         {
             case 'A':
-                index += 4 << i;
+                index += 0 * base;
                 break;
             case 'C':
-                index += 4 << i;
+                index += 1 * base;
                 break;
             case 'G':
-                index += 4 << i;
+                index += 2 * base;
                 break;
             case 'T':
-                index += 4 << i;
+            case 'U':
+                index += 3 * base;
                 break;
             default:
                 g_return_val_if_reached (0);
@@ -122,19 +127,25 @@ mirbooking_score_table_compute_score (MirbookingScoreTable *self,
                                       gsize                 b_offset,
                                       gsize                 len)
 {
-    gfloat ret;
+    union
+    {
+        gint32 i;
+        gfloat f;
+    } ret;
 
-    gint i = sequence_index (mirbooking_sequence_get_subsequence (a, a_offset, len), len);
-    gint j = sequence_index (mirbooking_sequence_get_subsequence (b, b_offset, len), len);
+    gsize i = sequence_index (mirbooking_sequence_get_subsequence (a, a_offset, len), len);
+    gsize j = sequence_index (mirbooking_sequence_get_subsequence (b, b_offset, len), len);
 
     switch (len)
     {
         case 7:
-            ret = (gfloat) GUINT32_FROM_BE ((guint32) *self->priv->table7[i][j]);
+            ret.f = (*self->priv->table7)[i][j];
             break;
         default:
             g_return_val_if_reached (0.0);
     }
 
-    return ret;
+    ret.i = GINT32_FROM_BE (ret.i);
+
+    return ret.f;
 }

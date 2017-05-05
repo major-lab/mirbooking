@@ -1,2 +1,7 @@
-test('sequence', executable('sequence-test', 'sequence-test.c',
-                            dependencies: [glib_dep, gobject_dep, mirbooking_dep]))
+mirbooking_tests = [
+    'score-table',
+    'sequence']
+foreach name : mirbooking_tests
+    test(name, executable(name + '-test', name + '-test.c',
+                          dependencies: [glib_dep, gobject_dep, mirbooking_dep]))
+endforeach
