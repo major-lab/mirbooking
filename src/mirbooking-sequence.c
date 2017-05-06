@@ -3,14 +3,6 @@
 #include <string.h>
 #include <glib-object.h>
 
-/*
- * The 'sequence' field is not owned by the instance and it's corresponding
- * memory is meant to be managed externally.
- *
- * This support *raw* sequences that may contain line feeds like those found in
- * a FASTA document.
- */
-
 typedef struct
 {
     gchar       *accession;
@@ -90,29 +82,44 @@ mirbooking_sequence_get_accession (MirbookingSequence *self)
     return priv->accession;
 }
 
+/**
+ * mirbooking_sequence_get_raw_sequence:
+ * @self: A #MirbookingSequence
+ * @sequence_len: (out): (optional): The length of the returned raw sequence
+ *
+ * Obtain the internal representation of the sequence, which corresponds to
+ * what has been set previsouly via #mirbooking_sequence_set_raw_sequence.
+ */
 const gchar *
-mirbooking_sequence_get_sequence (MirbookingSequence *self, gsize *sequence_len)
+mirbooking_sequence_get_raw_sequence (MirbookingSequence *self, gsize *sequence_len)
 {
-    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
 
-    *sequence_len = priv->sequence_len;
+    if (sequence_len)
+    {
+        *sequence_len = priv->sequence_len;
+    }
+
     return priv->sequence;
 }
 
 /**
- * mirbooking_sequence_set_sequence:
+ * mirbooking_sequence_set_raw_sequence:
+ * @self: A #MirbookingSequence
+ * @sequence: A sequence of nucleotides
+ * @sequence_len: (default -1): The length of the passed sequence or -1 for a
+ * null-terminated string
  *
- * Note that the passed sequence is not copied internally, unless it contains
- * line feeds.
- * #sequence: (transfer none)
+ * Note that the passed sequence is not copied internally and thus, it must
+ * live for as long as this object does.
  */
 void
-mirbooking_sequence_set_sequence (MirbookingSequence *self, const gchar *sequence, gsize sequence_len)
+mirbooking_sequence_set_raw_sequence (MirbookingSequence *self, const gchar *sequence, gssize sequence_len)
 {
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
 
     priv->sequence     = sequence;
-    priv->sequence_len = sequence_len;
+    priv->sequence_len = sequence_len == -1 ? strlen (sequence) : sequence_len;
 
     if (priv->sequence_skips)
     {
@@ -121,12 +128,26 @@ mirbooking_sequence_set_sequence (MirbookingSequence *self, const gchar *sequenc
 
     priv->sequence_skips = g_ptr_array_sized_new (sequence_len / 80); // line feed every 80 characters
 
-    const gchar* seq = priv->sequence;
-    while ((seq = memchr (seq, '\n', priv->sequence_len - (seq - priv->sequence))))
+    const gchar* seq = sequence;
+    while ((seq = memchr (seq, '\n', sequence_len - (seq - sequence))))
     {
         g_ptr_array_add (priv->sequence_skips, (gpointer) seq);
         seq++; // jump right after the line feed
     }
+}
+
+/**
+ * mirbooking_sequence_get_sequence_length:
+ * @self: A #MirbookingSequence
+ *
+ * Obtain the actual sequence length, excluding any linefeed in the internal
+ * representation.
+ */
+gsize
+mirbooking_sequence_get_sequence_length (MirbookingSequence *self)
+{
+    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+    return priv->sequence_len - priv->sequence_skips->len;
 }
 
 /**
@@ -142,10 +163,10 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
     gboolean subsequence_used = FALSE;
 
     static gchar subsequence[64];
-    memset(subsequence, 0, sizeof subsequence);
 
     gsize subsequence_so_far = 0;
 
+    g_return_val_if_fail (subsequence_offset + subsequence_len <= priv->sequence_len - priv->sequence_skips->len, NULL);
     g_return_val_if_fail (subsequence_len <= sizeof (subsequence), NULL);
 
     gint i;
@@ -187,13 +208,6 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
     {
         return priv->sequence + subsequence_offset;
     }
-}
-
-gsize
-mirbooking_sequence_get_sequence_length (MirbookingSequence *self)
-{
-    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
-    return priv->sequence_len;
 }
 
 guint

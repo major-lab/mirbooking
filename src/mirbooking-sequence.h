@@ -14,10 +14,10 @@ struct _MirbookingSequenceClass
 };
 
 const gchar * mirbooking_sequence_get_accession (MirbookingSequence *self);
-const gchar * mirbooking_sequence_get_sequence  (MirbookingSequence *self, gsize *sequence_len);
-void          mirbooking_sequence_set_sequence  (MirbookingSequence *self,
-                                                 const gchar        *sequence,
-                                                 gsize               sequence_len);
+const gchar * mirbooking_sequence_get_raw_sequence (MirbookingSequence *self, gsize *sequence_len);
+void          mirbooking_sequence_set_raw_sequence (MirbookingSequence *self,
+                                                    const gchar        *sequence,
+                                                    gssize              sequence_len);
 gsize         mirbooking_sequence_get_sequence_length (MirbookingSequence *self);
 const gchar * mirbooking_sequence_get_subsequence (MirbookingSequence *self,
                                                    gsize               subsequence_offset,

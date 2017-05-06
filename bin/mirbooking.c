@@ -34,10 +34,13 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 static void
 read_sequences_from_fasta (FILE        *file,
                            GMappedFile *mapped_file,
-                           guint        accession_column,
+                           gboolean     accession_in_comment,
                            GHashTable  *sequences_hash)
 {
     gchar *accession;
+    gchar *comment;
+    gchar *cds;
+    gsize cds_start, cds_end;
     gchar *seq;
     gchar line[1024];
 
@@ -47,10 +50,20 @@ read_sequences_from_fasta (FILE        *file,
         {
             accession = strtok (line + 1, " ");
 
-            gint i;
-            for (i = 0; i < accession_column; i++)
+            if (accession_in_comment)
             {
                 accession = strtok (NULL, " ");
+            }
+
+            accession = g_strdup (accession);
+
+            // consider the remaining line as a comment
+            comment = strtok (NULL, "");
+
+            // lookup for a CDS in the comment
+            if ((cds = strstr (comment, "cds=")))
+            {
+                sscanf (cds, "cds=" "%" G_GSIZE_FORMAT ".." "%" G_GSIZE_FORMAT, &cds_start, &cds_end);
             }
 
             seq = g_mapped_file_get_contents (mapped_file) + ftell (file);
@@ -70,11 +83,18 @@ read_sequences_from_fasta (FILE        *file,
                 sequence = MIRBOOKING_SEQUENCE (mirbooking_target_new (accession));
             }
 
-            mirbooking_sequence_set_sequence (sequence,
-                                              seq,
-                                              seq_len);
+            mirbooking_sequence_set_raw_sequence (sequence,
+                                                  seq,
+                                                  seq_len);
 
-            g_hash_table_insert (sequences_hash, g_strdup (accession), sequence);
+            if (MIRBOOKING_IS_TARGET (sequence))
+            {
+                mirbooking_target_set_cds (MIRBOOKING_TARGET (sequence),
+                                           cds_start,
+                                           cds_end - cds_start);
+            }
+
+            g_hash_table_insert (sequences_hash, accession, sequence);
         }
     }
 }
@@ -165,8 +185,8 @@ main (gint argc, gchar **argv)
     }
 
     // precondition mirnas and targets
-    read_sequences_from_fasta (mirnas_f, mirnas_map, 1, sequences_hash);
-    read_sequences_from_fasta (targets_f, targets_map, 0, sequences_hash);
+    read_sequences_from_fasta (mirnas_f, mirnas_map, TRUE, sequences_hash);
+    read_sequences_from_fasta (targets_f, targets_map, FALSE, sequences_hash);
 
     gchar line[1024];
     while (fgets (line, sizeof (line), quantities_f))
