@@ -22,6 +22,13 @@ struct _Mirbooking
     MirbookingPrivate *priv;
 };
 
+struct _MirbookingTargetSite
+{
+    gsize   site_offset;    // offset in #MirbookingTarget
+    GSList *mirnas;         // all attached #MirbookingMirna
+    GHashTable *quantification; // #MirbookingMirna -> gfloat (in the pointer) or %NULL if unused
+};
+
 G_DEFINE_TYPE_WITH_PRIVATE (Mirbooking, mirbooking, G_TYPE_OBJECT)
 
 static void
@@ -73,9 +80,17 @@ mirbooking_get_property (GObject *object, guint property_id, GValue *value, GPar
 }
 
 static void
+mirbooking_target_site_free (MirbookingTargetSite *self)
+{
+    g_hash_table_unref (self->quantification);
+    g_slist_free_full (self->mirnas, g_object_unref);
+    g_free (self);
+}
+
+static void
 free_slist_of_site_target (gpointer key, GSList *list, gpointer user_data)
 {
-    g_slist_free_full (list, g_object_unref);
+    g_slist_free_full (list, (GDestroyNotify) mirbooking_target_site_free);
 }
 
 static void
@@ -159,6 +174,31 @@ mirbooking_set_mirna_quantity (Mirbooking *self, MirbookingMirna *mirna, gfloat 
     }
 }
 
+static gint
+mirna_hash (MirbookingSequence *a)
+{
+    return g_str_hash (mirbooking_sequence_get_accession (a));
+}
+
+static gboolean
+mirna_equal (MirbookingSequence *a, MirbookingSequence *b)
+{
+    return g_str_equal (mirbooking_sequence_get_accession (a), mirbooking_sequence_get_accession (b));
+}
+
+static void
+mirbooking_target_site_set_mirna_quantity (MirbookingTargetSite *self,
+                                           MirbookingMirna      *mirna,
+                                           gfloat                quantity)
+{
+    if (g_hash_table_insert (self->quantification,
+                             mirna,
+                             (gpointer) (gintptr) quantity))
+    {
+        self->mirnas = g_slist_prepend (self->mirnas, g_object_ref (mirna));
+    }
+}
+
 gboolean
 mirbooking_run (Mirbooking *self, GError **error)
 {
@@ -167,17 +207,55 @@ mirbooking_run (Mirbooking *self, GError **error)
     GSList *target;
     for (target = self->priv->targets; target != NULL; target = target->next)
     {
-        gsize offset;
-        for (offset = 0; offset < 7; offset++)
+        gsize seq_len = mirbooking_sequence_get_sequence_length (target->data);
+
+        MirbookingTargetSite *target_sites = g_new0 (MirbookingTargetSite,
+                                                     seq_len - 7);
+
+        // build a *fake* linked-list even though they are all stored contigously
+        GSList *target_sites_list = NULL;
+
+        gsize site_offset;
+        for (site_offset = 0; site_offset < seq_len - 7; site_offset++)
         {
-            MirbookingTargetSite *target_site = mirbooking_target_site_new (target->data,
-                                                                            random () % mirbooking_sequence_get_sequence_length (target->data));
+            target_sites[site_offset].site_offset = site_offset;
+            g_slist_prepend (target_sites_list, &target_sites[site_offset]);
+        }
+
+        g_hash_table_insert (self->priv->targets_sites,
+                             target->data,
+                             target_sites_list);
+
+        /*
+        gsize site_offset;
+        for (site_offset = 0; site_offset < ; site_offset++)
+        {
+            // some random offset on the target for now
+            gsize site_offset = random () % (mirbooking_sequence_get_sequence_length (target->data) - 7);
+
+            MirbookingTargetSite *target_site = target_sites + offset;
+
+            target_site->offset = offset;
+            target_site->quantification = g_hash_table_new ((GHashFunc) mirna_hash,
+                                                            (GEqualFunc) mirna_equal);
 
             GSList *mirna;
             for (mirna = self->priv->mirnas; mirna != NULL; mirna = mirna->next)
             {
-                gfloat quantity = (gfloat) (gintptr) g_hash_table_lookup (self->priv->quantification, mirna->data);
-                mirbooking_target_site_set_mirna_quantity (target_site, mirna->data, quantity);
+                gfloat score;
+
+                score = mirbooking_score_table_compute_score (self->priv->score_table,
+                                                              target->data,
+                                                              site_offset,
+                                                              mirna->data,
+                                                              1,
+                                                              7);
+
+                if (score >= self->priv->threshold)
+                {
+                    gfloat quantity = (gfloat) (gintptr) g_hash_table_lookup (self->priv->quantification, mirna->data);
+                    mirbooking_target_site_set_mirna_quantity (target_site, mirna->data, quantity);
+                }
             }
 
             GSList *target_sites = g_hash_table_lookup (self->priv->targets_sites,
@@ -187,6 +265,7 @@ mirbooking_run (Mirbooking *self, GError **error)
                                  target->data,
                                  g_slist_prepend (target_sites, target_site));
         }
+        */
     }
 
     return TRUE;
@@ -202,4 +281,22 @@ GSList *
 mirbooking_get_target_sites (Mirbooking *self, MirbookingTarget *target)
 {
     return g_hash_table_lookup (self->priv->targets_sites, target);
+}
+
+gsize
+mirbooking_target_site_get_site_offset (MirbookingTargetSite *self)
+{
+    return self->site_offset;
+}
+
+GSList *
+mirbooking_target_site_get_mirnas (MirbookingTargetSite *self)
+{
+    return self->mirnas;
+}
+
+gfloat
+mirbooking_target_site_get_mirna_quantity (MirbookingTargetSite *self, MirbookingMirna *mirna)
+{
+    return (gfloat) (gintptr) g_hash_table_lookup (self->quantification, mirna);
 }

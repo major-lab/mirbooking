@@ -2,16 +2,14 @@ install_headers(['mirbooking.h',
                  'mirbooking-mirna.h',
                  'mirbooking-score-table.h',
                  'mirbooking-sequence.h',
-                 'mirbooking-target.h',
-                 'mirbooking-target-site.h'], subdir: 'mirbooking-1.0')
+                 'mirbooking-target.h'], subdir: 'mirbooking-1.0')
 
 mirbooking_sources = [
     'mirbooking.c',
     'mirbooking-mirna.c',
     'mirbooking-score-table.c',
     'mirbooking-sequence.c',
-    'mirbooking-target.c',
-    'mirbooking-target-site.c']
+    'mirbooking-target.c']
 
 mirbooking_lib = library('mirbooking', mirbooking_sources,
                          dependencies: [glib_dep, gobject_dep],

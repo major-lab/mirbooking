@@ -4,7 +4,6 @@
 #include "mirbooking-score-table.h"
 #include "mirbooking-sequence.h"
 #include "mirbooking-target.h"
-#include "mirbooking-target-site.h"
 #include "mirbooking-mirna.h"
 
 #include <glib-object.h>
@@ -21,6 +20,8 @@ struct _MirbookingClass
 {
     GObjectClass parent_class;
 };
+
+typedef struct _MirbookingTargetSite MirbookingTargetSite;
 
 Mirbooking * mirbooking_new                 (void);
 void         mirbooking_set_threshold       (Mirbooking *self,
@@ -43,6 +44,11 @@ gboolean     mirbooking_run                 (Mirbooking *self, GError **error);
 
 GSList *     mirbooking_get_target_sites    (Mirbooking       *self,
                                              MirbookingTarget *target);
+
+gsize        mirbooking_target_site_get_site_offset    (MirbookingTargetSite *target_site);
+GSList *     mirbooking_target_site_get_mirnas         (MirbookingTargetSite *target_site);
+gfloat       mirbooking_target_site_get_mirna_quantity (MirbookingTargetSite *target_site,
+                                                        MirbookingMirna      *mirna);
 
 G_END_DECLS
 

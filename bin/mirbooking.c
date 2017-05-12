@@ -244,7 +244,7 @@ main (gint argc, gchar **argv)
             {
                 g_fprintf (output_f, "%s\t%s\t%ld\t%f\n", mirbooking_sequence_get_accession (targets->data),
                                                           mirbooking_sequence_get_accession (mirnas->data),
-                                                          mirbooking_target_site_get_offset (target_sites->data),
+                                                          mirbooking_target_site_get_site_offset (target_sites->data),
                                                           mirbooking_target_site_get_mirna_quantity (target_sites->data, mirnas->data));
             }
         }
