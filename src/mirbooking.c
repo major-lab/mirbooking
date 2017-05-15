@@ -13,6 +13,10 @@ typedef struct
 
     GHashTable           *quantification; // #MirbookingSequence -> #gfloat
 
+    MirbookingTargetSite *target_sites;
+    gsize                 target_sites_len;
+
+    /* book keeping */
     GHashTable           *targets_sites;  //  #MirbookingTarget -> #GSList of #MirbookingTargetSite
 } MirbookingPrivate;
 
@@ -82,9 +86,11 @@ mirbooking_get_property (GObject *object, guint property_id, GValue *value, GPar
 static void
 mirbooking_target_site_free (MirbookingTargetSite *self)
 {
-    g_hash_table_unref (self->quantification);
+    if (self->quantification)
+    {
+        g_hash_table_unref (self->quantification);
+    }
     g_slist_free_full (self->mirnas, g_object_unref);
-    g_free (self);
 }
 
 static void
@@ -107,6 +113,7 @@ mirbooking_finalize (GObject *object)
     g_slist_free_full (self->priv->mirnas, g_object_unref);
     g_hash_table_foreach (self->priv->targets_sites, (GHFunc) free_slist_of_site_target, NULL);
     g_hash_table_unref (self->priv->targets_sites);
+    g_free (self->priv->target_sites);
 
     g_free (self->priv);
 
@@ -202,29 +209,39 @@ mirbooking_target_site_set_mirna_quantity (MirbookingTargetSite *self,
 gboolean
 mirbooking_run (Mirbooking *self, GError **error)
 {
+    gsize target_sites_len = 0;
+
     g_return_val_if_fail (MIRBOOKING_IS_MIRBOOKING (self), FALSE);
 
     GSList *target;
     for (target = self->priv->targets; target != NULL; target = target->next)
     {
-        gsize seq_len = mirbooking_sequence_get_sequence_length (target->data);
+        target_sites_len += mirbooking_sequence_get_sequence_length (target->data) - 7;
+    }
 
-        MirbookingTargetSite *target_sites = g_new0 (MirbookingTargetSite,
-                                                     seq_len - 7);
+    // allocate *all* the target sites in a single & contiguous chunk
+    self->priv->target_sites = g_new0 (MirbookingTargetSite, target_sites_len);
+    self->priv->target_sites_len = target_sites_len;
 
+    // bookkeep the sites
+    for (target = self->priv->targets; target != NULL; target = target->next)
+    {
         // build a *fake* linked-list even though they are all stored contigously
         GSList *target_sites_list = NULL;
+
+        gsize seq_len = mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target->data));
 
         gsize site_offset;
         for (site_offset = 0; site_offset < seq_len - 7; site_offset++)
         {
-            target_sites[site_offset].site_offset = site_offset;
-            g_slist_prepend (target_sites_list, &target_sites[site_offset]);
+            self->priv->target_sites[site_offset].site_offset = site_offset;
+            target_sites_list = g_slist_prepend (target_sites_list, self->priv->target_sites + site_offset);
         }
 
         g_hash_table_insert (self->priv->targets_sites,
                              target->data,
                              target_sites_list);
+    }
 
         /*
         gsize site_offset;
@@ -266,7 +283,6 @@ mirbooking_run (Mirbooking *self, GError **error)
                                  g_slist_prepend (target_sites, target_site));
         }
         */
-    }
 
     return TRUE;
 }
