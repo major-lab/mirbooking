@@ -127,6 +127,10 @@ mirbooking_score_table_compute_score (MirbookingScoreTable *self,
                                       gsize                 b_offset,
                                       gsize                 len)
 {
+    g_return_val_if_fail (self != NULL, 0.0f);
+    g_return_val_if_fail (a != NULL, 0.0f);
+    g_return_val_if_fail (b != NULL, 0.0f);
+
     union
     {
         gint32 i;

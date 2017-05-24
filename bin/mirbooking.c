@@ -11,36 +11,64 @@
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
-static gchar *mirnas_file;
-static gchar *targets_file;
-static gchar *score_table_file;
-static gchar *quantities_file;
-static gchar *output_file;
-static gdouble threshold;
-static gdouble log_base;
+static gchar   *mirnas_file      = NULL;
+static gchar   *targets_file     = NULL;
+static gchar   *score_table_file = NULL;
+static gchar   *quantities_file  = NULL;
+static gchar   *output_file      = NULL;
+static gdouble  threshold        = MIRBOOKING_DEFAULT_THRESHOLD;
+static gdouble  log_base         = MIRBOOKING_DEFAULT_LOG_BASE;
+static gdouble  utr5_multiplier  = 0.1;
+static gdouble  cds_multiplier   = 0.1;
+static gdouble  utr3_multiplier  = 1.0;
 
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
-    {"mirnas",      0, 0, G_OPTION_ARG_FILENAME, &mirnas_file,      "", "FILE"},
-    {"targets",     0, 0, G_OPTION_ARG_FILENAME, &targets_file,     "", "FILE"},
-    {"score-table", 0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "", "FILE"},
-    {"quantities",  0, 0, G_OPTION_ARG_FILENAME, &quantities_file,  "", "FILE"},
-    {"output",      0, 0, G_OPTION_ARG_FILENAME, &output_file,      "", "FILE"},
-    {"threshold",   0, 0, G_OPTION_ARG_DOUBLE,   &threshold,        "", G_STRINGIFY (MIRBOOKING_DEFAULT_THRESHOLD)},
-    {"log-base",    0, 0, G_OPTION_ARG_DOUBLE,   &log_base,         "", G_STRINGIFY (MIRBOOKING_DEFAULT_LOG_BASE)},
+    {"mirnas",                0, 0, G_OPTION_ARG_FILENAME, &mirnas_file,      "",                                                    "FILE"},
+    {"targets",               0, 0, G_OPTION_ARG_FILENAME, &targets_file,     "",                                                    "FILE"},
+    {"score-table",           0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "",                                                    "FILE"},
+    {"quantities",            0, 0, G_OPTION_ARG_FILENAME, &quantities_file,  "",                                                    "FILE"},
+    {"output",                0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination",                                  "FILE"},
+    {"threshold",             0, 0, G_OPTION_ARG_DOUBLE,   &threshold,        "Probability threshold for site matching",             G_STRINGIFY (MIRBOOKING_DEFAULT_THRESHOLD)},
+    {"log-base",              0, 0, G_OPTION_ARG_DOUBLE,   &log_base,         "Logarithm base for spreading quantites across sites", G_STRINGIFY (MIRBOOKING_DEFAULT_LOG_BASE)},
+    {"5prime-utr-multiplier", 0, 0, G_OPTION_ARG_DOUBLE,   &utr5_multiplier,  "Silencing multiplier for the 3'UTR region",           "0.1"},
+    {"cds-multiplier",        0, 0, G_OPTION_ARG_DOUBLE,   &cds_multiplier,   "Silencing multiplier for the CDS region",             "0.1"},
+    {"3prime-utr-multiplier", 0, 0, G_OPTION_ARG_DOUBLE,   &utr3_multiplier,  "Silencing multiplier for the 5'UTR region",           "1.0"},
     {NULL}
 };
+
+static gpointer
+gpointer_from_two_guint16 (guint16 a, guint16 b)
+{
+    union {
+        gpointer p;
+        guint16 u[2];
+    } ret;
+    ret.u[0] = a;
+    ret.u[1] = b;
+    return ret.p;
+}
+
+static void
+two_guint16_from_gpointer (gpointer ptr, guint16 out[2])
+{
+    union {
+        gpointer p;
+        guint16 u[2];
+    } ret;
+    ret.p = ptr;
+    out = ret.u;
+}
 
 static void
 read_sequences_from_fasta (FILE        *file,
                            GMappedFile *mapped_file,
                            gboolean     accession_in_comment,
-                           GHashTable  *sequences_hash)
+                           GHashTable  *sequences_hash,
+                           GHashTable  *cds_hash)
 {
     gchar *accession;
     gchar *comment;
-    gchar *cds;
-    gsize cds_start, cds_end;
     gchar *seq;
     gchar line[1024];
 
@@ -61,9 +89,14 @@ read_sequences_from_fasta (FILE        *file,
             comment = strtok (NULL, "");
 
             // lookup for a CDS in the comment
+            gchar *cds;
+            guint16 cds_start, cds_end;
             if ((cds = strstr (comment, "cds=")))
             {
-                sscanf (cds, "cds=" "%" G_GSIZE_FORMAT ".." "%" G_GSIZE_FORMAT, &cds_start, &cds_end);
+                sscanf (cds, "cds=" "%" G_GUINT16_FORMAT ".." "%" G_GUINT16_FORMAT, &cds_start, &cds_end);
+                g_hash_table_insert (cds_hash,
+                                     accession,
+                                     gpointer_from_two_guint16 (cds_start, cds_end));
             }
 
             seq = g_mapped_file_get_contents (mapped_file) + ftell (file);
@@ -87,16 +120,41 @@ read_sequences_from_fasta (FILE        *file,
                                                   seq,
                                                   seq_len);
 
-            if (MIRBOOKING_IS_TARGET (sequence))
-            {
-                mirbooking_target_set_cds (MIRBOOKING_TARGET (sequence),
-                                           cds_start,
-                                           cds_end - cds_start);
-            }
-
             g_hash_table_insert (sequences_hash, accession, sequence);
         }
     }
+}
+
+static gfloat
+compute_silencing (MirbookingTargetSite *target_site, GHashTable *cds_hash)
+{
+    gfloat silencing;
+
+    gfloat region_multiplier;
+    guint16 cds[2];
+    two_guint16_from_gpointer (g_hash_table_lookup (cds_hash, mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target))),
+                               cds);
+    if (target_site->site_offset < cds[0])
+    {
+        region_multiplier = utr5_multiplier;
+    }
+    else if (target_site->site_offset <= cds[1])
+    {
+        region_multiplier = cds_multiplier;
+    }
+    else
+    {
+        region_multiplier = utr3_multiplier;
+    }
+
+    GSList *mirna_quantity_list;
+    for (mirna_quantity_list = target_site->mirna_quantities; mirna_quantity_list != NULL; mirna_quantity_list = mirna_quantity_list->next)
+    {
+        MirbookingMirnaQuantity *mirna_quantity = mirna_quantity_list->data;
+        silencing += mirna_quantity->quantity;
+    }
+
+    return silencing * region_multiplier;
 }
 
 int
@@ -184,9 +242,13 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
+    // the accession belong to the 'sequences_hash'
+    g_autoptr (GHashTable) cds_hash = g_hash_table_new (g_str_hash,
+                                                        g_str_equal);
+
     // precondition mirnas and targets
-    read_sequences_from_fasta (mirnas_f, mirnas_map, TRUE, sequences_hash);
-    read_sequences_from_fasta (targets_f, targets_map, FALSE, sequences_hash);
+    read_sequences_from_fasta (mirnas_f, mirnas_map, TRUE, sequences_hash, cds_hash);
+    read_sequences_from_fasta (targets_f, targets_map, FALSE, sequences_hash, cds_hash);
 
     gchar line[1024];
     while (fgets (line, sizeof (line), quantities_f))
@@ -224,30 +286,26 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    GSList *targets;
-    GSList *target_sites;
-    GSList *mirnas;
+    g_fprintf (output_f, "Target Accession\tMirna Accession\tSite\tQuantity\tSilencing");
 
-    targets = mirbooking_get_targets (mirbooking);
+    gsize target_sites_len;
+    MirbookingTargetSite *target_sites = mirbooking_get_target_sites (mirbooking,
+                                                                      &target_sites_len);
 
-    g_fprintf (output_f, "Target Accession\tMirna Accession\tSite\tQuantity\n");
-
-    for (; targets != NULL; targets = targets->next)
+    MirbookingTargetSite *target_site = target_sites;
+    while (target_site < target_sites + target_sites_len)
     {
-        target_sites = mirbooking_get_target_sites (mirbooking, targets->data);
-
-        for (; target_sites != NULL; target_sites = target_sites->next)
+        GSList *mirna_quantities;
+        for (mirna_quantities = target_site->mirna_quantities; mirna_quantities != NULL; mirna_quantities = mirna_quantities->next)
         {
-            mirnas = mirbooking_target_site_get_mirnas (target_sites->data);
-
-            for (; mirnas != NULL; mirnas = mirnas->next)
-            {
-                g_fprintf (output_f, "%s\t%s\t%ld\t%f\n", mirbooking_sequence_get_accession (targets->data),
-                                                          mirbooking_sequence_get_accession (mirnas->data),
-                                                          mirbooking_target_site_get_site_offset (target_sites->data),
-                                                          mirbooking_target_site_get_mirna_quantity (target_sites->data, mirnas->data));
-            }
+            MirbookingMirnaQuantity *mirna_quantity = mirna_quantities->data;
+            g_fprintf (output_f, "%s\t%s\t%ld\t%f\t%f\n", mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
+                                                          mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (mirna_quantity->mirna)),
+                                                          target_site->site_offset,
+                                                          mirna_quantity->quantity,
+                                                          compute_silencing (target_site, cds_hash));
         }
+        ++target_site;
     }
 
     return EXIT_SUCCESS;

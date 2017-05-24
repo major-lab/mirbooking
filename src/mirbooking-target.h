@@ -16,11 +16,6 @@ struct _MirbookingTargetClass
 };
 
 MirbookingTarget * mirbooking_target_new     (const gchar *accession);
-void               mirbooking_target_set_cds (MirbookingTarget *self,
-                                              gsize             offset,
-                                              gsize             len);
-gsize              mirbooking_target_get_cds (MirbookingTarget *self,
-                                              gsize            *len);
 
 G_END_DECLS
 

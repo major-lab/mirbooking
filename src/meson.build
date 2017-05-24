@@ -12,7 +12,7 @@ mirbooking_sources = [
     'mirbooking-target.c']
 
 mirbooking_lib = library('mirbooking', mirbooking_sources,
-                         dependencies: [glib_dep, gobject_dep],
+                         dependencies: [glib_dep, gobject_dep, m_dep],
                          install: true)
 
 mirbooking_dep = declare_dependency(include_directories: include_directories('.'),
