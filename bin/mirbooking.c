@@ -233,6 +233,8 @@ main (gint argc, gchar **argv)
 
     mirbooking_set_threshold (mirbooking, threshold);
     mirbooking_set_log_base (mirbooking, log_base);
+    mirbooking_set_5prime_footprint (mirbooking, prime5_footprint);
+    mirbooking_set_3prime_footprint (mirbooking, prime3_footprint);
 
     if (score_table_file == NULL)
     {
