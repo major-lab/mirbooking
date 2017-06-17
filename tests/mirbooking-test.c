@@ -103,12 +103,42 @@ test_mirbooking ()
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE, strlen (TARGET_SEQUENCE));
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
 
-    mirbooking_set_target_quantity (mirbooking, target, 10);
-    mirbooking_set_mirna_quantity (mirbooking, mirna, 10);
+    mirbooking_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target), 10);
+    mirbooking_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna), 10);
 
     GError *error = NULL;
     g_assert (mirbooking_run (mirbooking, &error));
     g_assert_null (error);
+
+    gsize target_sites_len;
+    MirbookingTargetSite *target_sites = mirbooking_get_target_sites (mirbooking,
+                                                                      &target_sites_len);
+
+    guint total_occupancy = 0;
+    gint i;
+    for (i = 0; i < target_sites_len; i++)
+    {
+        if (target_sites[i].occupancy)
+            g_print ("%s %u\n", "a", target_sites[i].occupancy);
+
+        total_occupancy += target_sites[i].occupancy;
+
+        // g_print ("target %s position %d %lu\n", mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_sites[i].target)), i, target_sites[i].occupancy);
+        /*
+        if (i == 4079 || i == 2461 || i == 4155 || i == 4234)
+        {
+            g_assert_nonnull (target_sites[i].occupancy);
+            g_assert_cmpint (((MirbookingOccupant*) target_sites[i].occupants->data)->quantity, ==, 1);
+        }
+        else
+        {
+            g_print ("at site %i\n", i);
+            g_assert_null (target_sites[i].occupants);
+        }
+        */
+    }
+
+    g_assert_cmpint (total_occupancy, ==, 10);
 }
 
 gint

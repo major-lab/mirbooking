@@ -6,8 +6,10 @@
 
 typedef struct
 {
-    gfloat               threshold;
-    gfloat               log_base;
+    gfloat                threshold;
+    gfloat                log_base;
+    gsize                 prime5_footprint;
+    gsize                 prime3_footprint;
     MirbookingScoreTable *score_table;
 
     GSList               *targets;
@@ -40,7 +42,9 @@ enum
 {
     PROP_THRESHOLD = 1,
     PROP_LOG_BASE,
-    PROP_SCORES_TABLE
+    PROP_SCORES_TABLE,
+    PROP_5PRIME_FOOTPRINT,
+    PROP_3PRIME_FOOTPRINT
 };
 
 static void
@@ -56,6 +60,14 @@ mirbooking_set_property (GObject *object, guint property_id, const GValue *value
         case PROP_LOG_BASE:
             self->priv->log_base = g_value_get_float (value);
             break;
+        case PROP_5PRIME_FOOTPRINT:
+            self->priv->prime5_footprint = g_value_get_uint (value);
+            break;
+        case PROP_3PRIME_FOOTPRINT:
+            self->priv->prime3_footprint = g_value_get_uint (value);
+            break;
+        default:
+            g_assert_not_reached ();
     }
 }
 static void
@@ -71,22 +83,30 @@ mirbooking_get_property (GObject *object, guint property_id, GValue *value, GPar
         case PROP_LOG_BASE:
             g_value_set_float (value, self->priv->log_base);
             break;
+        case PROP_5PRIME_FOOTPRINT:
+            g_value_set_uint (value, self->priv->prime5_footprint);
+            break;
+        case PROP_3PRIME_FOOTPRINT:
+            g_value_set_uint (value, self->priv->prime3_footprint);
+            break;
+        default:
+            g_assert_not_reached ();
     }
 }
 
-static MirbookingMirnaQuantity *
-mirbooking_mirna_quantity_new (MirbookingMirna *mirna, gfloat quantity)
+static MirbookingOccupant *
+mirbooking_occupant_new (MirbookingMirna *mirna, guint quantity)
 {
-    MirbookingMirnaQuantity *ret = g_slice_new (MirbookingMirnaQuantity);
-    ret->mirna    = mirna;
-    ret->quantity = quantity;
+    MirbookingOccupant *ret = g_slice_new (MirbookingOccupant);
+    ret->mirna              = mirna;
+    ret->quantity           = quantity;
     return ret;
 }
 
 static void
-mirbooking_mirna_quantity_free (MirbookingMirnaQuantity *self, gpointer user_data)
+mirbooking_occupant_free (MirbookingOccupant *self, gpointer user_data)
 {
-    g_slice_free (MirbookingMirnaQuantity, self);
+    g_slice_free (MirbookingOccupant, self);
 }
 
 static void
@@ -105,7 +125,7 @@ mirbooking_finalize (GObject *object)
     MirbookingTargetSite *target_site = self->priv->target_sites;
     for (i = 0; i < self->priv->target_sites_len; i++)
     {
-        g_slist_free_full (target_site->mirna_quantities, (GDestroyNotify) mirbooking_mirna_quantity_free);
+        g_slist_free_full (target_site->occupants, (GDestroyNotify) mirbooking_occupant_free);
         ++target_site;
     }
     g_free (self->priv->target_sites);
@@ -131,6 +151,10 @@ mirbooking_class_init (MirbookingClass *klass)
                                      g_param_spec_float ("threshold", "", "", 0, 1, MIRBOOKING_DEFAULT_THRESHOLD, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_LOG_BASE,
                                      g_param_spec_float ("log-base", "", "", 1, G_MAXFLOAT, MIRBOOKING_DEFAULT_LOG_BASE, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class, PROP_5PRIME_FOOTPRINT,
+                                     g_param_spec_uint ("prime5-footprint", "", "", 0, G_MAXUINT, MIRBOOKING_DEFAULT_5PRIME_FOOTPRINT, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class, PROP_3PRIME_FOOTPRINT,
+                                     g_param_spec_uint ("prime3-footprint", "", "", 0, G_MAXUINT, MIRBOOKING_DEFAULT_3PRIME_FOOTPRINT, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
 }
 
 Mirbooking *
@@ -149,6 +173,20 @@ void
 mirbooking_set_log_base (Mirbooking *self, gfloat log_base)
 {
     self->priv->log_base = log_base;
+}
+
+void
+mirbooking_set_5prime_footprint (Mirbooking *self,
+                                 gsize       footprint)
+{
+    self->priv->prime5_footprint = footprint;
+}
+
+void
+mirbooking_set_3prime_footprint (Mirbooking *self,
+                                 gsize       footprint)
+{
+    self->priv->prime3_footprint = footprint;
 }
 
 void
@@ -177,25 +215,43 @@ gpointer_from_gfloat (gfloat flt)
     return ptr.p;
 }
 
-void
-mirbooking_set_target_quantity (Mirbooking *self, MirbookingTarget *target, gfloat quantity)
+union guintptr
 {
-    if (g_hash_table_insert (self->priv->quantification,
-                             target,
-                             gpointer_from_gfloat (quantity)));
-    {
-        self->priv->targets = g_slist_prepend (self->priv->targets, g_object_ref (target));
-    }
+    guint u;
+    gpointer p;
+};
+
+static gpointer
+gpointer_from_guint (guint u)
+{
+    union guintptr ptr = { .u = u };
+    return ptr.p;
+}
+
+static guint
+guint_from_gpointer (gpointer p)
+{
+    union guintptr ptr = { .p = p };
+    return ptr.u;
 }
 
 void
-mirbooking_set_mirna_quantity (Mirbooking *self, MirbookingMirna *mirna, gfloat quantity)
+mirbooking_set_sequence_quantity (Mirbooking *self, MirbookingSequence *sequence, gfloat quantity)
 {
+    g_return_if_fail (MIRBOOKING_IS_MIRNA (sequence) || MIRBOOKING_IS_TARGET (sequence));
+
     if (g_hash_table_insert (self->priv->quantification,
-                             mirna,
-                             gpointer_from_gfloat (quantity)))
+                             sequence,
+                             gpointer_from_gfloat (quantity)));
     {
-        self->priv->mirnas = g_slist_prepend (self->priv->mirnas, g_object_ref (mirna));
+        if (MIRBOOKING_IS_MIRNA (sequence))
+        {
+            self->priv->mirnas = g_slist_prepend (self->priv->mirnas, g_object_ref (sequence));
+        }
+        else
+        {
+            self->priv->targets = g_slist_prepend (self->priv->targets, g_object_ref (sequence));
+        }
     }
 }
 
@@ -238,19 +294,20 @@ mirbooking_run (Mirbooking *self, GError **error)
 
         gsize seq_len = mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target));
 
-        gsize site_offset;
-        for (site_offset = 0; site_offset < seq_len - 7; site_offset++)
+        gsize position;
+        for (position = 0; position < seq_len - 7; position++)
         {
             target_site->target           = target;
-            target_site->site_offset      = site_offset;
-            target_site->mirna_quantities = NULL;
+            target_site->position      = position;
+            target_site->occupants = NULL;
             ++target_site;
         }
     }
 
     // memoize assigned quantities
-    g_autoptr (GHashTable) assigned_quantities = g_hash_table_new ((GHashFunc) mirbooking_sequence_hash,
-                                                                   (GEqualFunc) mirbooking_sequence_equal);
+    // otherwise we would have to lookup the whole #MirbookingTargetSite array
+    g_autoptr (GHashTable) assigned_mirna_quantities = g_hash_table_new ((GHashFunc) mirbooking_sequence_hash,
+                                                                         (GEqualFunc) mirbooking_sequence_equal);
 
     target_site = self->priv->target_sites;
     while (target_site < self->priv->target_sites + self->priv->target_sites_len)
@@ -258,15 +315,32 @@ mirbooking_run (Mirbooking *self, GError **error)
         MirbookingTarget *target = target_site->target;
 
         gfloat available_target_quantity = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, target));
-        gfloat assigned_target_quantity = gfloat_from_gpointer (g_hash_table_lookup (assigned_quantities, target));
 
-        // TODO: compute actual vacancy (i.e. scan nearby sites) for the target
-        guint vacancy = available_target_quantity - assigned_target_quantity;
+        guint vacancy = available_target_quantity;
 
-        if (vacancy == 0)
+        // find the lower target site
+        MirbookingTargetSite *from_target_site = target_site;
+        while (from_target_site > self->priv->target_sites           &&
+               (from_target_site - 1)->target == target_site->target &&
+               (target_site - from_target_site) < self->priv->prime5_footprint)
         {
-            ++target_site; // TODO: jump to the next target
-            continue;
+            --from_target_site;
+        }
+
+        // find the upper target site
+        MirbookingTargetSite *to_target_site = target_site;
+        while (to_target_site < self->priv->target_sites + self->priv->target_sites_len &&
+               (to_target_site + 1)->target == target_site->target                      &&
+               (to_target_site - target_site) < self->priv->prime3_footprint)
+        {
+            ++to_target_site;
+        }
+
+        // minimize vacancy around the footprint
+        MirbookingTargetSite *nearby_target_site;
+        for (nearby_target_site = from_target_site; nearby_target_site < to_target_site; nearby_target_site++)
+        {
+            vacancy = MIN (vacancy, available_target_quantity - nearby_target_site->occupancy);
         }
 
         GSList *mirna_list;
@@ -279,46 +353,50 @@ mirbooking_run (Mirbooking *self, GError **error)
                 break; // the site has been filled
             }
 
+            gfloat available_mirna_quantity = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, mirna));
+            guint assigned_mirna_quantity  = guint_from_gpointer (g_hash_table_lookup (assigned_mirna_quantities, mirna));
+
+            if (available_mirna_quantity - assigned_mirna_quantity < 1.0f)
+            {
+                continue; // mirna is depleted
+            }
+
             gfloat seed_score = mirbooking_score_table_compute_score (self->priv->score_table,
                                                                       MIRBOOKING_SEQUENCE (target_site->target),
-                                                                      target_site->site_offset,
+                                                                      target_site->position,
                                                                       MIRBOOKING_SEQUENCE (mirna),
                                                                       1,
                                                                       7);
 
             if (seed_score >= self->priv->threshold)
             {
-                gfloat available_mirna_quantity = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, mirna));
-                gfloat assigned_mirna_quantity  = gfloat_from_gpointer (g_hash_table_lookup (assigned_quantities, mirna));
+                gfloat unassigned_mirna_quantity = available_mirna_quantity - assigned_mirna_quantity;
 
-                guint unassigned_mirna_quantity = available_mirna_quantity - assigned_mirna_quantity;
+                guint occupants = floorf (available_target_quantity * logf (unassigned_mirna_quantity) / logf (self->priv->log_base) * seed_score) + 1;
 
-                // the mirna has been used up
-                if (unassigned_mirna_quantity == 0)
-                {
-                    continue;
-                }
-
-                guint occupants = (guint) (available_target_quantity * logf (unassigned_mirna_quantity) / logf (self->priv->log_base) * seed_score) + 1;
-
-                occupants = MIN (occupants, unassigned_mirna_quantity);
+                occupants = MIN (occupants, floorf (unassigned_mirna_quantity));
                 occupants = MIN (occupants, vacancy);
 
+                g_assert_cmpint (vacancy, >, 0);
+                g_assert_cmpint (occupants, >, 0);
+                g_assert_cmpint (vacancy, >=, occupants);
+
                 // occupy the site
-                MirbookingMirnaQuantity *mirna_quantity = mirbooking_mirna_quantity_new (mirna, occupants);
-                mirna_quantity->mirna = mirna;
-                mirna_quantity->quantity = occupants;
-                target_site->mirna_quantities = g_slist_prepend (target_site->mirna_quantities, mirna_quantity);
+                MirbookingOccupant *occupant = mirbooking_occupant_new (mirna, occupants);
+                occupant->mirna = mirna;
+                occupant->quantity = occupants;
+                target_site->occupants = g_slist_prepend (target_site->occupants, occupant);
+                target_site->occupancy += occupants;
+
+                // update the vacancy of the current site
                 vacancy -= occupants;
 
-                // update the assigned quantity for the mirna and the targe
-                g_hash_table_insert (assigned_quantities, mirna, gpointer_from_gfloat (assigned_mirna_quantity + occupants));
-                assigned_target_quantity += occupants;
+                // update the assigned quantity for the mirna
+                g_hash_table_insert (assigned_mirna_quantities,
+                                     mirna,
+                                     gpointer_from_guint (assigned_mirna_quantity + occupants));
             }
         }
-
-        // update assigned quantity for the target
-        g_hash_table_insert (assigned_quantities, target, gpointer_from_gfloat (assigned_target_quantity));
 
         ++target_site;
     }

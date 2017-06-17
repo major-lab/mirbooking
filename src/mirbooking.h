@@ -10,8 +10,10 @@
 
 G_BEGIN_DECLS
 
-#define MIRBOOKING_DEFAULT_THRESHOLD 0.00125f
-#define MIRBOOKING_DEFAULT_LOG_BASE  512.0f
+#define MIRBOOKING_DEFAULT_THRESHOLD        0.00125f
+#define MIRBOOKING_DEFAULT_LOG_BASE         512.0f
+#define MIRBOOKING_DEFAULT_5PRIME_FOOTPRINT 26
+#define MIRBOOKING_DEFAULT_3PRIME_FOOTPRINT 19
 
 #define MIRBOOKING_TYPE mirbooking_get_type ()
 G_DECLARE_FINAL_TYPE (Mirbooking, mirbooking, MIRBOOKING, MIRBOOKING, GObject)
@@ -24,34 +26,34 @@ struct _MirbookingClass
 typedef struct _MirbookingTargetSite
 {
     MirbookingTarget *target;
-    gsize             site_offset;
-    GSList           *mirna_quantities; // #GSList of #MirbookingMirnaQuantity
+    gsize             position;
+    GSList           *occupants; // #GSList of #MirbookingOccupant
+    gsize             occupancy; // sum of
 } MirbookingTargetSite;
 
-typedef struct _MirbookingMirnaQuantity
+typedef struct _MirbookingOccupant
 {
     MirbookingMirna *mirna;
-    gfloat           quantity;
-} MirbookingMirnaQuantity;
+    guint            quantity;
+} MirbookingOccupant;
 
-Mirbooking * mirbooking_new                 (void);
-void         mirbooking_set_threshold       (Mirbooking *self,
-                                             gfloat      threshold);
-void         mirbooking_set_log_base        (Mirbooking *self,
-                                             gfloat      log_base);
-void         mirbooking_set_cds_multiplier  (Mirbooking *self,
-                                             gfloat      cds_multiplier);
-void         mirbooking_set_score_table     (Mirbooking           *self,
-                                             MirbookingScoreTable *score_table);
-void         mirbooking_set_target_quantity (Mirbooking       *self,
-                                             MirbookingTarget *target,
-                                             gfloat            quantity);
-void         mirbooking_set_mirna_quantity  (Mirbooking      *self,
-                                             MirbookingMirna *mirna,
-                                             gfloat           quantity);
+Mirbooking * mirbooking_new                   (void);
+void         mirbooking_set_threshold         (Mirbooking *self,
+                                               gfloat      threshold);
+void         mirbooking_set_log_base          (Mirbooking *self,
+                                               gfloat      log_base);
+void         mirbooking_set_5prime_footprint  (Mirbooking *self,
+                                               gsize       footprint);
+void         mirbooking_set_3prime_footprint  (Mirbooking *self,
+                                               gsize       footprint);
+void         mirbooking_set_score_table       (Mirbooking           *self,
+                                               MirbookingScoreTable *score_table);
+void         mirbooking_set_sequence_quantity (Mirbooking         *self,
+                                               MirbookingSequence *sequence,
+                                               gfloat              quantity);
+gboolean     mirbooking_run                   (Mirbooking *self, GError **error);
 
-gboolean     mirbooking_run                 (Mirbooking *self, GError **error);
-
+/* results */
 MirbookingTargetSite * mirbooking_get_target_sites (Mirbooking *self,
                                                     gsize      *target_sites_len);
 
