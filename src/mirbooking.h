@@ -28,7 +28,7 @@ typedef struct _MirbookingTargetSite
     MirbookingTarget *target;
     gsize             position;
     GSList           *occupants; // #GSList of #MirbookingOccupant
-    gsize             occupancy; // sum of
+    guint             occupancy; // sum of all occupants' quantities
 } MirbookingTargetSite;
 
 typedef struct _MirbookingOccupant
