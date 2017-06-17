@@ -354,7 +354,7 @@ main (gint argc, gchar **argv)
 
     g_hash_table_unref (sequences_hash);
 
-    if (ABS (logf (total_target_quantity) - logf (total_mirna_quantity)) < 1.0f)
+    if (ABS (logf (total_target_quantity) - logf (total_mirna_quantity)) >= 1.0f)
     {
         g_warning ("The quantity of mirnas %f is not in the same scale as the quantity of target %f.",
                    total_mirna_quantity,
