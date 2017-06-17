@@ -19,11 +19,16 @@ mirbooking --mirnas mirbase.fa --targets human-genome.fa --score-table scores [-
 The command line program expects a number of inputs:
 
  - a FASTA containing mRNA transcripts where the identifier is the accession
-   (i.e. NM_002710.3) and possibly a CDS token in the comment in the 'cds=a..b'
-   format where a and b are inclusive 1-based indexes
+   (i.e. NM_002710.3)
  - a FASTA containing mature miRNAs where the first token in the comment is the
    accession (i.e. MIMAT0004792)
+ - a two columns TSV document mapping target accessions to coding regions the
+   'a..b' format where a and b are inclusive 1-based indexes
  - a score table with hybridization probabilities for seeds
+ - a quantity file mapping target and mirna accessions to expressed quantity in
+   any comparable units
+
+The only requirements for the quantities is to be in the same magnitude order.
 
 The output is a TSV with the following columns:
 

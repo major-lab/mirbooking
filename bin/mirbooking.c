@@ -14,6 +14,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
 static gchar   *mirnas_file      = NULL;
 static gchar   *targets_file     = NULL;
+static gchar   *cds_regions_file = NULL;
 static gchar   *score_table_file = NULL;
 static gchar   *quantities_file  = NULL;
 static gchar   *output_file      = NULL;
@@ -29,6 +30,7 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
     {"mirnas",                0, 0, G_OPTION_ARG_FILENAME, &mirnas_file,      "",                                                    "FILE"},
     {"targets",               0, 0, G_OPTION_ARG_FILENAME, &targets_file,     "",                                                    "FILE"},
+    {"cds-regions",           0, 0, G_OPTION_ARG_FILENAME, &cds_regions_file, "",                                                    "FILE"},
     {"score-table",           0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "",                                                    "FILE"},
     {"quantities",            0, 0, G_OPTION_ARG_FILENAME, &quantities_file,  "",                                                    "FILE"},
     {"output",                0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination",                                  "FILE"},
@@ -70,11 +72,9 @@ static void
 read_sequences_from_fasta (FILE        *file,
                            GMappedFile *mapped_file,
                            gboolean     accession_in_comment,
-                           GHashTable  *sequences_hash,
-                           GHashTable  *cds_hash)
+                           GHashTable  *sequences_hash)
 {
     gchar *accession;
-    gchar *comment;
     gchar *seq;
     gchar line[1024];
 
@@ -87,22 +87,6 @@ read_sequences_from_fasta (FILE        *file,
             if (accession_in_comment)
             {
                 accession = strtok (NULL, " ");
-            }
-
-            accession = g_strdup (accession);
-
-            // consider the remaining line as a comment
-            comment = strtok (NULL, "");
-
-            // lookup for a CDS in the comment
-            gchar *cds;
-            guint16 cds_start, cds_end;
-            if (cds_hash != NULL && (cds = strstr (comment, "cds=")))
-            {
-                sscanf (cds, "cds=" "%" G_GUINT16_FORMAT ".." "%" G_GUINT16_FORMAT, &cds_start, &cds_end);
-                g_hash_table_insert (cds_hash,
-                                     g_strdup (accession),
-                                     gpointer_from_two_guint16 (cds_start - 1, cds_end)); /* convert inclusive index in proper slice */
             }
 
             seq = g_mapped_file_get_contents (mapped_file) + ftell (file);
@@ -126,7 +110,9 @@ read_sequences_from_fasta (FILE        *file,
                                                   seq,
                                                   seq_len);
 
-            g_hash_table_insert (sequences_hash, accession, sequence);
+            g_hash_table_insert (sequences_hash,
+                                 g_strdup (accession),
+                                 sequence);
         }
     }
 }
@@ -301,25 +287,45 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    // the accession belong to the 'sequences_hash'
-    g_autoptr (GHashTable) cds_hash = g_hash_table_new_full (g_str_hash,
-                                                             g_str_equal,
-                                                             g_free,
-                                                             NULL);
-
     // precondition mirnas
     read_sequences_from_fasta (mirnas_f,
                                mirnas_map,
                                TRUE,
-                               sequences_hash,
-                               NULL); /* CDS region only applies to targets */
+                               sequences_hash);
 
     // precondition targets
     read_sequences_from_fasta (targets_f,
                                targets_map,
                                FALSE,
-                               sequences_hash,
-                               cds_hash);
+                               sequences_hash);
+
+    g_autoptr (GHashTable) cds_hash = g_hash_table_new_full (g_str_hash,
+                                                             g_str_equal,
+                                                             g_free,
+                                                             NULL);
+
+    if (cds_regions_file != NULL)
+    {
+        g_autoptr (FILE) cds_regions_f = g_fopen (cds_regions_file, "r");
+
+        if (cds_regions_f == NULL)
+        {
+            g_printerr ("Could not open the CDS regions file.\n");
+            return EXIT_FAILURE;
+        }
+
+        // extract cds
+        gchar line[1024];
+        while (fgets (line, sizeof (line), cds_regions_f))
+        {
+            gchar *accession = strtok (line, "\t");
+            guint16 cds_start, cds_end;
+            sscanf (strtok (NULL, "\t"), "%" G_GUINT16_FORMAT ".." "%" G_GUINT16_FORMAT, &cds_start, &cds_end);
+            g_hash_table_insert (cds_hash,
+                                 g_strdup (accession),
+                                 gpointer_from_two_guint16 (cds_start - 1, cds_end)); /* convert inclusive index in proper slice */
+        }
+    }
 
     gfloat total_mirna_quantity;
     gfloat total_target_quantity;
