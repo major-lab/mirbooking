@@ -62,7 +62,8 @@ two_guint16_from_gpointer (gpointer ptr, guint16 out[2])
         guint16 u[2];
     } ret;
     ret.p = ptr;
-    out = ret.u;
+    out[0] = ret.u[0];
+    out[1] = ret.u[1];
 }
 
 static void
@@ -100,8 +101,8 @@ read_sequences_from_fasta (FILE        *file,
             {
                 sscanf (cds, "cds=" "%" G_GUINT16_FORMAT ".." "%" G_GUINT16_FORMAT, &cds_start, &cds_end);
                 g_hash_table_insert (cds_hash,
-                                     accession,
-                                     gpointer_from_two_guint16 (cds_start, cds_end));
+                                     g_strdup (accession),
+                                     gpointer_from_two_guint16 (cds_start - 1, cds_end)); /* convert inclusive index in proper slice */
             }
 
             seq = g_mapped_file_get_contents (mapped_file) + ftell (file);
@@ -134,8 +135,28 @@ typedef enum _MirbookingRegion
 {
     MIRBOOKING_REGION_5PRIME_UTR,
     MIRBOOKING_REGION_CDS,
-    MIRBOOKING_REGION_3PRIME_UTR
+    MIRBOOKING_REGION_3PRIME_UTR,
+    MIRBOOKING_REGION_UNKNOWN
 } MirbookingRegion;
+
+MirbookingRegion
+mirbooking_region_from_target_site (MirbookingTargetSite *target_site,
+                                    gsize                 a,
+                                    gsize                 b)
+{
+    if (target_site->position < a)
+    {
+        return MIRBOOKING_REGION_5PRIME_UTR;
+    }
+    else if (target_site->position < b)
+    {
+        return MIRBOOKING_REGION_CDS;
+    }
+    else
+    {
+        return MIRBOOKING_REGION_3PRIME_UTR;
+    }
+}
 
 static gchar *
 mirbooking_region_to_string (MirbookingRegion region)
@@ -148,38 +169,42 @@ mirbooking_region_to_string (MirbookingRegion region)
             return "CDS";
         case MIRBOOKING_REGION_3PRIME_UTR:
             return "3'UTR";
+        case MIRBOOKING_REGION_UNKNOWN:
+            return "N/A";
         default:
             g_assert_not_reached ();
     }
 }
 
 static gfloat
-compute_silencing (MirbookingTargetSite *target_site, MirbookingRegion region, GHashTable *cds_hash)
+compute_silencing (MirbookingTargetSite *target_site, MirbookingRegion region)
 {
     gfloat silencing;
-
     gfloat region_multiplier;
-    guint16 cds[2];
-    two_guint16_from_gpointer (g_hash_table_lookup (cds_hash, mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target))),
-                               cds);
-    if (target_site->position < cds[0])
-    {
-        region_multiplier = utr5_multiplier;
-    }
-    else if (target_site->position <= cds[1])
-    {
-        region_multiplier = cds_multiplier;
-    }
-    else
-    {
-        region_multiplier = utr3_multiplier;
-    }
 
     GSList *occupant_list;
     for (occupant_list = target_site->occupants; occupant_list != NULL; occupant_list = occupant_list->next)
     {
         MirbookingOccupant *occupant = occupant_list->data;
         silencing += occupant->quantity;
+    }
+
+    switch (region)
+    {
+        case MIRBOOKING_REGION_5PRIME_UTR:
+            region_multiplier = utr5_multiplier;
+            break;
+        case MIRBOOKING_REGION_CDS:
+            region_multiplier = cds_multiplier;
+            break;
+        case MIRBOOKING_REGION_3PRIME_UTR:
+            region_multiplier = utr3_multiplier;
+            break;
+        case MIRBOOKING_REGION_UNKNOWN:
+            region_multiplier = 1.0f;
+            break;
+        default:
+            g_assert_not_reached ();
     }
 
     return silencing * region_multiplier;
@@ -275,8 +300,10 @@ main (gint argc, gchar **argv)
     }
 
     // the accession belong to the 'sequences_hash'
-    g_autoptr (GHashTable) cds_hash = g_hash_table_new (g_str_hash,
-                                                        g_str_equal);
+    g_autoptr (GHashTable) cds_hash = g_hash_table_new_full (g_str_hash,
+                                                             g_str_equal,
+                                                             g_free,
+                                                             NULL);
 
     // precondition mirnas
     read_sequences_from_fasta (mirnas_f,
@@ -350,16 +377,32 @@ main (gint argc, gchar **argv)
         GSList *occupants;
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
         {
-            MirbookingRegion region = MIRBOOKING_REGION_CDS;
+            MirbookingRegion region;
+            gpointer cds_ptr;
+            cds_ptr = g_hash_table_lookup (cds_hash,
+                                           mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)));
+            if (cds_ptr != NULL)
+            {
+                guint16 cds[2];
+                two_guint16_from_gpointer (cds_ptr, cds);
+                region = mirbooking_region_from_target_site (target_site,
+                                                             cds[0],
+                                                             cds[1]);
+            }
+            else
+            {
+                region = MIRBOOKING_REGION_UNKNOWN;
+            }
+
             MirbookingOccupant *occupant = occupants->data;
             g_fprintf (output_f, "%s\t%s\t%ld\t%s\t%f\t%d\t%f\t%f\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
                        target_site->position + 1, // 1-based
                        mirbooking_region_to_string (region),
-                       0.0f,
+                       mirbooking_score_table_compute_score (score_table, MIRBOOKING_SEQUENCE (target_site->target), 0, MIRBOOKING_SEQUENCE (occupant->mirna), 1, 7),
                        occupant->quantity,
-                       compute_silencing (target_site, region, cds_hash),
+                       compute_silencing (target_site, region),
                        0.0f);
         }
         ++target_site;
