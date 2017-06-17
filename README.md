@@ -16,6 +16,38 @@ Implementation of the miRBooking algorithm and metrics in C
 mirbooking --mirnas mirbase.fa --targets human-genome.fa --score-table scores [--output output.tsv] [--threshold] [--log-base] [quantities]
 ```
 
+The command line program expects a number of inputs:
+
+ - a FASTA containing mRNA transcripts where the identifier is the accession
+   (i.e. NM_002710.3) and possibly a CDS token in the comment in the 'cds=a..b'
+   format where a and b are inclusive 1-based indexes
+ - a FASTA containing mature miRNAs where the first token in the comment is the
+   accession (i.e. MIMAT0004792)
+ - a score table with hybridization probabilities for seeds
+
+The output is a TSV with the following columns:
+
+ - Target Accession
+ - MiRNA Accession
+ - Position
+ - Location
+ - Probability
+ - Occupancy
+ - Silencing
+ - Tail Score
+
+```tsv
+Target Accession	MiRNA Accession	Position	Location	Probability	Occupancy	Silencing	Tail Score
+NM_002710.3	MIMAT0004792	6	CDS	0.000000	2	0.200000	0.000000
+NM_002710.3	MIMAT0022939	8	CDS	0.000000	1	0.100000	0.000000
+NM_002710.3	MIMAT0004507	10	CDS	0.000000	1	0.100000	0.000000
+NM_002710.3	MIMAT0004792	11	CDS	0.000000	3	0.300000	0.000000
+NM_002710.3	MIMAT0004792	15	CDS	0.000000	1	0.100000	0.000000
+NM_002710.3	MIMAT0004976	33	CDS	0.000000	1	0.100000	0.000000
+NM_002710.3	MIMAT0004980	34	CDS	0.000000	2	0.200000	0.000000
+NM_002710.3	MIMAT0004976	35	CDS	0.000000	1	0.100000	0.000000
+```
+
 ## Parallelization (using GNU parallel)
 
 ```bash
