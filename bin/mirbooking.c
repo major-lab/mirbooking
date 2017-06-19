@@ -28,19 +28,19 @@ static gdouble  utr3_multiplier  = 1.0;
 
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
-    {"mirnas",                0, 0, G_OPTION_ARG_FILENAME, &mirnas_file,      "",                                                    "FILE"},
-    {"targets",               0, 0, G_OPTION_ARG_FILENAME, &targets_file,     "",                                                    "FILE"},
-    {"cds-regions",           0, 0, G_OPTION_ARG_FILENAME, &cds_regions_file, "",                                                    "FILE"},
-    {"score-table",           0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "",                                                    "FILE"},
-    {"quantities",            0, 0, G_OPTION_ARG_FILENAME, &quantities_file,  "",                                                    "FILE"},
-    {"output",                0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination",                                  "FILE"},
-    {"threshold",             0, 0, G_OPTION_ARG_DOUBLE,   &threshold,        "Probability threshold for site matching",             G_STRINGIFY (MIRBOOKING_DEFAULT_THRESHOLD)},
-    {"log-base",              0, 0, G_OPTION_ARG_DOUBLE,   &log_base,         "Logarithm base for spreading quantites across sites", G_STRINGIFY (MIRBOOKING_DEFAULT_LOG_BASE)},
-    {"5prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime5_footprint, "Footprint in the MRE's 5' direction",                 G_STRINGIFY (MIRBOOKING_DEFAULT_5PRIME_FOOTPRINT)},
-    {"3prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime3_footprint, "Footprint in the MRE's 3' direction",                 G_STRINGIFY (MIRBOOKING_DEFAULT_3PRIME_FOOTPRINT)},
-    {"5prime-utr-multiplier", 0, 0, G_OPTION_ARG_DOUBLE,   &utr5_multiplier,  "Silencing multiplier for the 3'UTR region",           "0.1"},
-    {"cds-multiplier",        0, 0, G_OPTION_ARG_DOUBLE,   &cds_multiplier,   "Silencing multiplier for the CDS region",             "0.1"},
-    {"3prime-utr-multiplier", 0, 0, G_OPTION_ARG_DOUBLE,   &utr3_multiplier,  "Silencing multiplier for the 5'UTR region",           "1.0"},
+    {"mirnas",                0, 0, G_OPTION_ARG_FILENAME, &mirnas_file,      "MiRNAs sequences FASTA file",                                                                     "FILE"},
+    {"targets",               0, 0, G_OPTION_ARG_FILENAME, &targets_file,     "Transcripts sequences FASTA file",                                                                "FILE"},
+    {"cds-regions",           0, 0, G_OPTION_ARG_FILENAME, &cds_regions_file, "Coding regions as a two-column (accession, 1-based inclusive interval) TSV file",                 "FILE"},
+    {"score-table",           0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE duplex table as a big-endian float matrix file",                             "FILE"},
+    {"quantities",            0, 0, G_OPTION_ARG_FILENAME, &quantities_file,  "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
+    {"output",                0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
+    {"threshold",             0, 0, G_OPTION_ARG_DOUBLE,   &threshold,        "Probability threshold for site matching",                                                         G_STRINGIFY (MIRBOOKING_DEFAULT_THRESHOLD)},
+    {"log-base",              0, 0, G_OPTION_ARG_DOUBLE,   &log_base,         "Logarithm base for spreading quantites across sites",                                             G_STRINGIFY (MIRBOOKING_DEFAULT_LOG_BASE)},
+    {"5prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime5_footprint, "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_DEFAULT_5PRIME_FOOTPRINT)},
+    {"3prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime3_footprint, "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_DEFAULT_3PRIME_FOOTPRINT)},
+    {"5prime-utr-multiplier", 0, 0, G_OPTION_ARG_DOUBLE,   &utr5_multiplier,  "Silencing multiplier for the 3'UTR region",                                                       "0.1"},
+    {"cds-multiplier",        0, 0, G_OPTION_ARG_DOUBLE,   &cds_multiplier,   "Silencing multiplier for the CDS region",                                                         "0.1"},
+    {"3prime-utr-multiplier", 0, 0, G_OPTION_ARG_DOUBLE,   &utr3_multiplier,  "Silencing multiplier for the 5'UTR region",                                                       "1.0"},
     {NULL}
 };
 
