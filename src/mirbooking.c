@@ -343,8 +343,9 @@ mirbooking_run (Mirbooking *self, GError **error)
             vacancy = MIN (vacancy, available_target_quantity - nearby_target_site->occupancy);
         }
 
+        GSList *prev_mirna_list = NULL;
         GSList *mirna_list;
-        for (mirna_list = self->priv->mirnas; mirna_list != NULL; mirna_list = mirna_list->next)
+        for (mirna_list = self->priv->mirnas; mirna_list != NULL; prev_mirna_list = mirna_list, mirna_list = mirna_list->next)
         {
             MirbookingMirna *mirna = mirna_list->data;
 
@@ -358,6 +359,20 @@ mirbooking_run (Mirbooking *self, GError **error)
 
             if (available_mirna_quantity - assigned_mirna_quantity < 1.0f)
             {
+                // mirna is depleted
+
+                if (prev_mirna_list == NULL)
+                {
+                    self->priv->mirnas = mirna_list->next;
+                }
+                else
+                {
+                    prev_mirna_list->next = mirna_list->next;
+                }
+
+                mirna_list->next = NULL;
+                g_slist_free_full (mirna_list, g_object_unref);
+
                 continue; // mirna is depleted
             }
 
@@ -383,7 +398,7 @@ mirbooking_run (Mirbooking *self, GError **error)
 
                 // occupy the site
                 MirbookingOccupant *occupant = mirbooking_occupant_new (mirna, occupants);
-                occupant->mirna = mirna;
+                occupant->mirna = g_object_ref (mirna);
                 occupant->quantity = occupants;
                 target_site->occupants = g_slist_prepend (target_site->occupants, occupant);
                 target_site->occupancy += occupants;
