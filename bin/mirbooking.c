@@ -31,7 +31,7 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"mirnas",                0, 0, G_OPTION_ARG_FILENAME, &mirnas_file,      "MiRNAs sequences FASTA file",                                                                     "FILE"},
     {"targets",               0, 0, G_OPTION_ARG_FILENAME, &targets_file,     "Transcripts sequences FASTA file",                                                                "FILE"},
     {"cds-regions",           0, 0, G_OPTION_ARG_FILENAME, &cds_regions_file, "Coding regions as a two-column (accession, 1-based inclusive interval) TSV file",                 "FILE"},
-    {"score-table",           0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE duplex table as a big-endian float matrix file",                             "FILE"},
+    {"score-table",           0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE duplex table as a row-major big-endian float matrix file",                   "FILE"},
     {"quantities",            0, 0, G_OPTION_ARG_FILENAME, &quantities_file,  "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
     {"output",                0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
     {"threshold",             0, 0, G_OPTION_ARG_DOUBLE,   &threshold,        "Probability threshold for site matching",                                                         G_STRINGIFY (MIRBOOKING_DEFAULT_THRESHOLD)},
