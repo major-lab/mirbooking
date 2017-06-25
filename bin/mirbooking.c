@@ -373,7 +373,7 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_fprintf (output_f, "Target Accession\tMiRNA Accession\tPosition\tLocation\tProbability\tOccupancy\tSilencing\tTail Score\n");
+    g_fprintf (output_f, "Target Accession\tMiRNA Accession\tPosition\tLocation\tProbability\tOccupancy\tSilencing\n");
 
     gsize target_sites_len;
     MirbookingTargetSite *target_sites = mirbooking_get_target_sites (mirbooking,
@@ -403,15 +403,14 @@ main (gint argc, gchar **argv)
             }
 
             MirbookingOccupant *occupant = occupants->data;
-            g_fprintf (output_f, "%s\t%s\t%ld\t%s\t%f\t%d\t%f\t%f\n",
+            g_fprintf (output_f, "%s\t%s\t%ld\t%s\t%f\t%d\t%f\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
                        target_site->position + 1, // 1-based
                        mirbooking_region_to_string (region),
                        mirbooking_score_table_compute_score (score_table, MIRBOOKING_SEQUENCE (target_site->target), 0, MIRBOOKING_SEQUENCE (occupant->mirna), 1, 7),
                        occupant->quantity,
-                       compute_silencing (target_site, region),
-                       0.0f);
+                       compute_silencing (target_site, region));
         }
         ++target_site;
     }
