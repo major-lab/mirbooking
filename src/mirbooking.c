@@ -98,7 +98,7 @@ static MirbookingOccupant *
 mirbooking_occupant_new (MirbookingMirna *mirna, guint quantity)
 {
     MirbookingOccupant *ret = g_slice_new (MirbookingOccupant);
-    ret->mirna              = mirna;
+    ret->mirna              = g_object_ref (mirna);
     ret->quantity           = quantity;
     return ret;
 }
@@ -106,6 +106,7 @@ mirbooking_occupant_new (MirbookingMirna *mirna, guint quantity)
 static void
 mirbooking_occupant_free (MirbookingOccupant *self, gpointer user_data)
 {
+    g_object_unref (self->mirna);
     g_slice_free (MirbookingOccupant, self);
 }
 
@@ -398,8 +399,6 @@ mirbooking_run (Mirbooking *self, GError **error)
 
                 // occupy the site
                 MirbookingOccupant *occupant = mirbooking_occupant_new (mirna, occupants);
-                occupant->mirna = g_object_ref (mirna);
-                occupant->quantity = occupants;
                 target_site->occupants = g_slist_prepend (target_site->occupants, occupant);
                 target_site->occupancy += occupants;
 
