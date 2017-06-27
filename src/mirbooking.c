@@ -298,9 +298,10 @@ mirbooking_run (Mirbooking *self, GError **error)
         gsize position;
         for (position = 0; position < seq_len - 7; position++)
         {
-            target_site->target           = target;
-            target_site->position      = position;
+            target_site->target    = target;
+            target_site->position  = position;
             target_site->occupants = NULL;
+            target_site->occupancy = 0;
             ++target_site;
         }
     }

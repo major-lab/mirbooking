@@ -118,24 +118,17 @@ test_mirbooking ()
     gint i;
     for (i = 0; i < target_sites_len; i++)
     {
-        if (target_sites[i].occupancy)
-            g_print ("%s %u\n", "a", target_sites[i].occupancy);
-
-        total_occupancy += target_sites[i].occupancy;
-
-        // g_print ("target %s position %d %lu\n", mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_sites[i].target)), i, target_sites[i].occupancy);
-        /*
-        if (i == 4079 || i == 2461 || i == 4155 || i == 4234)
+        guint site_occupancy = 0;
+        GSList *occupants_list = NULL;
+        for (occupants_list = target_sites[i].occupants; occupants_list != NULL; occupants_list = occupants_list->next)
         {
-            g_assert_nonnull (target_sites[i].occupancy);
-            g_assert_cmpint (((MirbookingOccupant*) target_sites[i].occupants->data)->quantity, ==, 1);
+            MirbookingOccupant *occupant = occupants_list->data;
+            site_occupancy += occupant->quantity;
         }
-        else
-        {
-            g_print ("at site %i\n", i);
-            g_assert_null (target_sites[i].occupants);
-        }
-        */
+
+        g_assert_cmpint (site_occupancy, ==, target_sites[i].occupancy);
+
+        total_occupancy += site_occupancy;
     }
 
     g_assert_cmpint (total_occupancy, ==, 10);
