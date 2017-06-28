@@ -54,8 +54,8 @@ void         mirbooking_set_sequence_quantity (Mirbooking         *self,
 gboolean     mirbooking_run                   (Mirbooking *self, GError **error);
 
 /* results */
-MirbookingTargetSite * mirbooking_get_target_sites (Mirbooking *self,
-                                                    gsize      *target_sites_len);
+const MirbookingTargetSite * mirbooking_get_target_sites (Mirbooking *self,
+                                                          gsize      *target_sites_len);
 
 G_END_DECLS
 

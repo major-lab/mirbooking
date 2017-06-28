@@ -126,9 +126,9 @@ typedef enum _MirbookingRegion
 } MirbookingRegion;
 
 MirbookingRegion
-mirbooking_region_from_target_site (MirbookingTargetSite *target_site,
-                                    gsize                 a,
-                                    gsize                 b)
+mirbooking_region_from_target_site (const MirbookingTargetSite *target_site,
+                                    gsize                       a,
+                                    gsize                       b)
 {
     if (target_site->position < a)
     {
@@ -163,7 +163,7 @@ mirbooking_region_to_string (MirbookingRegion region)
 }
 
 static gfloat
-compute_silencing (MirbookingTargetSite *target_site, MirbookingRegion region)
+compute_silencing (const MirbookingTargetSite *target_site, MirbookingRegion region)
 {
     gfloat silencing;
     gfloat region_multiplier;
@@ -376,10 +376,10 @@ main (gint argc, gchar **argv)
     g_fprintf (output_f, "Target Accession\tMiRNA Accession\tPosition\tLocation\tProbability\tOccupancy\tSilencing\n");
 
     gsize target_sites_len;
-    MirbookingTargetSite *target_sites = mirbooking_get_target_sites (mirbooking,
-                                                                      &target_sites_len);
+    const MirbookingTargetSite *target_sites = mirbooking_get_target_sites (mirbooking,
+                                                                            &target_sites_len);
 
-    MirbookingTargetSite *target_site = target_sites;
+    const MirbookingTargetSite *target_site = target_sites;
     while (target_site < target_sites + target_sites_len)
     {
         GSList *occupants;

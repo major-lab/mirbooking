@@ -111,8 +111,8 @@ test_mirbooking ()
     g_assert_null (error);
 
     gsize target_sites_len;
-    MirbookingTargetSite *target_sites = mirbooking_get_target_sites (mirbooking,
-                                                                      &target_sites_len);
+    const MirbookingTargetSite *target_sites = mirbooking_get_target_sites (mirbooking,
+                                                                            &target_sites_len);
 
     guint total_occupancy = 0;
     gint i;
