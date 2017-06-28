@@ -122,17 +122,18 @@ mirbooking_finalize (GObject *object)
 
     g_hash_table_unref (self->priv->quantification);
 
+    g_slist_free_full (self->priv->targets, g_object_unref);
+    g_slist_free_full (self->priv->mirnas, g_object_unref);
+
     gint i;
     MirbookingTargetSite *target_site = self->priv->target_sites;
     for (i = 0; i < self->priv->target_sites_len; i++)
     {
+        g_object_unref (target_site->target);
         g_slist_free_full (target_site->occupants, (GDestroyNotify) mirbooking_occupant_free);
         ++target_site;
     }
     g_free (self->priv->target_sites);
-
-    g_slist_free_full (self->priv->targets, g_object_unref);
-    g_slist_free_full (self->priv->mirnas, g_object_unref);
 
     g_free (self->priv);
 
@@ -298,7 +299,7 @@ mirbooking_run (Mirbooking *self, GError **error)
         gsize position;
         for (position = 0; position < seq_len - 7; position++)
         {
-            target_site->target    = target;
+            target_site->target    = g_object_ref (target);
             target_site->position  = position;
             target_site->occupants = NULL;
             target_site->occupancy = 0;
@@ -415,6 +416,16 @@ mirbooking_run (Mirbooking *self, GError **error)
 
         ++target_site;
     }
+
+    // clear internal quantification & mirnas
+    // references of used sequences are kept in the target sites
+    g_hash_table_remove_all (self->priv->quantification);
+
+    g_slist_free_full (self->priv->targets, g_object_unref);
+    self->priv->targets = NULL;
+
+    g_slist_free_full (self->priv->mirnas, g_object_unref);
+    self->priv->mirnas = NULL;
 
     return TRUE;
 }
