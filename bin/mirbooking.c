@@ -18,10 +18,10 @@ static gchar   *cds_regions_file = NULL;
 static gchar   *score_table_file = NULL;
 static gchar   *quantities_file  = NULL;
 static gchar   *output_file      = NULL;
-static gdouble  threshold        = MIRBOOKING_DEFAULT_THRESHOLD;
-static gdouble  log_base         = MIRBOOKING_DEFAULT_LOG_BASE;
-static gsize    prime5_footprint = MIRBOOKING_DEFAULT_5PRIME_FOOTPRINT;
-static gsize    prime3_footprint = MIRBOOKING_DEFAULT_3PRIME_FOOTPRINT;
+static gdouble  threshold        = MIRBOOKING_BROKER_DEFAULT_THRESHOLD;
+static gdouble  log_base         = MIRBOOKING_BROKER_DEFAULT_LOG_BASE;
+static gsize    prime5_footprint = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
+static gsize    prime3_footprint = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
 static gdouble  utr5_multiplier  = 0.1;
 static gdouble  cds_multiplier   = 0.1;
 static gdouble  utr3_multiplier  = 1.0;
@@ -34,10 +34,10 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"score-table",           0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE duplex table as a row-major big-endian float matrix file",                   "FILE"},
     {"quantities",            0, 0, G_OPTION_ARG_FILENAME, &quantities_file,  "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
     {"output",                0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
-    {"threshold",             0, 0, G_OPTION_ARG_DOUBLE,   &threshold,        "Probability threshold for site matching",                                                         G_STRINGIFY (MIRBOOKING_DEFAULT_THRESHOLD)},
-    {"log-base",              0, 0, G_OPTION_ARG_DOUBLE,   &log_base,         "Logarithm base for spreading quantites across sites",                                             G_STRINGIFY (MIRBOOKING_DEFAULT_LOG_BASE)},
-    {"5prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime5_footprint, "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_DEFAULT_5PRIME_FOOTPRINT)},
-    {"3prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime3_footprint, "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_DEFAULT_3PRIME_FOOTPRINT)},
+    {"threshold",             0, 0, G_OPTION_ARG_DOUBLE,   &threshold,        "Probability threshold for site matching",                                                         G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_THRESHOLD)},
+    {"log-base",              0, 0, G_OPTION_ARG_DOUBLE,   &log_base,         "Logarithm base for spreading quantites across sites",                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_LOG_BASE)},
+    {"5prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime5_footprint, "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
+    {"3prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime3_footprint, "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
     {"5prime-utr-multiplier", 0, 0, G_OPTION_ARG_DOUBLE,   &utr5_multiplier,  "Silencing multiplier for the 3'UTR region",                                                       "0.1"},
     {"cds-multiplier",        0, 0, G_OPTION_ARG_DOUBLE,   &cds_multiplier,   "Silencing multiplier for the CDS region",                                                         "0.1"},
     {"3prime-utr-multiplier", 0, 0, G_OPTION_ARG_DOUBLE,   &utr3_multiplier,  "Silencing multiplier for the 5'UTR region",                                                       "1.0"},
@@ -199,12 +199,12 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_autoptr (Mirbooking) mirbooking = mirbooking_new ();
+    g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new ();
 
-    mirbooking_set_threshold (mirbooking, threshold);
-    mirbooking_set_log_base (mirbooking, log_base);
-    mirbooking_set_5prime_footprint (mirbooking, prime5_footprint);
-    mirbooking_set_3prime_footprint (mirbooking, prime3_footprint);
+    mirbooking_broker_set_threshold (mirbooking, threshold);
+    mirbooking_broker_set_log_base (mirbooking, log_base);
+    mirbooking_broker_set_5prime_footprint (mirbooking, prime5_footprint);
+    mirbooking_broker_set_3prime_footprint (mirbooking, prime3_footprint);
 
     if (score_table_file == NULL)
     {
@@ -220,7 +220,8 @@ main (gint argc, gchar **argv)
     }
 
     g_autoptr (MirbookingScoreTable) score_table = mirbooking_score_table_new_precomputed (g_mapped_file_get_bytes (score_map));
-    mirbooking_set_score_table (mirbooking, score_table);
+    mirbooking_broker_set_score_table (mirbooking,
+                                       g_object_ref (score_table));
 
     if (mirnas_file == NULL)
     {
@@ -328,9 +329,9 @@ main (gint argc, gchar **argv)
             continue;
         }
 
-        mirbooking_set_sequence_quantity (mirbooking,
-                                          g_object_ref (sequence),
-                                          quantity);
+        mirbooking_broker_set_sequence_quantity (mirbooking,
+                                                 g_object_ref (sequence),
+                                                 quantity);
 
         if (MIRBOOKING_IS_MIRNA (sequence))
         {
@@ -352,7 +353,7 @@ main (gint argc, gchar **argv)
                    total_target_quantity);
     }
 
-    if (!mirbooking_run (mirbooking, &error))
+    if (!mirbooking_broker_run (mirbooking, &error))
     {
         g_printerr ("%s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);
         return EXIT_FAILURE;
@@ -361,8 +362,8 @@ main (gint argc, gchar **argv)
     g_fprintf (output_f, "Target Accession\tMiRNA Accession\tPosition\tLocation\tProbability\tOccupancy\tSilencing\n");
 
     gsize target_sites_len;
-    const MirbookingTargetSite *target_sites = mirbooking_get_target_sites (mirbooking,
-                                                                            &target_sites_len);
+    const MirbookingTargetSite *target_sites = mirbooking_broker_get_target_sites (mirbooking,
+                                                                                   &target_sites_len);
 
     const MirbookingTargetSite *target_site = target_sites;
     while (target_site < target_sites + target_sites_len)

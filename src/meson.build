@@ -5,7 +5,7 @@ install_headers(['mirbooking.h',
                  'mirbooking-target.h'], subdir: 'mirbooking-1.0')
 
 mirbooking_sources = [
-    'mirbooking.c',
+    'mirbooking-broker.c',
     'mirbooking-mirna.c',
     'mirbooking-score-table.c',
     'mirbooking-sequence.c',

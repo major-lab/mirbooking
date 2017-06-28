@@ -1,4 +1,4 @@
-#include "mirbooking.h"
+#include "mirbooking-broker.h"
 
 #define _GNU_SOURCE
 #include <stdlib.h>
@@ -20,20 +20,20 @@ typedef struct
     /* all the target sites, stored contiguously */
     MirbookingTargetSite *target_sites;
     gsize                 target_sites_len;
-} MirbookingPrivate;
+} MirbookingBrokerPrivate;
 
-struct _Mirbooking
+struct _MirbookingBroker
 {
-    GObject            parent_instance;
-    MirbookingPrivate *priv;
+    GObject                  parent_instance;
+    MirbookingBrokerPrivate *priv;
 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (Mirbooking, mirbooking, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (MirbookingBroker, mirbooking_broker, G_TYPE_OBJECT)
 
 static void
-mirbooking_init (Mirbooking *self)
+mirbooking_broker_init (MirbookingBroker *self)
 {
-    self->priv = g_new0 (MirbookingPrivate, 1);
+    self->priv = g_new0 (MirbookingBrokerPrivate, 1);
     self->priv->quantification = g_hash_table_new ((GHashFunc) mirbooking_sequence_hash,
                                                    (GEqualFunc) mirbooking_sequence_equal);
 }
@@ -42,15 +42,15 @@ enum
 {
     PROP_THRESHOLD = 1,
     PROP_LOG_BASE,
-    PROP_SCORES_TABLE,
     PROP_5PRIME_FOOTPRINT,
-    PROP_3PRIME_FOOTPRINT
+    PROP_3PRIME_FOOTPRINT,
+    PROP_SCORE_TABLE
 };
 
 static void
-mirbooking_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+mirbooking_broker_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
-    Mirbooking *self = MIRBOOKING_MIRBOOKING (object);
+    MirbookingBroker *self = MIRBOOKING_BROKER (object);
 
     switch (property_id)
     {
@@ -66,14 +66,18 @@ mirbooking_set_property (GObject *object, guint property_id, const GValue *value
         case PROP_3PRIME_FOOTPRINT:
             self->priv->prime3_footprint = g_value_get_uint (value);
             break;
+        case PROP_SCORE_TABLE:
+            self->priv->score_table = g_value_get_object (value);
+            break;
         default:
             g_assert_not_reached ();
     }
 }
+
 static void
-mirbooking_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+mirbooking_broker_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
 {
-    Mirbooking *self = MIRBOOKING_MIRBOOKING (object);
+    MirbookingBroker *self = MIRBOOKING_BROKER (object);
 
     switch (property_id)
     {
@@ -89,6 +93,8 @@ mirbooking_get_property (GObject *object, guint property_id, GValue *value, GPar
         case PROP_3PRIME_FOOTPRINT:
             g_value_set_uint (value, self->priv->prime3_footprint);
             break;
+        case PROP_SCORE_TABLE:
+            g_value_set_object (value, self->priv->score_table);
         default:
             g_assert_not_reached ();
     }
@@ -111,9 +117,9 @@ mirbooking_occupant_free (MirbookingOccupant *self, gpointer user_data)
 }
 
 static void
-mirbooking_finalize (GObject *object)
+mirbooking_broker_finalize (GObject *object)
 {
-    Mirbooking *self = MIRBOOKING_MIRBOOKING (object);
+    MirbookingBroker *self = MIRBOOKING_BROKER (object);
 
     if (self->priv->score_table)
     {
@@ -137,64 +143,71 @@ mirbooking_finalize (GObject *object)
 
     g_free (self->priv);
 
-    G_OBJECT_CLASS (mirbooking_parent_class)->finalize (object);
+    G_OBJECT_CLASS (mirbooking_broker_parent_class)->finalize (object);
 }
 
 static void
-mirbooking_class_init (MirbookingClass *klass)
+mirbooking_broker_class_init (MirbookingBrokerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->set_property = mirbooking_set_property;
-    object_class->get_property = mirbooking_get_property;
-    object_class->finalize     = mirbooking_finalize;
+    object_class->set_property = mirbooking_broker_set_property;
+    object_class->get_property = mirbooking_broker_get_property;
+    object_class->finalize     = mirbooking_broker_finalize;
 
     g_object_class_install_property (object_class, PROP_THRESHOLD,
-                                     g_param_spec_float ("threshold", "", "", 0, 1, MIRBOOKING_DEFAULT_THRESHOLD, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+                                     g_param_spec_float ("threshold", "", "", 0, 1, MIRBOOKING_BROKER_DEFAULT_THRESHOLD, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_LOG_BASE,
-                                     g_param_spec_float ("log-base", "", "", 1, G_MAXFLOAT, MIRBOOKING_DEFAULT_LOG_BASE, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+                                     g_param_spec_float ("log-base", "", "", 1, G_MAXFLOAT, MIRBOOKING_BROKER_DEFAULT_LOG_BASE, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_5PRIME_FOOTPRINT,
-                                     g_param_spec_uint ("prime5-footprint", "", "", 0, G_MAXUINT, MIRBOOKING_DEFAULT_5PRIME_FOOTPRINT, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+                                     g_param_spec_uint ("prime5-footprint", "", "", 0, G_MAXUINT, MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_3PRIME_FOOTPRINT,
-                                     g_param_spec_uint ("prime3-footprint", "", "", 0, G_MAXUINT, MIRBOOKING_DEFAULT_3PRIME_FOOTPRINT, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+                                     g_param_spec_uint ("prime3-footprint", "", "", 0, G_MAXUINT, MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class, PROP_SCORE_TABLE,
+                                     g_param_spec_object ("score-table", "", "", MIRBOOKING_TYPE_SCORE_TABLE, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
 }
 
-Mirbooking *
-mirbooking_new ()
+/**
+ * mirbooking_broker_new:
+ *
+ * Returns: (transfer full): A plain #Mirbooking instance
+ */
+MirbookingBroker *
+mirbooking_broker_new (void)
 {
-    return g_object_new (MIRBOOKING_TYPE, NULL);
+    return g_object_new (MIRBOOKING_BROKER_TYPE, NULL);
 }
 
 void
-mirbooking_set_threshold (Mirbooking *self, gfloat threshold)
+mirbooking_broker_set_threshold (MirbookingBroker *self, gfloat threshold)
 {
     self->priv->threshold = threshold;
 }
 
 void
-mirbooking_set_log_base (Mirbooking *self, gfloat log_base)
+mirbooking_broker_set_log_base (MirbookingBroker *self, gfloat log_base)
 {
     self->priv->log_base = log_base;
 }
 
 void
-mirbooking_set_5prime_footprint (Mirbooking *self,
+mirbooking_broker_set_5prime_footprint (MirbookingBroker *self,
                                  gsize       footprint)
 {
     self->priv->prime5_footprint = footprint;
 }
 
 void
-mirbooking_set_3prime_footprint (Mirbooking *self,
+mirbooking_broker_set_3prime_footprint (MirbookingBroker *self,
                                  gsize       footprint)
 {
     self->priv->prime3_footprint = footprint;
 }
 
 void
-mirbooking_set_score_table (Mirbooking *self, MirbookingScoreTable *score_table)
+mirbooking_broker_set_score_table (MirbookingBroker *self, MirbookingScoreTable *score_table)
 {
-    self->priv->score_table = g_object_ref (score_table);
+    self->priv->score_table = score_table;
 }
 
 union gfloatptr
@@ -237,8 +250,13 @@ guint_from_gpointer (gpointer p)
     return ptr.u;
 }
 
+/**
+ * mirbooking_set_sequence_quantity:
+ * @sequence: A #MirbookingSequence being quantified for the
+ * upcoming execution
+ */
 void
-mirbooking_set_sequence_quantity (Mirbooking *self, MirbookingSequence *sequence, gfloat quantity)
+mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSequence *sequence, gfloat quantity)
 {
     g_return_if_fail (MIRBOOKING_IS_MIRNA (sequence) || MIRBOOKING_IS_TARGET (sequence));
 
@@ -258,7 +276,7 @@ mirbooking_set_sequence_quantity (Mirbooking *self, MirbookingSequence *sequence
 }
 
 static int
-sequence_cmp_desc (MirbookingSequence *a, MirbookingSequence *b, Mirbooking *mirbooking)
+sequence_cmp_desc (MirbookingSequence *a, MirbookingSequence *b, MirbookingBroker *mirbooking)
 {
     gfloat a_quantity = gfloat_from_gpointer (g_hash_table_lookup (mirbooking->priv->quantification, a));
     gfloat b_quantity = gfloat_from_gpointer (g_hash_table_lookup (mirbooking->priv->quantification, b));
@@ -266,7 +284,7 @@ sequence_cmp_desc (MirbookingSequence *a, MirbookingSequence *b, Mirbooking *mir
 }
 
 gboolean
-mirbooking_run (Mirbooking *self, GError **error)
+mirbooking_broker_run (MirbookingBroker *self, GError **error)
 {
     gsize target_sites_len = 0;
 
@@ -377,7 +395,7 @@ mirbooking_run (Mirbooking *self, GError **error)
                 mirna_list->next = NULL;
                 g_slist_free_full (mirna_list, g_object_unref);
 
-                continue; // mirna is depleted
+                continue;
             }
 
             gfloat seed_score = mirbooking_score_table_compute_score (self->priv->score_table,
@@ -429,12 +447,18 @@ mirbooking_run (Mirbooking *self, GError **error)
     return TRUE;
 }
 
+/**
+ * mirbooking_get_target_sites:
+ * @target_sites_len: (out)
+ *
+ * Returns: (transfer none) (array length=target_sites_len)
+ */
 const MirbookingTargetSite *
-mirbooking_get_target_sites (Mirbooking *self, gsize *len)
+mirbooking_broker_get_target_sites (MirbookingBroker *self, gsize *target_sites_len)
 {
     g_return_val_if_fail (self != NULL, NULL);
     g_return_val_if_fail (self->priv->target_sites != NULL, NULL);
 
-    *len = self->priv->target_sites_len;
+    *target_sites_len = self->priv->target_sites_len;
     return self->priv->target_sites;
 }

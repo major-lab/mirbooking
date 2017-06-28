@@ -89,13 +89,13 @@ static gchar *MIRNA_SEQUENCE = "UGAGGUAGUAGGUUGUAUAGUU";
 static void
 test_mirbooking ()
 {
-    g_autoptr (Mirbooking) mirbooking = mirbooking_new ();
+    g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new ();
 
-    mirbooking_set_threshold (mirbooking, 0.0f); // the score table is zeroed anyway
+    mirbooking_broker_set_threshold (mirbooking, 0.0f); // the score table is zeroed anyway
 
     g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
     g_autoptr (MirbookingScoreTable) score_table = mirbooking_score_table_new_precomputed (precomputed_table);
-    mirbooking_set_score_table (mirbooking, score_table);
+    mirbooking_broker_set_score_table (mirbooking, g_object_ref (score_table));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
@@ -103,16 +103,16 @@ test_mirbooking ()
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE, strlen (TARGET_SEQUENCE));
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
 
-    mirbooking_set_sequence_quantity (mirbooking, g_object_ref (MIRBOOKING_SEQUENCE (target)), 10);
-    mirbooking_set_sequence_quantity (mirbooking, g_object_ref (MIRBOOKING_SEQUENCE (mirna)), 10);
+    mirbooking_broker_set_sequence_quantity (mirbooking, g_object_ref (MIRBOOKING_SEQUENCE (target)), 10);
+    mirbooking_broker_set_sequence_quantity (mirbooking, g_object_ref (MIRBOOKING_SEQUENCE (mirna)), 10);
 
     GError *error = NULL;
-    g_assert (mirbooking_run (mirbooking, &error));
+    g_assert (mirbooking_broker_run (mirbooking, &error));
     g_assert_null (error);
 
     gsize target_sites_len;
-    const MirbookingTargetSite *target_sites = mirbooking_get_target_sites (mirbooking,
-                                                                            &target_sites_len);
+    const MirbookingTargetSite *target_sites = mirbooking_broker_get_target_sites (mirbooking,
+                                                                                   &target_sites_len);
 
     guint total_occupancy = 0;
     gint i;
