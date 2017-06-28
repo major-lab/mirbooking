@@ -344,7 +344,7 @@ main (gint argc, gchar **argv)
         }
 
         mirbooking_set_sequence_quantity (mirbooking,
-                                          sequence,
+                                          g_object_ref (sequence),
                                           quantity);
 
         if (MIRBOOKING_IS_MIRNA (sequence))

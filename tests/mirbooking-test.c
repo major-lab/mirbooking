@@ -103,8 +103,8 @@ test_mirbooking ()
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE, strlen (TARGET_SEQUENCE));
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
 
-    mirbooking_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target), 10);
-    mirbooking_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna), 10);
+    mirbooking_set_sequence_quantity (mirbooking, g_object_ref (MIRBOOKING_SEQUENCE (target)), 10);
+    mirbooking_set_sequence_quantity (mirbooking, g_object_ref (MIRBOOKING_SEQUENCE (mirna)), 10);
 
     GError *error = NULL;
     g_assert (mirbooking_run (mirbooking, &error));

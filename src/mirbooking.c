@@ -248,11 +248,11 @@ mirbooking_set_sequence_quantity (Mirbooking *self, MirbookingSequence *sequence
     {
         if (MIRBOOKING_IS_MIRNA (sequence))
         {
-            self->priv->mirnas = g_slist_prepend (self->priv->mirnas, g_object_ref (sequence));
+            self->priv->mirnas = g_slist_prepend (self->priv->mirnas, sequence);
         }
         else
         {
-            self->priv->targets = g_slist_prepend (self->priv->targets, g_object_ref (sequence));
+            self->priv->targets = g_slist_prepend (self->priv->targets, sequence);
         }
     }
 }
