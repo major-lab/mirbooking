@@ -430,7 +430,7 @@ mirbooking_run (Mirbooking *self, GError **error)
     return TRUE;
 }
 
-MirbookingTargetSite *
+const MirbookingTargetSite *
 mirbooking_get_target_sites (Mirbooking *self, gsize *len)
 {
     g_return_val_if_fail (self != NULL, NULL);
