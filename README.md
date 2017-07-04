@@ -39,19 +39,20 @@ The output is a TSV with the following columns:
  - Probability
  - Occupancy
  - Silencing
- - Tail Score
+ 
+## Installation
 
-```tsv
-Target Accession	MiRNA Accession	Position	Location	Probability	Occupancy	Silencing	Tail Score
-NM_002710.3	MIMAT0004792	6	CDS	0.000000	2	0.200000	0.000000
-NM_002710.3	MIMAT0022939	8	CDS	0.000000	1	0.100000	0.000000
-NM_002710.3	MIMAT0004507	10	CDS	0.000000	1	0.100000	0.000000
-NM_002710.3	MIMAT0004792	11	CDS	0.000000	3	0.300000	0.000000
-NM_002710.3	MIMAT0004792	15	CDS	0.000000	1	0.100000	0.000000
-NM_002710.3	MIMAT0004976	33	CDS	0.000000	1	0.100000	0.000000
-NM_002710.3	MIMAT0004980	34	CDS	0.000000	2	0.200000	0.000000
-NM_002710.3	MIMAT0004976	35	CDS	0.000000	1	0.100000	0.000000
+You'll need [Meson](http://mesonbuild.com/) and [Ninja](http://ninja-build.org/) 
+as well as GLib development files installed on your system.
+
+```bash
+mkdir build
+meson --buildtype=release
+ninja
+ninja install
 ```
+
+You can perform a local installation using `meson --prefix=$HOME/.local`, but you'll need `LD_LIBRARY_PATH` set accordingly since the `mirbooking` program uses a shared library. Otherwise, a static linkage can be done by calling `meson --default-library=static`.
 
 ## Parallelization (using GNU parallel)
 
