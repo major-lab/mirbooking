@@ -357,10 +357,11 @@ mirbooking_run (Mirbooking *self, GError **error)
                 break; // the site has been filled
             }
 
-            gfloat available_mirna_quantity = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, mirna));
+            guint available_mirna_quantity = floorf (gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, mirna)));
             guint assigned_mirna_quantity  = guint_from_gpointer (g_hash_table_lookup (assigned_mirna_quantities, mirna));
+            guint unassigned_mirna_quantity = available_mirna_quantity - assigned_mirna_quantity;
 
-            if (available_mirna_quantity - assigned_mirna_quantity < 1.0f)
+            if (unassigned_mirna_quantity == 0)
             {
                 // mirna is depleted
 
@@ -388,11 +389,9 @@ mirbooking_run (Mirbooking *self, GError **error)
 
             if (seed_score >= self->priv->threshold)
             {
-                gfloat unassigned_mirna_quantity = available_mirna_quantity - assigned_mirna_quantity;
-
                 guint occupants = floorf (available_target_quantity * logf (unassigned_mirna_quantity) / logf (self->priv->log_base) * seed_score) + 1;
 
-                occupants = MIN (occupants, floorf (unassigned_mirna_quantity));
+                occupants = MIN (occupants, unassigned_mirna_quantity);
                 occupants = MIN (occupants, vacancy);
 
                 g_assert_cmpint (vacancy, >, 0);
