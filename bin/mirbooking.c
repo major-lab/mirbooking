@@ -163,37 +163,21 @@ mirbooking_region_to_string (MirbookingRegion region)
 }
 
 static gfloat
-compute_silencing (const MirbookingTargetSite *target_site, MirbookingRegion region)
+mirbooking_region_get_multiplier (MirbookingRegion region)
 {
-    gfloat silencing;
-    gfloat region_multiplier;
-
-    GSList *occupant_list;
-    for (occupant_list = target_site->occupants; occupant_list != NULL; occupant_list = occupant_list->next)
-    {
-        MirbookingOccupant *occupant = occupant_list->data;
-        silencing += occupant->quantity;
-    }
-
     switch (region)
     {
         case MIRBOOKING_REGION_5PRIME_UTR:
-            region_multiplier = utr5_multiplier;
-            break;
+            return utr5_multiplier;
         case MIRBOOKING_REGION_CDS:
-            region_multiplier = cds_multiplier;
-            break;
+            return cds_multiplier;
         case MIRBOOKING_REGION_3PRIME_UTR:
-            region_multiplier = utr3_multiplier;
-            break;
+            return utr3_multiplier;
         case MIRBOOKING_REGION_UNKNOWN:
-            region_multiplier = 1.0f;
-            break;
+            return 1.0f;
         default:
-            g_assert_not_reached ();
+            g_return_val_if_reached (1.0f);
     }
-
-    return silencing * region_multiplier;
 }
 
 int
@@ -386,8 +370,19 @@ main (gint argc, gchar **argv)
         GSList *occupants;
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
         {
+            gfloat probability;
             MirbookingRegion region;
             gpointer cds_ptr;
+
+            MirbookingOccupant *occupant = occupants->data;
+
+            probability = mirbooking_score_table_compute_score (score_table,
+                                                                MIRBOOKING_SEQUENCE (occupant->mirna),
+                                                                1,
+                                                                MIRBOOKING_SEQUENCE (target_site->target),
+                                                                target_site->position,
+                                                                7);
+
             cds_ptr = g_hash_table_lookup (cds_hash,
                                            mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)));
             if (cds_ptr != NULL)
@@ -403,15 +398,14 @@ main (gint argc, gchar **argv)
                 region = MIRBOOKING_REGION_UNKNOWN;
             }
 
-            MirbookingOccupant *occupant = occupants->data;
             g_fprintf (output_f, "%s\t%s\t%ld\t%s\t%f\t%d\t%f\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
                        target_site->position + 1, // 1-based
                        mirbooking_region_to_string (region),
-                       mirbooking_score_table_compute_score (score_table, MIRBOOKING_SEQUENCE (occupant->mirna), 1, MIRBOOKING_SEQUENCE (target_site->target), target_site->position, 7),
+                       probability,
                        occupant->quantity,
-                       compute_silencing (target_site, region));
+                       occupant->quantity * probability * mirbooking_region_get_multiplier (region));
         }
         ++target_site;
     }
