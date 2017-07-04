@@ -22,6 +22,7 @@ pkgconfig = import('pkgconfig')
 pkgconfig.generate(name: meson.project_name(),
                    description: 'miRBooking simulates the stoichiometric mode of action of microRNAs',
                    version: meson.project_version(),
+                   requires: ['glib-2.0'],
                    libraries: mirbooking_lib,
                    libraries_private: '-lm',
                    filebase: 'mirbooking-1.0',
