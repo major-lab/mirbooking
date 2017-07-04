@@ -341,6 +341,7 @@ main (gint argc, gchar **argv)
         if (sequence == NULL)
         {
             g_printerr ("Unknown sequence with accession '%s'.\n", accession);
+            continue;
         }
 
         mirbooking_set_sequence_quantity (mirbooking,
