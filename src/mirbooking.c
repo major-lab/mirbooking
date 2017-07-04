@@ -380,10 +380,10 @@ mirbooking_run (Mirbooking *self, GError **error)
             }
 
             gfloat seed_score = mirbooking_score_table_compute_score (self->priv->score_table,
-                                                                      MIRBOOKING_SEQUENCE (target_site->target),
-                                                                      target_site->position,
                                                                       MIRBOOKING_SEQUENCE (mirna),
                                                                       1,
+                                                                      MIRBOOKING_SEQUENCE (target_site->target),
+                                                                      target_site->position,
                                                                       7);
 
             if (seed_score >= self->priv->threshold)

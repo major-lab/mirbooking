@@ -409,7 +409,7 @@ main (gint argc, gchar **argv)
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
                        target_site->position + 1, // 1-based
                        mirbooking_region_to_string (region),
-                       mirbooking_score_table_compute_score (score_table, MIRBOOKING_SEQUENCE (target_site->target), 0, MIRBOOKING_SEQUENCE (occupant->mirna), 1, 7),
+                       mirbooking_score_table_compute_score (score_table, MIRBOOKING_SEQUENCE (occupant->mirna), 1, MIRBOOKING_SEQUENCE (target_site->target), target_site->position, 7),
                        occupant->quantity,
                        compute_silencing (target_site, region));
         }
