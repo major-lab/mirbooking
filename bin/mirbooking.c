@@ -359,7 +359,7 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_fprintf (output_f, "Target Accession\tMiRNA Accession\tPosition\tLocation\tProbability\tOccupancy\tSilencing\n");
+    g_fprintf (output_f, "target\tmirna\tposition\tlocation\tprobability\toccupancy\tsilencing\n");
 
     gsize target_sites_len;
     const MirbookingTargetSite *target_sites = mirbooking_broker_get_target_sites (mirbooking,

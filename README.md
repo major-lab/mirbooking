@@ -32,17 +32,38 @@ The only requirements for the quantities is to be in the same magnitude order.
 
 The output is a TSV with the following columns:
 
- - Target Accession
- - MiRNA Accession
- - Position
- - Location
- - Probability
- - Occupancy
- - Silencing
- 
+ - target
+ - mirna
+ - position
+ - location
+ - probability
+ - occupancy
+ - silencing
+
+To compute gene or gene-miRNA summaries, [Pandas](https://pandas.pydata.org/)
+can be used.
+
+```python
+import pandas as pd
+
+# target-miRNA summary
+pd.read_csv('output.tsv', sep='\t')           \
+  .set_index(['target', 'mirna', 'position']) \
+  .drop(['location', 'probability'], axis=1)  \
+  .groupby(['target', 'mirna'])               \
+  .sum()
+
+# target summary
+pd.read_csv('output.tsv', sep='\t')           \
+  .set_index(['target', 'mirna', 'position']) \
+  .drop(['location', 'probability'], axis=1)  \
+  .groupby(['target'])               \
+  .sum()
+```
+
 ## Installation
 
-You'll need [Meson](http://mesonbuild.com/) and [Ninja](http://ninja-build.org/) 
+You'll need [Meson](http://mesonbuild.com/) and [Ninja](http://ninja-build.org/)
 as well as GLib development files installed on your system.
 
 ```bash
