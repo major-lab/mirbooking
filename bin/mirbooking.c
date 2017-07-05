@@ -312,8 +312,8 @@ main (gint argc, gchar **argv)
         }
     }
 
-    gfloat total_mirna_quantity;
-    gfloat total_target_quantity;
+    gfloat total_mirna_quantity = 0.0f;
+    gfloat total_target_quantity = 0.0f;
 
     gchar line[1024];
     while (fgets (line, sizeof (line), quantities_f))
