@@ -13,7 +13,8 @@ typedef struct
 
 enum
 {
-    PROP_ACCESSION = 1
+    PROP_ACCESSION = 1,
+    PROP_SEQUENCE
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (MirbookingSequence, mirbooking_sequence, G_TYPE_OBJECT)
@@ -33,6 +34,13 @@ mirbooking_sequence_set_property (GObject *object, guint property_id, const GVal
         case PROP_ACCESSION:
             priv->accession = g_value_dup_string ((value));
             break;
+        case PROP_SEQUENCE:
+            mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (object),
+                                                  g_value_dup_string (value),
+                                                  strlen (g_value_get_string (value)));
+            break;
+        default:
+            g_assert_not_reached ();
     }
 }
 
@@ -46,6 +54,11 @@ mirbooking_sequence_get_property (GObject *object, guint property_id, GValue *va
         case PROP_ACCESSION:
             g_value_set_string (value, priv->accession);
             break;
+        case PROP_SEQUENCE:
+            g_value_set_string (value, priv->sequence);
+            break;
+        default:
+            g_assert_not_reached ();
     }
 }
 
@@ -72,6 +85,9 @@ mirbooking_sequence_class_init (MirbookingSequenceClass *klass)
     g_object_class_install_property (object_class,
                                      PROP_ACCESSION,
                                      g_param_spec_string ("accession", "Accession", "", NULL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     PROP_SEQUENCE,
+                                     g_param_spec_string ("sequence", "Sequence", "", NULL, G_PARAM_READWRITE));
 }
 
 const gchar *
@@ -106,9 +122,9 @@ MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self
 /**
  * mirbooking_sequence_set_raw_sequence:
  * @self: A #MirbookingSequence
- * @sequence: A sequence of nucleotides
- * @sequence_len: (default -1): The length of the passed sequence or -1 for a
- * null-terminated string
+ * @sequence: (array length=sequence_len): A sequence of nucleotides
+ * @sequence_len: The length of the passed sequence or -1 for a null-terminated
+ * string
  *
  * Note that the passed sequence is not copied internally and thus, it must
  * live for as long as this object does.
@@ -153,7 +169,7 @@ mirbooking_sequence_get_sequence_length (MirbookingSequence *self)
 /**
  * mirbooking_sequence_get_subsequence:
  *
- * Return: (transfer-none): a view of the sequence with line feed characters
+ * Returns: (transfer none): A view of the sequence with line feed characters
  * trimmed
  */
 const gchar*

@@ -220,7 +220,7 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_autoptr (MirbookingScoreTable) score_table = mirbooking_score_table_new_precomputed (g_mapped_file_get_bytes (score_map));
+    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (g_mapped_file_get_bytes (score_map));
     mirbooking_broker_set_score_table (mirbooking,
                                        g_object_ref (score_table));
 
@@ -364,7 +364,7 @@ main (gint argc, gchar **argv)
         }
 
         mirbooking_broker_set_sequence_quantity (mirbooking,
-                                                 g_object_ref (sequence),
+                                                 sequence,
                                                  quantity);
 
         if (MIRBOOKING_IS_MIRNA (sequence))
@@ -395,12 +395,10 @@ main (gint argc, gchar **argv)
 
     g_fprintf (output_f, "target\tmirna\tposition\tlocation\tprobability\toccupancy\tsilencing\n");
 
-    gsize target_sites_len;
-    const MirbookingTargetSite *target_sites = mirbooking_broker_get_target_sites (mirbooking,
-                                                                                   &target_sites_len);
+    GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
-    const MirbookingTargetSite *target_site = target_sites;
-    while (target_site < target_sites + target_sites_len)
+    const MirbookingTargetSite *target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
+    while (target_site < ((MirbookingTargetSite*)target_sites->data) + target_sites->len)
     {
         GSList *occupants;
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
@@ -411,12 +409,19 @@ main (gint argc, gchar **argv)
 
             MirbookingOccupant *occupant = occupants->data;
 
-            probability = mirbooking_score_table_compute_score (score_table,
+            g_autoptr (GError) error = NULL;
+            probability = mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
                                                                 MIRBOOKING_SEQUENCE (occupant->mirna),
                                                                 1,
                                                                 MIRBOOKING_SEQUENCE (target_site->target),
                                                                 target_site->position,
-                                                                7);
+                                                                7,
+                                                                &error);
+            if (error != NULL)
+            {
+                g_printerr ("%s (%s, %d)\n", error->message, g_quark_to_string (error->domain), error->code);
+                return 1;
+            }
 
             cds_ptr = g_hash_table_lookup (cds_hash,
                                            mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)));

@@ -1,12 +1,13 @@
 #ifndef __MIRBOOKING_BROKER_H__
 #define __MIRBOOKING_BROKER_H__
 
-#include "mirbooking-sequence.h"
-#include "mirbooking-score-table.h"
-#include "mirbooking-target-site.h"
+#include "mirbooking-error.h"
 #include "mirbooking-mirna.h"
-#include "mirbooking-target.h"
 #include "mirbooking-occupant.h"
+#include "mirbooking-score-table.h"
+#include "mirbooking-sequence.h"
+#include "mirbooking-target-site.h"
+#include "mirbooking-target.h"
 
 #include <glib-object.h>
 #include <gio/gio.h>
@@ -48,10 +49,7 @@ void               mirbooking_broker_run_async             (MirbookingBroker    
 gboolean           mirbooking_broker_run_finish            (MirbookingBroker  *self,
                                                             GAsyncResult      *result,
                                                             GError           **error);
-
-/* results */
-const MirbookingTargetSite * mirbooking_broker_get_target_sites (MirbookingBroker *self,
-                                                                 gsize            *target_sites_len);
+GArray *           mirbooking_broker_get_target_sites      (MirbookingBroker *self);
 
 G_END_DECLS
 

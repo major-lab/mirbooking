@@ -94,7 +94,7 @@ test_mirbooking ()
     mirbooking_broker_set_threshold (mirbooking, 0.0f); // the score table is zeroed anyway
 
     g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
-    g_autoptr (MirbookingScoreTable) score_table = mirbooking_score_table_new_precomputed (precomputed_table);
+    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table);
     mirbooking_broker_set_score_table (mirbooking, g_object_ref (score_table));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
@@ -103,35 +103,37 @@ test_mirbooking ()
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE, strlen (TARGET_SEQUENCE));
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
 
-    mirbooking_broker_set_sequence_quantity (mirbooking, g_object_ref (MIRBOOKING_SEQUENCE (target)), 10);
-    mirbooking_broker_set_sequence_quantity (mirbooking, g_object_ref (MIRBOOKING_SEQUENCE (mirna)), 10);
+    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target), 10);
+    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna), 10);
 
-    GError *error = NULL;
+    g_autoptr (GError) error = NULL;
     g_assert (mirbooking_broker_run (mirbooking, &error));
     g_assert_null (error);
 
-    gsize target_sites_len;
-    const MirbookingTargetSite *target_sites = mirbooking_broker_get_target_sites (mirbooking,
-                                                                                   &target_sites_len);
+    GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
     guint total_occupancy = 0;
     gint i;
-    for (i = 0; i < target_sites_len; i++)
+    for (i = 0; i < target_sites->len; i++)
     {
         guint site_occupancy = 0;
         GSList *occupants_list = NULL;
-        for (occupants_list = target_sites[i].occupants; occupants_list != NULL; occupants_list = occupants_list->next)
+        for (occupants_list = g_array_index (target_sites, MirbookingTargetSite, i).occupants; occupants_list != NULL; occupants_list = occupants_list->next)
         {
             MirbookingOccupant *occupant = occupants_list->data;
             site_occupancy += occupant->quantity;
         }
 
-        g_assert_cmpint (site_occupancy, ==, target_sites[i].occupancy);
+        g_assert_cmpint (site_occupancy, ==, g_array_index (target_sites, MirbookingTargetSite, i).occupancy);
 
         total_occupancy += site_occupancy;
     }
 
     g_assert_cmpint (total_occupancy, ==, 10);
+
+    // only one execution is permitted
+    g_assert_cmpfloat (mirbooking_broker_run (mirbooking, &error), ==, 0.0f);
+    g_assert_nonnull (error);
 }
 
 static void
@@ -165,7 +167,7 @@ test_mirbooking_run_async ()
         g_autoptr (GMainLoop) loop = g_main_loop_new (NULL, FALSE);
 
         g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
-        g_autoptr (MirbookingScoreTable) score_table = mirbooking_score_table_new_precomputed (precomputed_table);
+        g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table);
         mirbooking_broker_set_score_table (broker, g_object_ref (score_table));
 
         mirbooking_broker_run_async (broker,

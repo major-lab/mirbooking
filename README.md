@@ -71,6 +71,9 @@ you'll need `LD_LIBRARY_PATH` set accordingly since the `mirbooking` program
 uses a shared library. Otherwise, a static linkage can be done by calling
 `meson --default-library=static`.
 
+To generate introspection metadata, use `meson -Dwith_introspection=true`. To
+generate Vala bindings, use `meson -Dwith_vapi=true`.
+
 ## Other tools
 
 In addition to the `mirbooking` binary, this package ship a number of utilities

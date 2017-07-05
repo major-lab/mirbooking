@@ -18,8 +18,7 @@ typedef struct
     GHashTable           *quantification; // #MirbookingSequence -> #gfloat (initial quantity)
 
     /* all the target sites, stored contiguously */
-    MirbookingTargetSite *target_sites;
-    gsize                 target_sites_len;
+    GArray               *target_sites;
 } MirbookingBrokerPrivate;
 
 struct _MirbookingBroker
@@ -67,7 +66,7 @@ mirbooking_broker_set_property (GObject *object, guint property_id, const GValue
             self->priv->prime3_footprint = g_value_get_uint (value);
             break;
         case PROP_SCORE_TABLE:
-            self->priv->score_table = g_value_get_object (value);
+            self->priv->score_table = g_value_dup_object (value);
             break;
         default:
             g_assert_not_reached ();
@@ -110,10 +109,17 @@ mirbooking_occupant_new (MirbookingMirna *mirna, guint quantity)
 }
 
 static void
-mirbooking_occupant_free (MirbookingOccupant *self, gpointer user_data)
+mirbooking_occupant_free (MirbookingOccupant *self)
 {
     g_object_unref (self->mirna);
     g_slice_free (MirbookingOccupant, self);
+}
+
+static void
+mirbooking_target_site_clear (MirbookingTargetSite *self)
+{
+    g_object_unref (self->target);
+    g_slist_free_full (self->occupants, (GDestroyNotify) mirbooking_occupant_free);
 }
 
 static void
@@ -131,15 +137,10 @@ mirbooking_broker_finalize (GObject *object)
     g_slist_free_full (self->priv->targets, g_object_unref);
     g_slist_free_full (self->priv->mirnas, g_object_unref);
 
-    gint i;
-    MirbookingTargetSite *target_site = self->priv->target_sites;
-    for (i = 0; i < self->priv->target_sites_len; i++)
+    if (self->priv->target_sites)
     {
-        g_object_unref (target_site->target);
-        g_slist_free_full (target_site->occupants, (GDestroyNotify) mirbooking_occupant_free);
-        ++target_site;
+        g_array_free (self->priv->target_sites, TRUE);
     }
-    g_free (self->priv->target_sites);
 
     g_free (self->priv);
 
@@ -179,27 +180,29 @@ mirbooking_broker_new (void)
 }
 
 void
-mirbooking_broker_set_threshold (MirbookingBroker *self, gfloat threshold)
+mirbooking_broker_set_threshold (MirbookingBroker *self,
+                                 gfloat            threshold)
 {
     self->priv->threshold = threshold;
 }
 
 void
-mirbooking_broker_set_log_base (MirbookingBroker *self, gfloat log_base)
+mirbooking_broker_set_log_base (MirbookingBroker *self,
+                                gfloat            log_base)
 {
     self->priv->log_base = log_base;
 }
 
 void
 mirbooking_broker_set_5prime_footprint (MirbookingBroker *self,
-                                 gsize       footprint)
+                                        gsize       footprint)
 {
     self->priv->prime5_footprint = footprint;
 }
 
 void
 mirbooking_broker_set_3prime_footprint (MirbookingBroker *self,
-                                 gsize       footprint)
+                                        gsize       footprint)
 {
     self->priv->prime3_footprint = footprint;
 }
@@ -266,11 +269,11 @@ mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSeque
     {
         if (MIRBOOKING_IS_MIRNA (sequence))
         {
-            self->priv->mirnas = g_slist_prepend (self->priv->mirnas, sequence);
+            self->priv->mirnas = g_slist_prepend (self->priv->mirnas, g_object_ref (sequence));
         }
         else
         {
-            self->priv->targets = g_slist_prepend (self->priv->targets, sequence);
+            self->priv->targets = g_slist_prepend (self->priv->targets, g_object_ref (sequence));
         }
     }
 }
@@ -291,6 +294,15 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
     g_return_val_if_fail (self != NULL, FALSE);
     g_return_val_if_fail (self->priv->score_table != NULL, FALSE);
 
+    if (self->priv->target_sites != NULL)
+    {
+        g_set_error (error,
+                     MIRBOOKING_ERROR,
+                     MIRBOOKING_ERROR_FAILED,
+                     "This broker has already run.");
+        return FALSE;
+    }
+
     // sort internal targets and mirnas in descending quantity
     self->priv->targets = g_slist_sort_with_data (self->priv->targets, (GCompareDataFunc) sequence_cmp_desc, self);
     self->priv->mirnas  = g_slist_sort_with_data (self->priv->mirnas, (GCompareDataFunc) sequence_cmp_desc, self);
@@ -301,11 +313,15 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
         target_sites_len += mirbooking_sequence_get_sequence_length (target_list->data) - 7;
     }
 
-    // allocate *all* the target sites in a single & contiguous chunk
-    self->priv->target_sites     = g_new (MirbookingTargetSite, target_sites_len);
-    self->priv->target_sites_len = target_sites_len;
+    // prepare an contiguous array
+    self->priv->target_sites = g_array_sized_new (FALSE,
+                                                  FALSE,
+                                                  sizeof (MirbookingTargetSite),
+                                                  target_sites_len);
 
-    MirbookingTargetSite *target_site = self->priv->target_sites;
+    // automatically clear the target sites
+    g_array_set_clear_func (self->priv->target_sites,
+                            (GDestroyNotify) mirbooking_target_site_clear);
 
     // intialize sites
     for (target_list = self->priv->targets; target_list != NULL; target_list = target_list->next)
@@ -317,11 +333,12 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
         gsize position;
         for (position = 0; position < seq_len - 7; position++)
         {
-            target_site->target    = g_object_ref (target);
-            target_site->position  = position;
-            target_site->occupants = NULL;
-            target_site->occupancy = 0;
-            ++target_site;
+            MirbookingTargetSite target_site;
+            target_site.target    = g_object_ref (target);
+            target_site.position  = position;
+            target_site.occupants = NULL;
+            target_site.occupancy = 0;
+            g_array_append_val (self->priv->target_sites, target_site);
         }
     }
 
@@ -330,8 +347,11 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
     g_autoptr (GHashTable) assigned_mirna_quantities = g_hash_table_new ((GHashFunc) mirbooking_sequence_hash,
                                                                          (GEqualFunc) mirbooking_sequence_equal);
 
-    target_site = self->priv->target_sites;
-    while (target_site < self->priv->target_sites + self->priv->target_sites_len)
+    MirbookingTargetSite *target_site = &g_array_index (self->priv->target_sites,
+                                                        MirbookingTargetSite,
+                                                        0);
+
+    while (target_site < &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len))
     {
         MirbookingTarget *target = target_site->target;
 
@@ -340,13 +360,13 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
         guint vacancy = available_target_quantity;
 
         // find the lower target site
-        MirbookingTargetSite *from_target_site = MAX (target_site - self->priv->prime5_footprint, self->priv->target_sites);
+        MirbookingTargetSite *from_target_site = MAX (target_site - self->priv->prime5_footprint, &g_array_index (self->priv->target_sites, MirbookingTargetSite, 0));
 
         // if we overlap the preceding target, move right
         while (from_target_site->target != target) from_target_site++;
 
         // find the upper target site
-        MirbookingTargetSite *to_target_site = MIN (target_site + self->priv->prime3_footprint, self->priv->target_sites + self->priv->target_sites_len);
+        MirbookingTargetSite *to_target_site = MIN (target_site + self->priv->prime3_footprint, &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len));
 
         // if we overlap the next target, move left
         while (to_target_site->target != target) to_target_site--;
@@ -392,12 +412,14 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
                 continue;
             }
 
+            g_autoptr (GError) error = NULL;
             gfloat seed_score = mirbooking_score_table_compute_score (self->priv->score_table,
                                                                       MIRBOOKING_SEQUENCE (mirna),
                                                                       1,
                                                                       MIRBOOKING_SEQUENCE (target_site->target),
                                                                       target_site->position,
-                                                                      7);
+                                                                      7,
+                                                                      &error);
 
             if (seed_score >= self->priv->threshold)
             {
@@ -497,17 +519,18 @@ mirbooking_broker_run_finish (MirbookingBroker  *self,
 }
 
 /**
- * mirbooking_get_target_sites:
- * @target_sites_len: (out)
+ * mirbooking_broker_get_target_sites:
  *
- * Returns: (transfer none) (array length=target_sites_len)
+ * Obtain the computed #MirbookingTargetSite array by this #MirbookingBroker.
+ *
+ * Returns: (element-type MirbookingTargetSite) (transfer none): A view of the
+ * computed #MirbookingTargetSite
  */
-const MirbookingTargetSite *
-mirbooking_broker_get_target_sites (MirbookingBroker *self, gsize *target_sites_len)
+GArray *
+mirbooking_broker_get_target_sites (MirbookingBroker *self)
 {
     g_return_val_if_fail (self != NULL, NULL);
     g_return_val_if_fail (self->priv->target_sites != NULL, NULL);
 
-    *target_sites_len = self->priv->target_sites_len;
     return self->priv->target_sites;
 }
