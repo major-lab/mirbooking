@@ -340,22 +340,16 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
         guint vacancy = available_target_quantity;
 
         // find the lower target site
-        MirbookingTargetSite *from_target_site = target_site;
-        while (from_target_site > self->priv->target_sites           &&
-               (from_target_site - 1)->target == target_site->target &&
-               (target_site - from_target_site) < self->priv->prime5_footprint)
-        {
-            --from_target_site;
-        }
+        MirbookingTargetSite *from_target_site = MAX (target_site - self->priv->prime5_footprint, self->priv->target_sites);
+
+        // if we overlap the preceding target, move right
+        while (from_target_site->target != target) from_target_site++;
 
         // find the upper target site
-        MirbookingTargetSite *to_target_site = target_site;
-        while (to_target_site < self->priv->target_sites + self->priv->target_sites_len &&
-               (to_target_site + 1)->target == target_site->target                      &&
-               (to_target_site - target_site) < self->priv->prime3_footprint)
-        {
-            ++to_target_site;
-        }
+        MirbookingTargetSite *to_target_site = MIN (target_site + self->priv->prime3_footprint, self->priv->target_sites + self->priv->target_sites_len);
+
+        // if we overlap the next target, move left
+        while (to_target_site->target != target) to_target_site--;
 
         // minimize vacancy around the footprint
         MirbookingTargetSite *nearby_target_site;
