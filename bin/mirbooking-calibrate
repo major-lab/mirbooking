@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+
+import pandas as pd
+import sys
+from os.path import basename
+
+if len(sys.argv) != 3:
+    print('Usage:\n  {} <targets> <mirnas>'.format(basename(sys.argv[0])))
+    sys.exit(1)
+
+targets = pd.read_csv(sys.argv[1], sep='\t', names=['accession', 'quantity'])
+mirnas = pd.read_csv(sys.argv[2], sep='\t', names=['accession', 'quantity'])
+
+targets_sum = targets['quantity'].sum()
+mirnas_sum = mirnas['quantity'].sum()
+toward_sum = max([targets_sum, mirnas_sum])
+
+targets['quantity'] *= toward_sum / targets_sum
+mirnas['quantity'] *= toward_sum / mirnas_sum
+
+pd.concat([targets, mirnas]).to_csv(sys.stdout, sep='\t', header=False, index=False)

@@ -73,7 +73,25 @@ ninja
 ninja install
 ```
 
-You can perform a local installation using `meson --prefix=$HOME/.local`, but you'll need `LD_LIBRARY_PATH` set accordingly since the `mirbooking` program uses a shared library. Otherwise, a static linkage can be done by calling `meson --default-library=static`.
+You can perform a local installation using `meson --prefix=$HOME/.local`, but
+you'll need `LD_LIBRARY_PATH` set accordingly since the `mirbooking` program
+uses a shared library. Otherwise, a static linkage can be done by calling
+`meson --default-library=static`.
+
+## Other tools
+
+In addition to the `mirbooking` binary, this package ship a number of utilities
+to process quantity files and compute summaries based on Pandas.
+
+The `mirbooking-calibrate` tool is expecting a transcript and miRNA
+quantification (e.g. two-column TSV document mapping accession to quantity) and
+process it such that it contains approximately the same amount of each kind by
+rescaling the smallest one toward the biggest one. It emits a calibrated output
+suitable for `mirbooking`.
+
+```bash
+mirbooking-calibrate targets.tsv mirnas.tsv | mirbooking [...]
+```
 
 ## Parallelization (using GNU parallel)
 
