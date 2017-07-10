@@ -454,9 +454,13 @@ mirbooking_broker_run_in_thread (GTask        *task,
     {
         g_task_return_boolean (task, TRUE);
     }
-    else
+    else if (err != NULL)
     {
         g_task_return_error (task, err);
+    }
+    else
+    {
+        g_task_return_boolean (task, FALSE);
     }
 }
 
