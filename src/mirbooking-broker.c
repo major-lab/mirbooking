@@ -441,6 +441,57 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
     return TRUE;
 }
 
+static void
+mirbooking_broker_run_in_thread (GTask        *task,
+                                 gpointer      source_object,
+                                 gpointer      task_data,
+                                 GCancellable *cancellable)
+{
+    MirbookingBroker *broker = source_object;
+    GError *err = NULL;
+
+    if (mirbooking_broker_run (broker, &err))
+    {
+        g_task_return_boolean (task, TRUE);
+    }
+    else
+    {
+        g_task_return_error (task, err);
+    }
+}
+
+/**
+ * mirbooking_broker_run_async:
+ *
+ * Run the algorithm in a background thread via #GTask. The result can be
+ * retrieved later on.
+ */
+void
+mirbooking_broker_run_async (MirbookingBroker    *self,
+                             GAsyncReadyCallback  callback,
+                             gpointer             callback_data)
+{
+    GTask *task = g_task_new (self,
+                              NULL,
+                              callback,
+                              callback_data);
+
+    g_task_run_in_thread (task, mirbooking_broker_run_in_thread);
+}
+
+/**
+ * mirbooking_broker_run_finish:
+ */
+gboolean
+mirbooking_broker_run_finish (MirbookingBroker  *self,
+                              GAsyncResult      *result,
+                              GError           **error)
+{
+    g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+
+    return g_task_propagate_boolean (G_TASK (result), error);
+}
+
 /**
  * mirbooking_get_target_sites:
  * @target_sites_len: (out)

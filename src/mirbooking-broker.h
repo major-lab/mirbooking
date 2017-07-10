@@ -9,6 +9,7 @@
 #include "mirbooking-occupant.h"
 
 #include <glib-object.h>
+#include <gio/gio.h>
 
 G_BEGIN_DECLS
 
@@ -40,6 +41,12 @@ void               mirbooking_broker_set_sequence_quantity (MirbookingBroker   *
                                                             MirbookingSequence *sequence,
                                                             gfloat              quantity);
 gboolean           mirbooking_broker_run                   (MirbookingBroker  *self,
+                                                            GError           **error);
+void               mirbooking_broker_run_async             (MirbookingBroker    *self,
+                                                            GAsyncReadyCallback  callback,
+                                                            gpointer             callback_data);
+gboolean           mirbooking_broker_run_finish            (MirbookingBroker  *self,
+                                                            GAsyncResult      *result,
                                                             GError           **error);
 
 /* results */

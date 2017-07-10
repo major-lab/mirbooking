@@ -134,12 +134,61 @@ test_mirbooking ()
     g_assert_cmpint (total_occupancy, ==, 10);
 }
 
+static void
+broker_callback (GObject      *broker,
+                 GAsyncResult *result,
+                 gpointer      user_data)
+{
+    GError *err = NULL;
+
+    if (mirbooking_broker_run_finish (MIRBOOKING_BROKER (broker),
+                                      result,
+                                      &err))
+    {
+        g_print ("pass");
+    }
+    else
+    {
+        g_print ("fail");
+    }
+
+    g_main_loop_quit (user_data);
+}
+
+static void
+test_mirbooking_run_async ()
+{
+    if (g_test_subprocess ())
+    {
+        g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
+
+        g_autoptr (GMainLoop) loop = g_main_loop_new (NULL, FALSE);
+
+        g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
+        g_autoptr (MirbookingScoreTable) score_table = mirbooking_score_table_new_precomputed (precomputed_table);
+        mirbooking_broker_set_score_table (broker, g_object_ref (score_table));
+
+        mirbooking_broker_run_async (broker,
+                                     broker_callback,
+                                     loop);
+
+        g_main_loop_run (loop);
+
+        return;
+    }
+
+    g_test_trap_subprocess (NULL, 0, 0);
+    g_test_trap_assert_passed ();
+    g_test_trap_assert_stdout ("pass");
+}
+
 gint
 main (gint argc, gchar **argv)
 {
     g_test_init (&argc, &argv, NULL);
 
     g_test_add_func ("/mirbooking", test_mirbooking);
+    g_test_add_func ("/mirbooking/run-async", test_mirbooking_run_async);
 
     return g_test_run ();
 }
