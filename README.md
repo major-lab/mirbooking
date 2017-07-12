@@ -13,8 +13,22 @@ Implementation of the miRBooking algorithm and metrics in C
 ## Usage
 
 ```bash
-mirbooking --mirnas mirbase.fa --targets human-genome.fa --score-table scores [--output output.tsv] [--threshold] [--log-base] [quantities]
+mirbooking --mirnas mirbase.fa 
+           --targets human-genome.fa 
+           --score-table scores
+           [--cds-regions cds-regions.tsv]
+           [--threshold 0.00179] 
+           [--log-base 512]
+           [--5prime-footprint 26]
+           [--3prime-footprint 19]
+           [--5prime-utr-multiplier 0.1]
+           [--cds-multiplier 0.1]
+           [--3prime-utr-multiplier 1.0]
+           [--quantities quantities.tsv]
+           [--output output.tsv]
 ```
+
+To obtain detailed usage and options, launch `mirbookng --help`.
 
 The command line program expects a number of inputs:
 
@@ -97,6 +111,20 @@ mirbooking [...] | mirbooking-aggregate target mirna
 Note that the output contains the aggregated columns, the occupancy and the
 silencing. Both metrics are summed among the group.
 
+## C API
+
+The API is conform to the GLib style and enable a wide range of use. It is fairly easy to use and a typical
+experimentation session is:
+
+ 1. create a broker via `mirbooking_broker_new`
+ 2. create some sequence objects with `mirbooking_target_new` and `mirbooking_mirna_new`
+ 3. setup quantities via `mirbooking_broker_set_sequence_quantity`
+ 4. call `mirbooking_broker_run` to perform a full hybridization
+ 5. retrieve and inspect the microtargetome with `mirbooking_broker_get_target_sites`
+ 
+For a more detailed usage and code example, the [program source](https://github.com/major-lab/mirbooking/blob/master/bin/mirbooking.c)
+is very explicit as it perform a full session and fully output the target sites.
+ 
 ## Parallelization (using GNU parallel)
 
 ```bash
