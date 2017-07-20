@@ -1,12 +1,13 @@
+#include <errno.h>
+#include <fcntl.h>
+#include <gio/gio.h>
 #include <glib.h>
 #include <glib/gprintf.h>
-#include <fcntl.h>
+#include <glib/gstdio.h>
+#include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <glib/gstdio.h>
-#include <gio/gio.h>
-#include <math.h>
 
 #include <mirbooking.h>
 
@@ -195,7 +196,7 @@ main (gint argc, gchar **argv)
                                  &argv,
                                  &error))
     {
-        g_printerr ("%s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);
+        g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
         return EXIT_FAILURE;
     }
 
@@ -215,7 +216,7 @@ main (gint argc, gchar **argv)
     g_autoptr (GMappedFile) score_map = g_mapped_file_new (score_table_file, FALSE, &error);
     if (score_map == NULL)
     {
-        g_printerr ("%s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);
+        g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
         return EXIT_FAILURE;
     }
 
@@ -235,15 +236,35 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_autoptr (FILE) mirnas_f = g_fopen (mirnas_file, "r");
-    g_autoptr (FILE) targets_f = g_fopen (targets_file, "r");
-    g_autoptr (FILE) quantities_f = quantities_file == NULL ? stdin : g_fopen (quantities_file, "r");
-    g_autoptr (FILE) output_f = output_file == NULL ? stdout : g_fopen (output_file, "w");
 
-    g_return_val_if_fail (mirnas_f != NULL, EXIT_FAILURE);
-    g_return_val_if_fail (targets_f != NULL, EXIT_FAILURE);
-    g_return_val_if_fail (quantities_f != NULL, EXIT_FAILURE);
-    g_return_val_if_fail (output_f != NULL, EXIT_FAILURE);
+    g_autoptr (FILE) mirnas_f = NULL;
+    g_autoptr (FILE) targets_f = NULL;
+    g_autoptr (FILE) quantities_f = NULL;
+    g_autoptr (FILE) output_f = NULL;
+
+    if ((mirnas_f = g_fopen (mirnas_file, "r")) == NULL)
+    {
+        g_printerr ("Could not open the miRNAs file '%s': %s.\n", mirnas_file, g_strerror (errno));
+        return EXIT_FAILURE;
+    }
+
+    if ((targets_f = g_fopen (targets_file, "r")) == NULL)
+    {
+        g_printerr ("Could not open the targets file '%s': %s.\n", targets_file, g_strerror (errno));
+        return EXIT_FAILURE;
+    }
+
+    if ((quantities_f = quantities_file == NULL ? stdin : g_fopen (quantities_file, "r")) == NULL)
+    {
+        g_printerr ("Could not open the quantities file '%s': %s.\n", quantities_file, g_strerror (errno));
+        return EXIT_FAILURE;
+    }
+
+    if ((output_f = output_file == NULL ? stdout : g_fopen (output_file, "w")) == NULL)
+    {
+        g_printerr ("Could not open the output file '%s': %s.\n", output_file, g_strerror (errno));
+        return EXIT_FAILURE;
+    }
 
     // accession -> #MirbookingSequence
     g_autoptr (GHashTable) sequences_hash = g_hash_table_new_full (g_str_hash,
@@ -254,21 +275,21 @@ main (gint argc, gchar **argv)
     // mapped sequences
     g_autoptr (GMappedFile) mirnas_map = g_mapped_file_new_from_fd (fileno (mirnas_f),
                                                                     FALSE,
-                                                                    NULL);
+                                                                    &error);
 
     if (mirnas_map == NULL)
     {
-        g_printerr ("Could not map the miRNAs file.\n");
+        g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
         return EXIT_FAILURE;
     }
 
     g_autoptr (GMappedFile) targets_map = g_mapped_file_new_from_fd (fileno (targets_f),
                                                                      FALSE,
-                                                                     NULL);
+                                                                     &error);
 
     if (targets_map == NULL)
     {
-        g_printerr ("Could not map the targets file.\n");
+        g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
         return EXIT_FAILURE;
     }
 
@@ -295,17 +316,22 @@ main (gint argc, gchar **argv)
 
         if (cds_regions_f == NULL)
         {
-            g_printerr ("Could not open the CDS regions file.\n");
+            g_printerr ("Could not open the coding regions file '%s': %s.\n", cds_regions_file, g_strerror (errno));
             return EXIT_FAILURE;
         }
 
         // extract cds
         gchar line[1024];
-        while (fgets (line, sizeof (line), cds_regions_f))
+        guint lineno = 0;
+        while (lineno++, fgets (line, sizeof (line), cds_regions_f))
         {
             gchar *accession = strtok (line, "\t");
             guint16 cds_start, cds_end;
-            sscanf (strtok (NULL, "\t"), "%" G_GUINT16_FORMAT ".." "%" G_GUINT16_FORMAT, &cds_start, &cds_end);
+            if (sscanf (strtok (NULL, "\t"), "%" G_GUINT16_FORMAT ".." "%" G_GUINT16_FORMAT, &cds_start, &cds_end) != 2)
+            {
+                g_printerr ("Malformed coding region interval for accession '%s' at line %u.\n", accession, lineno);
+                return EXIT_FAILURE;
+            }
             g_hash_table_insert (cds_hash,
                                  g_strdup (accession),
                                  gpointer_from_two_guint16 (cds_start - 1, cds_end)); /* convert inclusive index in proper slice */
@@ -316,17 +342,25 @@ main (gint argc, gchar **argv)
     gfloat total_target_quantity = 0.0f;
 
     gchar line[1024];
-    while (fgets (line, sizeof (line), quantities_f))
+    guint lineno = 0;
+    while (lineno++, fgets (line, sizeof (line), quantities_f))
     {
         gchar *accession = strtok (line, "\t");
-        gdouble quantity = g_strtod (strtok (NULL, "\t"), NULL);
+        gchar *er = NULL;
+        gdouble quantity = g_strtod (strtok (NULL, "\n"), &er);
+
+        if (*er != '\0') // strtok replaces the '\n' by '\0'
+        {
+            g_printerr ("Malformed quantity for accession '%s' at line %u.\n", accession, lineno);
+            return EXIT_FAILURE;
+        }
 
         MirbookingSequence *sequence = g_hash_table_lookup (sequences_hash, accession);
 
         if (sequence == NULL)
         {
             g_printerr ("Unknown sequence with accession '%s'.\n", accession);
-            continue;
+            return EXIT_FAILURE;
         }
 
         mirbooking_broker_set_sequence_quantity (mirbooking,
@@ -348,7 +382,7 @@ main (gint argc, gchar **argv)
 
     if (ABS (logf (total_target_quantity) - logf (total_mirna_quantity)) >= 1.0f)
     {
-        g_printerr ("The quantity of mirnas %f is not in the same scale as the quantity of target %f.",
+        g_printerr ("The quantity of mirnas %f is not in the same scale as the quantity of target %f.\n",
                     total_mirna_quantity,
                     total_target_quantity);
     }
