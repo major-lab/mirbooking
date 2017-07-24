@@ -15,9 +15,9 @@ test_sequence_trim_line_feed ()
     mirbooking_sequence_set_raw_sequence (sequence, "ACTG\nACTG", 9);
     seq = mirbooking_sequence_get_raw_sequence (sequence, &seq_len);
     g_assert (seq_len == 9);
-    g_assert (strncmp ("ACTG\nACTG", seq, 9) == 0);
+    g_assert_cmpstr (seq, ==, "ACTG\nACTG");
     trimmed_seq = mirbooking_sequence_get_subsequence (sequence, 0, 8);
-    g_assert_cmpstr (g_strndup (trimmed_seq, 8), ==, "ACTGACTG");
+    g_assert_cmpmem (trimmed_seq, 8, "ACTGACTG", 8);
 
     // leading
     mirbooking_sequence_set_raw_sequence (sequence, "\nACTGACTG", 9);
@@ -41,7 +41,7 @@ test_sequence_trim_line_feed ()
     g_assert (seq_len == 13);
     g_assert (strncmp ("\nAC\nTG\nAC\nTG\n", seq, 13) == 0);
     trimmed_seq = mirbooking_sequence_get_subsequence (sequence, 0, 8);
-    g_assert_cmpstr (g_strndup (trimmed_seq, 8), ==, "ACTGACTG");
+    g_assert_cmpmem (trimmed_seq, 8, "ACTGACTG", 8);
 
     // worst, worst-case scenario
     mirbooking_sequence_set_raw_sequence (sequence, "\nAC\n\nTG\n", 8);
@@ -49,7 +49,7 @@ test_sequence_trim_line_feed ()
     g_assert (seq_len == 8);
     g_assert (strncmp ("\nAC\n\nTG\n", seq, 8) == 0);
     trimmed_seq = mirbooking_sequence_get_subsequence (sequence, 0, 4);
-    g_assert_cmpstr (g_strndup (trimmed_seq, 4), ==, "ACTG");
+    g_assert_cmpmem (trimmed_seq, 4, "ACTG", 4);
 
     // worst, worst-case scenario
     mirbooking_sequence_set_raw_sequence (sequence, "\nAC\n\nTG\n\n\n\nATAT", 15);
@@ -57,7 +57,7 @@ test_sequence_trim_line_feed ()
     g_assert (seq_len == 15);
     g_assert (strncmp ("\nAC\n\nTG\n\n\n\nATAT", seq, 15) == 0);
     trimmed_seq = mirbooking_sequence_get_subsequence (sequence, 2, 2);
-    g_assert_cmpstr (g_strndup (trimmed_seq, 2), ==, "TG");
+    g_assert_cmpmem (trimmed_seq, 2, "TG", 2);
     g_assert (trimmed_seq == seq + 5); // zero-copy
 }
 
