@@ -17,7 +17,7 @@ mirbooking --mirnas mirbase.fa
            --targets human-genome.fa 
            --score-table scores
            [--cds-regions cds-regions.tsv]
-           [--threshold 0.00179] 
+           [--threshold 0.0179]
            [--log-base 512]
            [--5prime-footprint 26]
            [--3prime-footprint 19]
