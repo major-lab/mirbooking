@@ -98,7 +98,7 @@ read_sequences_from_fasta (FILE        *file,
 
             MirbookingSequence *sequence;
 
-            if (g_str_has_prefix (accession, "MIMAT"))
+            if (g_str_has_prefix (accession, "MIMAT") || g_str_has_prefix (accession, "SYNTH"))
             {
                 sequence = MIRBOOKING_SEQUENCE (mirbooking_mirna_new (accession));
             }
