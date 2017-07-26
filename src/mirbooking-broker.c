@@ -297,20 +297,18 @@ compute_vacancy (MirbookingBroker *self, MirbookingTargetSite *target_site)
     // find the lower target site
     MirbookingTargetSite *from_target_site = MAX (target_site - self->priv->prime5_footprint, &g_array_index (self->priv->target_sites, MirbookingTargetSite, 0));
 
-    // if we overlap the preceding target, move right
-    while (from_target_site->target != target) from_target_site++;
-
     // find the upper target site
     MirbookingTargetSite *to_target_site = MIN (target_site + self->priv->prime3_footprint, &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len));
-
-    // if we overlap the next target, move left
-    while (to_target_site->target != target) to_target_site--;
 
     // minimize vacancy around the footprint
     MirbookingTargetSite *nearby_target_site;
     for (nearby_target_site = from_target_site; nearby_target_site < to_target_site; nearby_target_site++)
     {
-        vacancy = MIN (vacancy, floorf (available_target_quantity) - nearby_target_site->occupancy);
+        // we might overlap preceeding or following target sites
+        if (G_LIKELY (nearby_target_site->target == target))
+        {
+            vacancy = MIN (vacancy, floorf (available_target_quantity) - nearby_target_site->occupancy);
+        }
     }
 
     return vacancy;
