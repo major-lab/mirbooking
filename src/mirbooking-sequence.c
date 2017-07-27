@@ -179,7 +179,6 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
 
     const gchar *subsequence = priv->sequence + subsequence_offset;
 
-    gboolean subsequence_buffer_used = FALSE;
     static gchar subsequence_buffer[64];
     gsize subsequence_buffer_offset = 0;
 
@@ -194,7 +193,7 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
         {
             subsequence++; // move the subsequence right
         }
-        else if (linefeed < subsequence + subsequence_len)
+        else if (G_UNLIKELY (linefeed < subsequence + subsequence_len))
         {
             // length until the next linefeed
             gsize len_to_copy = linefeed - subsequence;
@@ -203,7 +202,6 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
 
             subsequence_buffer_offset += len_to_copy;
             subsequence += len_to_copy + 1; // jump right after the linefeed
-            subsequence_buffer_used = TRUE;
         }
         else
         {
@@ -211,7 +209,7 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
         }
     }
 
-    if (subsequence_buffer_used)
+    if (G_UNLIKELY (subsequence_buffer_offset > 0))
     {
         if (subsequence_buffer_offset < subsequence_len)
         {
