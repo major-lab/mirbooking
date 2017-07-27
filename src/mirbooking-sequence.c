@@ -176,34 +176,34 @@ const gchar*
 mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence_offset, gsize subsequence_len)
 {
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
-    gboolean subsequence_used = FALSE;
 
-    static gchar subsequence[64];
+    const gchar *subsequence = priv->sequence + subsequence_offset;
 
-    gsize subsequence_so_far = 0;
+    gboolean subsequence_buffer_used = FALSE;
+    static gchar subsequence_buffer[64];
+    gsize subsequence_buffer_offset = 0;
 
     g_return_val_if_fail (subsequence_offset + subsequence_len <= priv->sequence_len - priv->sequence_skips->len, NULL);
-    g_return_val_if_fail (subsequence_len <= sizeof (subsequence), NULL);
+    g_return_val_if_fail (subsequence_len <= sizeof (subsequence_buffer), NULL);
 
     gint i;
     for (i = 0; i < priv->sequence_skips->len; i++)
     {
-        gchar *linefeed = priv->sequence_skips->pdata[i];
-        gsize  linefeed_offset = linefeed - priv->sequence;
-        if (linefeed_offset <= subsequence_offset)
+        const gchar *linefeed = g_ptr_array_index (priv->sequence_skips, i);
+        if (linefeed <= subsequence)
         {
-            subsequence_offset++; // move the subsequence right
+            subsequence++; // move the subsequence right
         }
-        else if (linefeed_offset < subsequence_offset + subsequence_len)
+        else if (linefeed < subsequence + subsequence_len)
         {
             // length until the next linefeed
-            gsize len_to_copy = linefeed_offset - subsequence_offset;
+            gsize len_to_copy = linefeed - subsequence;
 
-            memcpy (subsequence + subsequence_so_far, priv->sequence + subsequence_offset, len_to_copy);
+            memcpy (subsequence_buffer + subsequence_buffer_offset, subsequence, len_to_copy);
 
-            subsequence_so_far += len_to_copy;
-            subsequence_offset = subsequence_offset + len_to_copy + 1; // jump right after the linefeed
-            subsequence_used = TRUE;
+            subsequence_buffer_offset += len_to_copy;
+            subsequence += len_to_copy + 1; // jump right after the linefeed
+            subsequence_buffer_used = TRUE;
         }
         else
         {
@@ -211,18 +211,18 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
         }
     }
 
-    if (subsequence_used)
+    if (subsequence_buffer_used)
     {
-        if (subsequence_so_far < subsequence_len)
+        if (subsequence_buffer_offset < subsequence_len)
         {
-            memcpy (subsequence + subsequence_so_far, priv->sequence + subsequence_offset, subsequence_len - subsequence_so_far);
+            memcpy (subsequence_buffer + subsequence_buffer_offset, subsequence, subsequence_len - subsequence_buffer_offset);
         }
 
-        return subsequence;
+        return subsequence_buffer;
     }
     else
     {
-        return priv->sequence + subsequence_offset;
+        return subsequence;
     }
 }
 
