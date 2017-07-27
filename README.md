@@ -66,6 +66,8 @@ ninja
 ninja install
 ```
 
+To generate fast code, configure with `CFLAGS='-Ofast -march=native meson'`.
+
 You can perform a local installation using `meson --prefix=$HOME/.local`, but
 you'll need `LD_LIBRARY_PATH` set accordingly since the `mirbooking` program
 uses a shared library. Otherwise, a static linkage can be done by calling
