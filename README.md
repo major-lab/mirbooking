@@ -114,6 +114,13 @@ mirbooking [...] | mirbooking-aggregate target mirna
 Note that the output contains the aggregated columns, the occupancy and the
 silencing. Both metrics are summed among the group.
 
+The `mirbooking-extract-cds-regions` tool extract the coding regions from
+a GenBank file.
+
+```bash
+mirbooking-extract-cds-regions < GCR.gbff > cds-regions.tsv
+```
+
 ## C API
 
 The API is conform to the GLib style and enable a wide range of use. It is fairly easy to use and a typical

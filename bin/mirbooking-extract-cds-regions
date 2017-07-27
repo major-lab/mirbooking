@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+
+from Bio import SeqIO
+import sys
+
+for record in SeqIO.parse(sys.stdin, 'genbank'):
+    features = {feature.type: feature for feature in record.features}
+    if 'CDS' in features:
+        cds_location = features['CDS'].location
+        print('{}\t{}..{}'.format(record.id, int(cds_location.start), int(cds_location.end)))
+
