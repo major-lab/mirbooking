@@ -184,6 +184,18 @@ test_mirbooking_run_async ()
     g_test_trap_assert_stdout ("pass");
 }
 
+static void
+test_mirbooking_empty ()
+{
+    g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
+
+    g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
+    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table);
+    mirbooking_broker_set_score_table (broker, g_object_ref (score_table));
+
+    g_assert (mirbooking_broker_run (broker, NULL));
+}
+
 gint
 main (gint argc, gchar **argv)
 {
@@ -191,6 +203,7 @@ main (gint argc, gchar **argv)
 
     g_test_add_func ("/mirbooking", test_mirbooking);
     g_test_add_func ("/mirbooking/run-async", test_mirbooking_run_async);
+    g_test_add_func ("/mirbooking/empty", test_mirbooking_empty);
 
     return g_test_run ();
 }
