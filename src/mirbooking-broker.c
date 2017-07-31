@@ -116,6 +116,20 @@ mirbooking_occupant_free (MirbookingOccupant *self)
     g_slice_free (MirbookingOccupant, self);
 }
 
+static guint
+mirbooking_target_site_get_occupancy (MirbookingTargetSite *self)
+{
+    guint occupancy = 0;
+
+    GSList *occupants_list;
+    for (occupants_list = self->occupants; occupants_list != NULL; occupants_list = occupants_list->next)
+    {
+        occupancy += ((MirbookingOccupant*)occupants_list->data)->quantity;
+    }
+
+    return occupancy;
+}
+
 static void
 mirbooking_target_site_clear (MirbookingTargetSite *self)
 {
@@ -309,7 +323,7 @@ compute_vacancy (MirbookingBroker *self, MirbookingTargetSite *target_site)
         // we might overlap preceeding or following target sites
         if (G_LIKELY (nearby_target_site->target == target))
         {
-            vacancy = MIN (vacancy, floorf (available_target_quantity) - nearby_target_site->occupancy);
+            vacancy = MIN (vacancy, floorf (available_target_quantity) - mirbooking_target_site_get_occupancy (nearby_target_site));
         }
     }
 
@@ -394,7 +408,6 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
             target_site.target    = g_object_ref (target);
             target_site.position  = position;
             target_site.occupants = NULL;
-            target_site.occupancy = 0;
             g_array_append_val (self->priv->target_sites, target_site);
         }
     }
@@ -500,7 +513,6 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
                 // occupy the site
                 MirbookingOccupant *occupant = mirbooking_occupant_new (mirna, occupants);
                 scored_target_site->target_site->occupants = g_slist_prepend (scored_target_site->target_site->occupants, occupant);
-                scored_target_site->target_site->occupancy += occupants;
 
                 // update the vacancy of the current site
                 vacancy -= occupants;

@@ -124,8 +124,6 @@ test_mirbooking ()
             site_occupancy += occupant->quantity;
         }
 
-        g_assert_cmpint (site_occupancy, ==, g_array_index (target_sites, MirbookingTargetSite, i).occupancy);
-
         total_occupancy += site_occupancy;
     }
 
