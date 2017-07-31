@@ -10,7 +10,10 @@ typedef struct
     gfloat                log_base;
     gsize                 prime5_footprint;
     gsize                 prime3_footprint;
+
     MirbookingScoreTable *score_table;
+
+    MirbookingScoreIndex *score_index;
 
     GSList               *targets;
     GSList               *mirnas;
@@ -142,6 +145,11 @@ mirbooking_broker_finalize (GObject *object)
 {
     MirbookingBroker *self = MIRBOOKING_BROKER (object);
 
+    if (self->priv->score_index)
+    {
+        g_object_unref (self->priv->score_index);
+    }
+
     if (self->priv->score_table)
     {
         g_object_unref (self->priv->score_table);
@@ -221,6 +229,12 @@ mirbooking_broker_set_3prime_footprint (MirbookingBroker *self,
                                         gsize       footprint)
 {
     self->priv->prime3_footprint = footprint;
+}
+
+void
+mirbooking_broker_set_score_index (MirbookingBroker *self, MirbookingScoreIndex *score_index)
+{
+    self->priv->score_index = score_index;
 }
 
 void
@@ -355,6 +369,7 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
     gsize target_sites_len = 0;
 
     g_return_val_if_fail (self != NULL, FALSE);
+    g_return_val_if_fail (self->priv->score_index != NULL, FALSE);
     g_return_val_if_fail (self->priv->score_table != NULL, FALSE);
 
     if (self->priv->target_sites != NULL)

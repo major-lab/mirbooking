@@ -13,8 +13,8 @@ Implementation of the miRBooking algorithm and metrics in C
 ## Usage
 
 ```bash
-mirbooking --mirnas mirbase.fa 
-           --targets human-genome.fa 
+mirbooking --mirnas mirbase.fa
+           --targets human-genome.fa
            --score-table scores
            [--cds-regions cds-regions.tsv]
            [--threshold 0.0179]
@@ -133,10 +133,18 @@ experimentation session is:
  3. setup quantities via `mirbooking_broker_set_sequence_quantity`
  4. call `mirbooking_broker_run` to perform a full hybridization
  5. retrieve and inspect the microtargetome with `mirbooking_broker_get_target_sites`
- 
+
 For a more detailed usage and code example, the [program source](https://github.com/major-lab/mirbooking/blob/master/bin/mirbooking.c)
 is very explicit as it perform a full session and fully output the target sites.
- 
+
+To work properly, the broker relies on two structures:
+
+ - a score table which map (target, position, mirna) => score
+ - a score index which yield the (target, position, mirna) triplet
+
+The two are abstract and can be implemented with various scoring and yielding
+strategy.
+
 ## Parallelization (using GNU parallel)
 
 ```bash

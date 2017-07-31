@@ -4,6 +4,7 @@
 #include "mirbooking-error.h"
 #include "mirbooking-mirna.h"
 #include "mirbooking-occupant.h"
+#include "mirbooking-score-index.h"
 #include "mirbooking-score-table.h"
 #include "mirbooking-sequence.h"
 #include "mirbooking-target-site.h"
@@ -36,6 +37,8 @@ void               mirbooking_broker_set_5prime_footprint  (MirbookingBroker *se
                                                             gsize             footprint);
 void               mirbooking_broker_set_3prime_footprint  (MirbookingBroker *self,
                                                             gsize             footprint);
+void               mirbooking_broker_set_score_index       (MirbookingBroker     *self,
+                                                            MirbookingScoreIndex *score_index);
 void               mirbooking_broker_set_score_table       (MirbookingBroker     *self,
                                                             MirbookingScoreTable *score_table);
 void               mirbooking_broker_set_sequence_quantity (MirbookingBroker   *self,
