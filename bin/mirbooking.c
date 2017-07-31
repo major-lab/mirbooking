@@ -397,8 +397,10 @@ main (gint argc, gchar **argv)
 
     GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
-    const MirbookingTargetSite *target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
-    while (target_site < ((MirbookingTargetSite*)target_sites->data) + target_sites->len)
+    const MirbookingTargetSite *target_site;
+    for (target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
+         target_site < &g_array_index (target_sites, MirbookingTargetSite, target_sites->len);
+         target_site++)
     {
         GSList *occupants;
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
@@ -447,7 +449,6 @@ main (gint argc, gchar **argv)
                        occupant->quantity,
                        occupant->quantity * probability * mirbooking_region_get_multiplier (region));
         }
-        ++target_site;
     }
 
     return EXIT_SUCCESS;
