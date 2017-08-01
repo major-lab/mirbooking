@@ -1,4 +1,4 @@
-project('miRBooking', 'c',
+project('mirbooking', 'c',
         version: '1.0.0')
 
 glib_dep = dependency('glib-2.0', version: '>=2.44')
