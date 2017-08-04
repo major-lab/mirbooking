@@ -177,7 +177,7 @@ MirbookingPrecomputedScoreTable *
 mirbooking_precomputed_score_table_new (gfloat *data, gsize seed_offset, gsize seed_len)
 {
     return g_object_new (MIRBOOKING_TYPE_PRECOMPUTED_SCORE_TABLE,
-                         "score-table", g_bytes_new_take (data, sizeof (gfloat)),
+                         "score-table", g_bytes_new_take (data, (1l << 2 * seed_len) * (1l << 2 * seed_len) * sizeof (gfloat)),
                          "seed-offset", seed_offset,
                          "seed-length", seed_len,
                          NULL);
