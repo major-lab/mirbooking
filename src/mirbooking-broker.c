@@ -445,11 +445,9 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
             for (i = 0; i < scored_target_sites_len; i++)
             {
                 gfloat seed_score = mirbooking_score_table_compute_score (self->priv->score_table,
-                                                                          MIRBOOKING_SEQUENCE (mirna),
-                                                                          1,
-                                                                          MIRBOOKING_SEQUENCE (target_sites[i].target),
+                                                                          mirna,
+                                                                          target_sites[i].target,
                                                                           target_sites[i].position,
-                                                                          7,
                                                                           error);
 
                 if (seed_score >= self->priv->threshold)

@@ -21,6 +21,8 @@ static gchar   *quantities_file  = NULL;
 static gchar   *output_file      = NULL;
 static gdouble  threshold        = MIRBOOKING_BROKER_DEFAULT_THRESHOLD;
 static gdouble  log_base         = MIRBOOKING_BROKER_DEFAULT_LOG_BASE;
+static gsize    seed_offset      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
+static gsize    seed_length      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
 static gsize    prime5_footprint = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
 static gsize    prime3_footprint = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
 static gdouble  utr5_multiplier  = 0.1;
@@ -37,6 +39,8 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"output",                0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
     {"threshold",             0, 0, G_OPTION_ARG_DOUBLE,   &threshold,        "Probability threshold for site matching",                                                         G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_THRESHOLD)},
     {"log-base",              0, 0, G_OPTION_ARG_DOUBLE,   &log_base,         "Logarithm base for spreading quantites across sites",                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_LOG_BASE)},
+    {"seed-offset",           0, 0, G_OPTION_ARG_INT,      &seed_offset,      "MiRNA seed offset",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
+    {"seed-length",           0, 0, G_OPTION_ARG_INT,      &seed_length,      "MiRNA seed length",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
     {"5prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime5_footprint, "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
     {"3prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime3_footprint, "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
     {"5prime-utr-multiplier", 0, 0, G_OPTION_ARG_DOUBLE,   &utr5_multiplier,  "Silencing multiplier for the 3'UTR region",                                                       "0.1"},
@@ -220,7 +224,17 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (g_mapped_file_get_bytes (score_map));
+    if (g_mapped_file_get_length (score_map) != (1 << 2 * seed_length) * (1 << 2 * seed_length) * sizeof (gfloat))
+    {
+        g_printerr ("The specified '--seed-length' parameter would require a %luB score table, but %luB were provided.\n",
+                    (1l << 2 * seed_length) * (1l << 2 * seed_length) * sizeof (gfloat),
+                    g_mapped_file_get_length (score_map));
+        return EXIT_FAILURE;
+    }
+
+    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (g_mapped_file_get_bytes (score_map),
+                                                                                                                 seed_offset,
+                                                                                                                 seed_length);
     mirbooking_broker_set_score_table (mirbooking,
                                        g_object_ref (score_table));
 
@@ -413,11 +427,9 @@ main (gint argc, gchar **argv)
 
             g_autoptr (GError) error = NULL;
             probability = mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
-                                                                MIRBOOKING_SEQUENCE (occupant->mirna),
-                                                                1,
-                                                                MIRBOOKING_SEQUENCE (target_site->target),
+                                                                occupant->mirna,
+                                                                target_site->target,
                                                                 target_site->position,
-                                                                7,
                                                                 &error);
             if (error != NULL)
             {

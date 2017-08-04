@@ -2,7 +2,8 @@
 #define __MIRBOOKING_SCORE_TABLE_H__
 
 #include "mirbooking-error.h"
-#include "mirbooking-sequence.h"
+#include "mirbooking-target.h"
+#include "mirbooking-mirna.h"
 
 #include <glib-object.h>
 
@@ -16,20 +17,16 @@ struct _MirbookingScoreTableClass
     GObjectClass parent_class;
 
     gfloat (*compute_score) (MirbookingScoreTable *self,
-                             MirbookingSequence   *a,
-                             gsize                 a_offset,
-                             MirbookingSequence   *b,
-                             gsize                 b_offset,
-                             gsize                 len,
+                             MirbookingMirna      *mirna,
+                             MirbookingTarget     *target,
+                             gsize                 position,
                              GError              **error);
 };
 
 gfloat mirbooking_score_table_compute_score (MirbookingScoreTable *self,
-                                             MirbookingSequence   *a,
-                                             gsize                 a_offset,
-                                             MirbookingSequence   *b,
-                                             gsize                 b_offset,
-                                             gsize                 len,
+                                             MirbookingMirna      *mirna,
+                                             MirbookingTarget     *target,
+                                             gsize                 position,
                                              GError              **error);
 
 G_END_DECLS

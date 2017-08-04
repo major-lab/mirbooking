@@ -94,7 +94,7 @@ test_mirbooking ()
     mirbooking_broker_set_threshold (mirbooking, 0.0f); // the score table is zeroed anyway
 
     g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
-    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table);
+    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table, 1, 7);
     mirbooking_broker_set_score_table (mirbooking, g_object_ref (score_table));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
@@ -165,7 +165,7 @@ test_mirbooking_run_async ()
         g_autoptr (GMainLoop) loop = g_main_loop_new (NULL, FALSE);
 
         g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
-        g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table);
+        g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table, 1, 7);
         mirbooking_broker_set_score_table (broker, g_object_ref (score_table));
 
         mirbooking_broker_run_async (broker,
@@ -188,7 +188,7 @@ test_mirbooking_empty ()
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
     g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
-    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table);
+    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table, 1, 7);
     mirbooking_broker_set_score_table (broker, g_object_ref (score_table));
 
     g_assert (mirbooking_broker_run (broker, NULL));
