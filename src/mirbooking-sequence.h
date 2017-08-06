@@ -23,6 +23,8 @@ const gchar * mirbooking_sequence_get_subsequence (MirbookingSequence *self,
                                                    gsize               subsequence_offset,
                                                    gsize               subsequence_len);
 
+gsize         mirbooking_sequence_get_index       (MirbookingSequence *self, gsize offset, gsize len);
+
 guint    mirbooking_sequence_hash  (const MirbookingSequence *a);
 gboolean mirbooking_sequence_equal (const MirbookingSequence *a,
                                     const MirbookingSequence *b);

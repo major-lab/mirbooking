@@ -36,41 +36,6 @@ mirbooking_precomputed_score_table_finalize (GObject *object)
     G_OBJECT_CLASS (mirbooking_precomputed_score_table_parent_class)->finalize (object);
 }
 
-static gsize
-sequence_index (const gchar *seq, gsize seq_len)
-{
-    gint i;
-    gsize index = 0;
-
-    // note: 4**i = 2**2i = 2 << 2i - 1
-    // for i = 0, we do it manually as it would result in a negative shift
-
-    for (i = 0; i < seq_len; i++)
-    {
-        gsize base = i == 0 ? 1 : (2l << (2 * i - 1));
-        switch (seq[seq_len - i - 1])
-        {
-            case 'A':
-                index += 0 * base;
-                break;
-            case 'C':
-                index += 1 * base;
-                break;
-            case 'G':
-                index += 2 * base;
-                break;
-            case 'T':
-            case 'U':
-                index += 3 * base;
-                break;
-            default:
-                g_return_val_if_reached (0);
-        }
-    }
-
-    return index;
-}
-
 static gfloat
 compute_score (MirbookingScoreTable *self,
                MirbookingMirna      *mirna,
@@ -90,8 +55,8 @@ compute_score (MirbookingScoreTable *self,
     gsize  data_len;
     const gchar *data = g_bytes_get_data (MIRBOOKING_PRECOMPUTED_SCORE_TABLE (self)->priv->precomputed_table_bytes, &data_len);
 
-    gsize i = sequence_index (mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len), seed_len);
-    gsize j = sequence_index (mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position, seed_len), seed_len);
+    gsize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
+    gsize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, seed_len);
 
     gsize k = i * (1l << 2 * seed_len) + j;
 

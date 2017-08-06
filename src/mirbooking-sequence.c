@@ -9,6 +9,9 @@ typedef struct
     const gchar *sequence;
     gsize        sequence_len;
     GPtrArray   *sequence_skips; /* all the pointers in 'sequence' to skip (i.e. line feeds) */
+    gsize        index;          /* a cached index for a subsequence of this */
+    gsize        index_offset;
+    gsize        index_len;
 } MirbookingSequencePrivate;
 
 enum
@@ -222,6 +225,67 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
     {
         return subsequence;
     }
+}
+
+static gsize
+sequence_index (const gchar *seq, gsize seq_len)
+{
+    gint i;
+    gsize index = 0;
+
+    // note: 4**i = 2**2i = 2 << 2i - 1
+    // for i = 0, we do it manually as it would result in a negative shift
+
+    for (i = 0; i < seq_len; i++)
+    {
+        gsize base = i == 0 ? 1 : (2l << (2 * i - 1));
+        switch (seq[seq_len - i - 1])
+        {
+            case 'A':
+                index += 0 * base;
+                break;
+            case 'C':
+                index += 1 * base;
+                break;
+            case 'G':
+                index += 2 * base;
+                break;
+            case 'T':
+            case 'U':
+                index += 3 * base;
+                break;
+            default:
+                g_return_val_if_reached (0);
+        }
+    }
+
+    return index;
+}
+
+/**
+ * mirbooking_sequence_get_subsequence_index:
+ *
+ * Compute an ordinal index for the given subsequence assuming a base 4 (i.e.
+ * 'A', 'C', 'G', 'T' | 'U').
+ *
+ * The result is cached between computations, which can drastically speed up
+ * #MirbookingMirna seed-based indexing.
+ */
+gsize
+mirbooking_sequence_get_subsequence_index (MirbookingSequence *self, gsize offset, gsize len)
+{
+    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+
+    g_return_val_if_fail (offset + len <= priv->sequence_len - priv->sequence_skips->len, 0);
+
+    if (priv->index_offset != offset || priv->index_len != len)
+    {
+        priv->index        = sequence_index (mirbooking_sequence_get_subsequence (self, offset, len), len);
+        priv->index_offset = offset;
+        priv->index_len    = len;
+    }
+
+    return priv->index;
 }
 
 guint
