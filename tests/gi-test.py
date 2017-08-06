@@ -91,10 +91,10 @@ def reverse_complement(seq):
     return reversed(seq.translate(bytes.maketrans(b'ACGU', b'CAUG')))
 
 class SimpleScoreTable(Mirbooking.ScoreTable):
-    def do_compute_score(self, a, a_offset, b, b_offset, length):
+    def do_compute_score(self, mirna, target, position):
         # simple hamming distance
-        return 1 - sum(1 / length if a != b else 0
-            for a, b in zip(reverse_complement(a.get_subsequence (a_offset, length)), b.get_subsequence (b_offset, length)))
+        return 1 - sum(1 / 7 if a != b else 0
+            for a, b in zip(reverse_complement(mirna.get_subsequence (1, 7)), target.get_subsequence (position, 7)))
 
 class MirbookingBrokerTestCase(unittest.TestCase):
     def test_run(self):
