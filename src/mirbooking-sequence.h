@@ -13,21 +13,23 @@ struct _MirbookingSequenceClass
     GObjectClass parent_class;
 };
 
-const gchar * mirbooking_sequence_get_accession (MirbookingSequence *self);
-const gchar * mirbooking_sequence_get_raw_sequence (MirbookingSequence *self, gsize *sequence_len);
-void          mirbooking_sequence_set_raw_sequence (MirbookingSequence *self,
-                                                    const gchar        *sequence,
-                                                    gssize              sequence_len);
-gsize         mirbooking_sequence_get_sequence_length (MirbookingSequence *self);
-const gchar * mirbooking_sequence_get_subsequence (MirbookingSequence *self,
-                                                   gsize               subsequence_offset,
-                                                   gsize               subsequence_len);
+const gchar * mirbooking_sequence_get_accession         (MirbookingSequence *self);
+const gchar * mirbooking_sequence_get_raw_sequence      (MirbookingSequence *self, gsize *sequence_len);
+void          mirbooking_sequence_set_raw_sequence      (MirbookingSequence *self,
+                                                         const gchar        *sequence,
+                                                         gssize              sequence_len);
+gsize         mirbooking_sequence_get_sequence_length   (MirbookingSequence *self);
+const gchar * mirbooking_sequence_get_subsequence       (MirbookingSequence *self,
+                                                         gsize               subsequence_offset,
+                                                         gsize               subsequence_len);
 
-gsize         mirbooking_sequence_get_index       (MirbookingSequence *self, gsize offset, gsize len);
+gsize         mirbooking_sequence_get_subsequence_index (MirbookingSequence *self,
+                                                         gsize               offset,
+                                                         gsize               len);
 
-guint    mirbooking_sequence_hash  (const MirbookingSequence *a);
-gboolean mirbooking_sequence_equal (const MirbookingSequence *a,
-                                    const MirbookingSequence *b);
+guint         mirbooking_sequence_hash                  (const MirbookingSequence *a);
+gboolean      mirbooking_sequence_equal                 (const MirbookingSequence *a,
+                                                         const MirbookingSequence *b);
 
 G_END_DECLS
 
