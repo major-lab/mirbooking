@@ -17,6 +17,7 @@ static gchar   *mirnas_file      = NULL;
 static gchar   *targets_file     = NULL;
 static gchar   *cds_regions_file = NULL;
 static gchar   *score_table_file = NULL;
+static gchar   *score_index_file = NULL;
 static gchar   *quantities_file  = NULL;
 static gchar   *output_file      = NULL;
 static gdouble  threshold        = MIRBOOKING_BROKER_DEFAULT_THRESHOLD;
@@ -35,6 +36,7 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"targets",               0, 0, G_OPTION_ARG_FILENAME, &targets_file,     "Transcripts sequences FASTA file",                                                                "FILE"},
     {"cds-regions",           0, 0, G_OPTION_ARG_FILENAME, &cds_regions_file, "Coding regions as a two-column (accession, 1-based inclusive interval) TSV file",                 "FILE"},
     {"score-table",           0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE duplex table as a row-major big-endian float matrix file",                   "FILE"},
+    {"score-index",           0, 0, G_OPTION_ARG_FILENAME, &score_index_file, "Precomputed seed-MRE duplex table indices as a row-major big-endian uint16 array",                   "FILE"},
     {"quantities",            0, 0, G_OPTION_ARG_FILENAME, &quantities_file,  "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
     {"output",                0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
     {"threshold",             0, 0, G_OPTION_ARG_DOUBLE,   &threshold,        "Probability threshold for site matching",                                                         G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_THRESHOLD)},
@@ -217,6 +219,12 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
+    if (score_index_file == NULL)
+    {
+        g_printerr ("The '--score-index' argument is required.\n");
+        return EXIT_FAILURE;
+    }
+
     g_autoptr (GMappedFile) score_map = g_mapped_file_new (score_table_file, FALSE, &error);
     if (score_map == NULL)
     {
@@ -237,6 +245,23 @@ main (gint argc, gchar **argv)
                                                                                                                  seed_length);
     mirbooking_broker_set_score_table (mirbooking,
                                        g_object_ref (score_table));
+
+    g_autoptr (GMappedFile) index_map = g_mapped_file_new (score_index_file, FALSE, &error);
+    if (index_map == NULL)
+    {
+        g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+        return EXIT_FAILURE;
+    }
+
+    if (g_mapped_file_get_length (index_map) != (1 << 2 * seed_length) * (1 << 2 * seed_length) * 2 * sizeof (guint16))
+    {
+        return EXIT_FAILURE;
+    }
+
+    g_autoptr (MirbookingPrecomputedScoreIndex) score_index = mirbooking_precomputed_score_index_new_from_bytes (g_mapped_file_get_bytes (index_map));
+
+    mirbooking_broker_set_score_index (mirbooking,
+                                       g_object_ref (score_index));
 
     if (mirnas_file == NULL)
     {
