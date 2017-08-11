@@ -53,6 +53,13 @@ enum
     PROP_SCORE_INDEX = 1
 };
 
+static void
+finalize (GObject *object)
+{
+    MirbookingScoreIndexIterPrivate *priv = mirbooking_score_index_iter_get_instance_private (MIRBOOKING_SCORE_INDEX_ITER (object));
+    g_object_unref (priv->score_index);
+}
+
 void
 get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
 {
@@ -85,6 +92,8 @@ void
 mirbooking_score_index_iter_class_init (MirbookingScoreIndexIterClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    object_class->finalize     = finalize;
     object_class->get_property = get_property;
     object_class->set_property = set_property;
 

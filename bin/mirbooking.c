@@ -258,7 +258,9 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_autoptr (MirbookingPrecomputedScoreIndex) score_index = mirbooking_precomputed_score_index_new_from_bytes (g_mapped_file_get_bytes (index_map));
+    g_autoptr (MirbookingPrecomputedScoreIndex) score_index = mirbooking_precomputed_score_index_new_from_bytes (g_mapped_file_get_bytes (index_map),
+                                                                                                                 seed_offset,
+                                                                                                                 seed_length);
 
     mirbooking_broker_set_score_index (mirbooking,
                                        g_object_ref (score_index));

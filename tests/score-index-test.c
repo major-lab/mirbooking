@@ -7,7 +7,7 @@ guint16 SCORE_INDEX[16384 * 16384 * 2];
 static void
 test_score_index ()
 {
-    g_autoptr (MirbookingPrecomputedScoreIndex) index = mirbooking_precomputed_score_index_new (SCORE_INDEX);
+    g_autoptr (MirbookingPrecomputedScoreIndex) index = mirbooking_precomputed_score_index_new (SCORE_INDEX, 1, 7);
 
     g_autoptr (MirbookingScoreIndexIter) iter = mirbooking_score_index_iterator (MIRBOOKING_SCORE_INDEX (index));
 
@@ -20,8 +20,8 @@ test_score_index ()
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), target_seq, strlen (target_seq));
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), mirna_seq, strlen (mirna_seq));
 
-    SCORE_INDEX[0] = GUINT16_TO_BE ((guint16) mirbooking_sequence_get_subsequence_index (mirna, 1, 7));
-    SCORE_INDEX[1] = GUINT16_TO_BE ((guint16) mirbooking_sequence_get_subsequence_index (target, 0, 7));
+    SCORE_INDEX[0] = GUINT16_TO_BE ((guint16) mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), 1, 7));
+    SCORE_INDEX[1] = GUINT16_TO_BE ((guint16) mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), 0, 7));
 
     mirbooking_score_index_add_sequence (MIRBOOKING_SCORE_INDEX (index), MIRBOOKING_SEQUENCE (target), 5.0f);
     mirbooking_score_index_add_sequence (MIRBOOKING_SCORE_INDEX (index), MIRBOOKING_SEQUENCE (mirna), 5.0f);

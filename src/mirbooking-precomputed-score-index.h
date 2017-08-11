@@ -11,8 +11,12 @@ G_DECLARE_FINAL_TYPE (MirbookingPrecomputedScoreIndex, mirbooking_precomputed_sc
 #define MIRBOOKING_TYPE_PRECOMPUTED_SCORE_INDEX_ITER mirbooking_precomputed_score_index_iter_get_type ()
 G_DECLARE_FINAL_TYPE (MirbookingPrecomputedScoreIndexIter, mirbooking_precomputed_score_index_iter, MIRBOOKING, PRECOMPUTED_SCORE_INDEX_ITER, MirbookingScoreIndexIter)
 
-MirbookingPrecomputedScoreIndex * mirbooking_precomputed_score_index_new            (guint16 *data);
-MirbookingPrecomputedScoreIndex * mirbooking_precomputed_score_index_new_from_bytes (GBytes *data);
+MirbookingPrecomputedScoreIndex * mirbooking_precomputed_score_index_new            (guint16 *data,
+                                                                                     gsize    seed_offset,
+                                                                                     gsize    seed_len);
+MirbookingPrecomputedScoreIndex * mirbooking_precomputed_score_index_new_from_bytes (GBytes *data,
+                                                                                     gsize   seed_offset,
+                                                                                     gsize   seed_len);
 
 G_END_DECLS
 
