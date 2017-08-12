@@ -15,19 +15,19 @@ mirbooking_score_index_init (MirbookingScoreIndex *klass)
 }
 
 /**
- * mirbooking_score_index_add_sequence:
+ * mirbooking_score_index_set_sequence_quantity:
  *
  * Add a #MirbookingSequence to this index such that it can be yielded by the
  * #MirbookingScoreIndexIter
  */
 void
-mirbooking_score_index_add_sequence (MirbookingScoreIndex *self,
-                                     MirbookingSequence   *sequence,
-                                     gfloat                quantity)
+mirbooking_score_index_set_sequence_quantity (MirbookingScoreIndex *self,
+                                              MirbookingSequence   *sequence,
+                                              gfloat                quantity)
 {
     MirbookingScoreIndexClass *klass = MIRBOOKING_SCORE_INDEX_GET_CLASS (self);
 
-    return klass->add_sequence (self, sequence, quantity);
+    return klass->set_sequence_quantity (self, sequence, quantity);
 }
 
 /**

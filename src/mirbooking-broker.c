@@ -301,9 +301,9 @@ mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSeque
         }
     }
 
-    mirbooking_score_index_add_sequence (self->priv->score_index,
-                                         sequence,
-                                         quantity);
+    mirbooking_score_index_set_sequence_quantity (self->priv->score_index,
+                                                  sequence,
+                                                  quantity);
 }
 
 static guint

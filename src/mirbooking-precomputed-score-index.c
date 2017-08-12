@@ -93,9 +93,9 @@ typedef struct _MirbookingQuantifiedMirna
 } MirbookingQuantifiedMirna;
 
 static void
-add_sequence (MirbookingScoreIndex *self,
-              MirbookingSequence   *sequence,
-              gfloat                quantity)
+set_sequence_quantity (MirbookingScoreIndex *self,
+                       MirbookingSequence   *sequence,
+                       gfloat                quantity)
 {
     MirbookingPrecomputedScoreIndexPrivate *priv = MIRBOOKING_PRECOMPUTED_SCORE_INDEX (self)->priv;
 
@@ -215,8 +215,8 @@ mirbooking_precomputed_score_index_class_init (MirbookingPrecomputedScoreIndexCl
     object_class->set_property = set_property;
     object_class->finalize     = finalize;
 
-    klass->parent_class.add_sequence = add_sequence;
-    klass->parent_class.iterator     = iterator;
+    klass->parent_class.set_sequence_quantity = set_sequence_quantity;
+    klass->parent_class.iterator              = iterator;
 
     g_object_class_install_property (object_class,
                                      PROP_SCORE_INDEX,

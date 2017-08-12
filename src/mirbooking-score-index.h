@@ -17,9 +17,9 @@ G_DECLARE_DERIVABLE_TYPE (MirbookingScoreIndexIter, mirbooking_score_index_iter,
 struct _MirbookingScoreIndexClass
 {
     GObjectClass parent_class;
-    void                       (*add_sequence) (MirbookingScoreIndex *self,
-                                                MirbookingSequence   *sequence,
-                                                gfloat                quantity);
+    void                       (*set_sequence_quantity) (MirbookingScoreIndex *self,
+                                                         MirbookingSequence   *sequence,
+                                                         gfloat                quantity);
     MirbookingScoreIndexIter * (*iterator)     (MirbookingScoreIndex *self);
 };
 
@@ -32,15 +32,15 @@ struct _MirbookingScoreIndexIterClass
                       gsize                     *position);
 };
 
-void                       mirbooking_score_index_add_sequence         (MirbookingScoreIndex *self,
-                                                                        MirbookingSequence *sequence,
-                                                                        gfloat              quantity);
-MirbookingScoreIndexIter * mirbooking_score_index_iterator             (MirbookingScoreIndex *self);
-MirbookingScoreIndex *     mirbooking_score_index_iter_get_score_index (MirbookingScoreIndexIter  *self);
-gboolean                   mirbooking_score_index_iter_next            (MirbookingScoreIndexIter  *self,
-                                                                        MirbookingMirna          **a,
-                                                                        MirbookingTarget         **b,
-                                                                        gsize                     *position);
+void                       mirbooking_score_index_set_sequence_quantity (MirbookingScoreIndex *self,
+                                                                         MirbookingSequence   *sequence,
+                                                                         gfloat                quantity);
+MirbookingScoreIndexIter * mirbooking_score_index_iterator              (MirbookingScoreIndex *self);
+MirbookingScoreIndex *     mirbooking_score_index_iter_get_score_index  (MirbookingScoreIndexIter *self);
+gboolean                   mirbooking_score_index_iter_next             (MirbookingScoreIndexIter *self,
+                                                                         MirbookingMirna         **a,
+                                                                         MirbookingTarget        **b,
+                                                                         gsize                    *position);
 
 
 G_END_DECLS

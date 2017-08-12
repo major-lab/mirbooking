@@ -23,8 +23,8 @@ test_score_index ()
     SCORE_INDEX[0] = GUINT16_TO_BE ((guint16) mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), 1, 7));
     SCORE_INDEX[1] = GUINT16_TO_BE ((guint16) mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), 0, 7));
 
-    mirbooking_score_index_add_sequence (MIRBOOKING_SCORE_INDEX (index), MIRBOOKING_SEQUENCE (target), 5.0f);
-    mirbooking_score_index_add_sequence (MIRBOOKING_SCORE_INDEX (index), MIRBOOKING_SEQUENCE (mirna), 5.0f);
+    mirbooking_score_index_set_sequence_quantity (MIRBOOKING_SCORE_INDEX (index), MIRBOOKING_SEQUENCE (target), 5.0f);
+    mirbooking_score_index_set_sequence_quantity (MIRBOOKING_SCORE_INDEX (index), MIRBOOKING_SEQUENCE (mirna), 5.0f);
 
     MirbookingMirna *a;
     MirbookingTarget *b;
