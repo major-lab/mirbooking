@@ -407,7 +407,7 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_fprintf (output_f, "target\tmirna\tposition\tlocation\tprobability\toccupancy\tsilencing\n");
+    g_fprintf (output_f, "target\tmirna\tposition\tlocation\tprobability\toccupancy\tvacancy\tsilencing\n");
 
     GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
@@ -452,13 +452,14 @@ main (gint argc, gchar **argv)
                 region = MIRBOOKING_REGION_UNKNOWN;
             }
 
-            g_fprintf (output_f, "%s\t%s\t%ld\t%s\t%f\t%d\t%f\n",
+            g_fprintf (output_f, "%s\t%s\t%ld\t%s\t%f\t%d\t%d\t%f\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
                        target_site->position + 1, // 1-based
                        mirbooking_region_to_string (region),
                        probability,
                        occupant->quantity,
+                       mirbooking_broker_get_target_site_vacancy (mirbooking, target_site),
                        occupant->quantity * probability * mirbooking_region_get_multiplier (region));
         }
     }
