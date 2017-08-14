@@ -117,7 +117,7 @@ mirbooking_occupant_free (MirbookingOccupant *self)
 }
 
 static guint
-mirbooking_target_site_get_occupancy (MirbookingTargetSite *self)
+mirbooking_target_site_get_occupancy (const MirbookingTargetSite *self)
 {
     guint occupancy = 0;
 
@@ -302,8 +302,8 @@ sequence_cmp_desc (MirbookingSequence *a, MirbookingSequence *b, MirbookingBroke
     return (a_quantity < b_quantity) - (a_quantity > b_quantity);
 }
 
-static guint
-compute_vacancy (MirbookingBroker *self, MirbookingTargetSite *target_site)
+guint
+mirbooking_broker_get_target_site_vacancy (MirbookingBroker *self, const MirbookingTargetSite *target_site)
 {
     MirbookingTarget *target = target_site->target;
     gfloat available_target_quantity = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, target));
@@ -311,13 +311,13 @@ compute_vacancy (MirbookingBroker *self, MirbookingTargetSite *target_site)
     guint vacancy = floorf (available_target_quantity);
 
     // find the lower target site
-    MirbookingTargetSite *from_target_site = MAX (target_site - self->priv->prime5_footprint, &g_array_index (self->priv->target_sites, MirbookingTargetSite, 0));
+    const MirbookingTargetSite *from_target_site = MAX (target_site - self->priv->prime5_footprint, &g_array_index (self->priv->target_sites, MirbookingTargetSite, 0));
 
     // find the upper target site
-    MirbookingTargetSite *to_target_site = MIN (target_site + self->priv->prime3_footprint, &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len));
+    const MirbookingTargetSite *to_target_site = MIN (target_site + self->priv->prime3_footprint, &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len));
 
     // minimize vacancy around the footprint
-    MirbookingTargetSite *nearby_target_site;
+    const MirbookingTargetSite *nearby_target_site;
     for (nearby_target_site = from_target_site; nearby_target_site < to_target_site; nearby_target_site++)
     {
         // we might overlap preceeding or following target sites
@@ -470,7 +470,7 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
                 g_assert_cmpint (scored_target_site->target_site->position, ==, scored_target_site->target_site->position);
 
                 // get the vacancy of its corresponding target site
-                guint vacancy = compute_vacancy (self, scored_target_site->target_site);
+                guint vacancy = mirbooking_broker_get_target_site_vacancy (self, scored_target_site->target_site);
 
                 if (vacancy == 0)
                 {
@@ -526,9 +526,8 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
         }
     }
 
-    // clear internal quantification & mirnas
+    // clear internal targets & mirnas
     // references of used sequences are kept in the target sites
-    g_hash_table_remove_all (self->priv->quantification);
 
     g_slist_free_full (self->priv->targets, g_object_unref);
     self->priv->targets = NULL;
