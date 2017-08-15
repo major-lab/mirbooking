@@ -108,4 +108,15 @@ class MirbookingBrokerTestCase(unittest.TestCase):
             for occupant in target_site.occupants:
                 print('Target {} receives {} miRNA {} at position {}.'.format(target_site.target.get_accession(), occupant.quantity, occupant.mirna.get_accession(), target_site.position))
 
+    def test_get_target_sites_as_dataframe(self):
+        mirbooking = Mirbooking.Broker(log_base=Mirbooking.BROKER_DEFAULT_LOG_BASE,
+                threshold=Mirbooking.BROKER_DEFAULT_THRESHOLD,
+                score_table=SimpleScoreTable())
+        mirbooking.set_sequence_quantity(target, 5.0)
+        mirbooking.set_sequence_quantity(mirna, 5.0)
+        mirbooking.run()
+        df = mirbooking.get_target_sites_as_dataframe()
+        self.assertEqual(5, len(df))
+        self.assertEqual('NM_000014.4', df.index[0][0])
+
 unittest.main()
