@@ -223,6 +223,18 @@ mirbooking_broker_set_3prime_footprint (MirbookingBroker *self,
     self->priv->prime3_footprint = footprint;
 }
 
+/**
+ * mirbooking_broker_get_score_table:
+ * Obtain the #MirbookingScoreTable used by this for computing duplex scores.
+ *
+ * Returns: (transfer none)
+ */
+MirbookingScoreTable *
+mirbooking_broker_get_score_table (MirbookingBroker *self)
+{
+    return self->priv->score_table;
+}
+
 void
 mirbooking_broker_set_score_table (MirbookingBroker *self, MirbookingScoreTable *score_table)
 {
