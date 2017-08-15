@@ -71,12 +71,6 @@ typedef struct _MirbookingQuantifiedSequence
     gfloat              quantity;
 } MirbookingQuantifiedSequence;
 
-static gint
-mirbooking_quantified_sequence_quantity_cmp_desc (const MirbookingQuantifiedSequence *a, const MirbookingQuantifiedSequence *b)
-{
-    return (a->quantity < b->quantity) - (a->quantity > b->quantity);
-}
-
 /*
  * Here we use a more quantified storage for the target site than
  * #MirbookingTargetSite
@@ -114,7 +108,7 @@ set_sequence_quantity (MirbookingScoreIndex *self,
 
         g_hash_table_insert (priv->mirnas_by_seed,
                              GSIZE_TO_POINTER (seed_index),
-                             g_slist_insert_sorted (mirnas_list, mirna, (GCompareFunc) mirbooking_quantified_sequence_quantity_cmp_desc));
+                             g_slist_prepend (mirnas_list, mirna));
     }
     else
     {
@@ -136,7 +130,7 @@ set_sequence_quantity (MirbookingScoreIndex *self,
 
             g_hash_table_insert (priv->target_sites_by_heptamer,
                                  GSIZE_TO_POINTER (heptamer_index),
-                                 g_slist_insert_sorted (target_sites_list, target_site, (GCompareFunc) mirbooking_quantified_sequence_quantity_cmp_desc));
+                                 g_slist_prepend (target_sites_list, target_site));
         }
     }
 }
