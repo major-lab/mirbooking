@@ -23,7 +23,7 @@ const gchar * mirbooking_sequence_get_subsequence       (MirbookingSequence *sel
                                                          gsize               subsequence_offset,
                                                          gsize               subsequence_len);
 
-gsize         mirbooking_sequence_get_subsequence_index (MirbookingSequence *self,
+gssize        mirbooking_sequence_get_subsequence_index (MirbookingSequence *self,
                                                          gsize               offset,
                                                          gsize               len);
 

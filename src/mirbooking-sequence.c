@@ -227,7 +227,7 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
     }
 }
 
-static gsize
+static gssize
 sequence_index (const gchar *seq, gsize seq_len)
 {
     gint i;
@@ -255,7 +255,7 @@ sequence_index (const gchar *seq, gsize seq_len)
                 index += 3 * base;
                 break;
             default:
-                g_return_val_if_reached (0);
+                return -1;
         }
     }
 
@@ -270,8 +270,11 @@ sequence_index (const gchar *seq, gsize seq_len)
  *
  * The result is cached between computations, which can drastically speed up
  * #MirbookingMirna seed-based indexing.
+ *
+ * Returns: The corresponding index or %-1 if it could not be determined
+ * reliably.
  */
-gsize
+gssize
 mirbooking_sequence_get_subsequence_index (MirbookingSequence *self, gsize offset, gsize len)
 {
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
