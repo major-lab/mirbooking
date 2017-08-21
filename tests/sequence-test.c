@@ -61,11 +61,23 @@ test_sequence_trim_line_feed ()
     g_assert (trimmed_seq == seq + 5); // zero-copy
 }
 
+static void
+test_sequence_unreliable_subsequence_index (void)
+{
+    g_autoptr (MirbookingSequence) sequence = MIRBOOKING_SEQUENCE (mirbooking_target_new ("NM_1234"));
+
+    mirbooking_sequence_set_raw_sequence (sequence, "ACTGY", 5);
+
+    g_assert_cmpint (mirbooking_sequence_get_subsequence_index (sequence, 0, 4), ==, 30);
+    g_assert_cmpint (mirbooking_sequence_get_subsequence_index (sequence, 0, 5), ==, -1);
+}
+
 int main (int argc, gchar **argv)
 {
     g_test_init (&argc, &argv, NULL);
 
     g_test_add_func ("/sequence/trim-line-feed", test_sequence_trim_line_feed);
+    g_test_add_func ("/sequence/unreliable-subsequence-index", test_sequence_unreliable_subsequence_index);
 
     return g_test_run ();
 }

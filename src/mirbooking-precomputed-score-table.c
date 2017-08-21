@@ -57,8 +57,13 @@ compute_score (MirbookingScoreTable *score_table,
     gsize  data_len;
     const gfloat *data = g_bytes_get_data (self->priv->precomputed_table_bytes, &data_len);
 
-    gsize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
-    gsize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, seed_len);
+    gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
+    gssize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, seed_len);
+
+    if (i == -1 || j == -1)
+    {
+        return 0.0f;
+    }
 
     gsize k = i * (1l << 2 * seed_len) + j;
 
