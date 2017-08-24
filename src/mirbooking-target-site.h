@@ -11,7 +11,7 @@ typedef struct _MirbookingTargetSite MirbookingTargetSite;
 
 /**
  * MirbookingTargetSite:
- * @occupants: (element-type MirbookingOccupant) A #GSList of occupants
+ * @occupants: (element-type MirbookingOccupant): A #GSList of occupants
  *
  * The @occupants entry could have been a #GArray, but in practice, most target
  * sites are unoccupied so it's much more compact to use the default %NULL
