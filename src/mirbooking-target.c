@@ -22,3 +22,9 @@ mirbooking_target_new (const gchar *accession)
 {
     return g_object_new (MIRBOOKING_TYPE_TARGET, "accession", accession, NULL);
 }
+
+MirbookingTarget *
+mirbooking_target_new_with_name (const gchar *accession, const gchar *name)
+{
+    return g_object_new (MIRBOOKING_TYPE_TARGET, "accession", accession, "name", name, NULL);
+}

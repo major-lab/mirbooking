@@ -6,6 +6,7 @@
 typedef struct
 {
     gchar       *accession;
+    gchar       *name;
     const gchar *sequence;
     gsize        sequence_len;
     GPtrArray   *sequence_skips; /* all the pointers in 'sequence' to skip (i.e. line feeds) */
@@ -17,6 +18,7 @@ typedef struct
 enum
 {
     PROP_ACCESSION = 1,
+    PROP_NAME,
     PROP_SEQUENCE
 };
 
@@ -37,6 +39,9 @@ mirbooking_sequence_set_property (GObject *object, guint property_id, const GVal
         case PROP_ACCESSION:
             priv->accession = g_value_dup_string ((value));
             break;
+        case PROP_NAME:
+            priv->name = g_value_dup_string (value);
+            break;
         case PROP_SEQUENCE:
             mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (object),
                                                   g_value_dup_string (value),
@@ -56,6 +61,9 @@ mirbooking_sequence_get_property (GObject *object, guint property_id, GValue *va
     {
         case PROP_ACCESSION:
             g_value_set_string (value, priv->accession);
+            break;
+        case PROP_NAME:
+            g_value_set_string (value, priv->name);
             break;
         case PROP_SEQUENCE:
             g_value_set_string (value, priv->sequence);
@@ -89,6 +97,9 @@ mirbooking_sequence_class_init (MirbookingSequenceClass *klass)
                                      PROP_ACCESSION,
                                      g_param_spec_string ("accession", "Accession", "", NULL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
+                                     PROP_NAME,
+                                     g_param_spec_string ("name", "name", "", NULL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
                                      PROP_SEQUENCE,
                                      g_param_spec_string ("sequence", "Sequence", "", NULL, G_PARAM_READWRITE));
 }
@@ -99,6 +110,14 @@ mirbooking_sequence_get_accession (MirbookingSequence *self)
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
 
     return priv->accession;
+}
+
+const gchar *
+mirbooking_sequence_get_name (MirbookingSequence *self)
+{
+    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+
+    return priv->name;
 }
 
 /**

@@ -14,6 +14,7 @@ struct _MirbookingSequenceClass
 };
 
 const gchar * mirbooking_sequence_get_accession         (MirbookingSequence *self);
+const gchar * mirbooking_sequence_get_name              (MirbookingSequence *self);
 const gchar * mirbooking_sequence_get_raw_sequence      (MirbookingSequence *self, gsize *sequence_len);
 void          mirbooking_sequence_set_raw_sequence      (MirbookingSequence *self,
                                                          const gchar        *sequence,
