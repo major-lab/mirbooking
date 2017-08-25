@@ -314,13 +314,13 @@ sequence_cmp_desc (MirbookingSequence *a, MirbookingSequence *b, MirbookingBroke
     return (a_quantity < b_quantity) - (a_quantity > b_quantity);
 }
 
-guint
+gfloat
 mirbooking_broker_get_target_site_vacancy (MirbookingBroker *self, const MirbookingTargetSite *target_site)
 {
     MirbookingTarget *target = target_site->target;
     gfloat available_target_quantity = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, target));
 
-    guint vacancy = floorf (available_target_quantity);
+    gfloat vacancy = available_target_quantity;
 
     // find the lower target site
     const MirbookingTargetSite *from_target_site = MAX (target_site - self->priv->prime5_footprint, &g_array_index (self->priv->target_sites, MirbookingTargetSite, 0));
@@ -335,7 +335,7 @@ mirbooking_broker_get_target_site_vacancy (MirbookingBroker *self, const Mirbook
         // we might overlap preceeding or following target sites
         if (G_LIKELY (nearby_target_site->target == target))
         {
-            vacancy = MIN (vacancy, floorf (available_target_quantity) - mirbooking_target_site_get_occupancy (nearby_target_site));
+            vacancy = MIN (vacancy, available_target_quantity - mirbooking_target_site_get_occupancy (nearby_target_site));
         }
     }
 
@@ -450,7 +450,7 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
         {
             MirbookingMirna *mirna = mirna_list->data;
 
-            guint available_mirna_quantity = floorf (gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, mirna)));
+            gfloat available_mirna_quantity = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, mirna));
 
             // filter by threshold
             gint i;
@@ -482,17 +482,17 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
                 g_assert_cmpint (scored_target_site->target_site->position, ==, scored_target_site->target_site->position);
 
                 // get the vacancy of its corresponding target site
-                guint vacancy = mirbooking_broker_get_target_site_vacancy (self, scored_target_site->target_site);
+                gfloat vacancy = mirbooking_broker_get_target_site_vacancy (self, scored_target_site->target_site);
 
-                if (vacancy == 0)
+                if (floorf (vacancy) == 0.0f)
                 {
                     continue; // the site has been filled
                 }
 
                 guint assigned_mirna_quantity  = guint_from_gpointer (g_hash_table_lookup (assigned_mirna_quantities, mirna));
-                guint unassigned_mirna_quantity = available_mirna_quantity - assigned_mirna_quantity;
+                gfloat unassigned_mirna_quantity = available_mirna_quantity - assigned_mirna_quantity;
 
-                if (unassigned_mirna_quantity == 0)
+                if (floorf (unassigned_mirna_quantity) == 0.0f)
                 {
                     // mirna is depleted
 
