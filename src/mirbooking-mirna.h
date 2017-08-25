@@ -15,7 +15,9 @@ struct _MirbookingMirnaClass
     MirbookingSequenceClass parent_class;
 };
 
-MirbookingMirna * mirbooking_mirna_new (const gchar *accession);
+MirbookingMirna * mirbooking_mirna_new           (const gchar *accession);
+MirbookingMirna * mirbooking_mirna_new_with_name (const gchar *accession,
+                                                  const gchar *name);
 
 G_END_DECLS
 

@@ -80,6 +80,7 @@ read_sequences_from_fasta (FILE        *file,
                            GHashTable  *sequences_hash)
 {
     gchar *accession;
+    gchar *name;
     gchar *seq;
     gchar line[1024];
 
@@ -91,7 +92,16 @@ read_sequences_from_fasta (FILE        *file,
 
             if (accession_in_comment)
             {
+                name      = accession;
                 accession = strtok (NULL, " ");
+            }
+            else if (strtok (NULL, "(") != NULL)
+            {
+                name = strtok (NULL, ")");
+            }
+            else
+            {
+                name = NULL;
             }
 
             seq = g_mapped_file_get_contents (mapped_file) + ftell (file);
@@ -104,11 +114,11 @@ read_sequences_from_fasta (FILE        *file,
 
             if (g_str_has_prefix (accession, "MIMAT") || g_str_has_prefix (accession, "SYNTH"))
             {
-                sequence = MIRBOOKING_SEQUENCE (mirbooking_mirna_new (accession));
+                sequence = MIRBOOKING_SEQUENCE (mirbooking_mirna_new_with_name (accession, name));
             }
             else
             {
-                sequence = MIRBOOKING_SEQUENCE (mirbooking_target_new (accession));
+                sequence = MIRBOOKING_SEQUENCE (mirbooking_target_new_with_name (accession, name));
             }
 
             mirbooking_sequence_set_raw_sequence (sequence,
@@ -417,7 +427,7 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_fprintf (output_f, "target\tmirna\tposition\tlocation\tprobability\toccupancy\tvacancy\tsilencing\n");
+    g_fprintf (output_f, "target\ttarget_name\tmirna\tmirna_name\tposition\tlocation\tprobability\toccupancy\tvacancy\tsilencing\n");
 
     GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
@@ -462,9 +472,11 @@ main (gint argc, gchar **argv)
                 region = MIRBOOKING_REGION_UNKNOWN;
             }
 
-            g_fprintf (output_f, "%s\t%s\t%ld\t%s\t%f\t%d\t%d\t%f\n",
+            g_fprintf (output_f, "%s\t%s\t%s\t%s\t%ld\t%s\t%f\t%d\t%d\t%f\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
+                       mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)),
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
+                       mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)),
                        target_site->position + 1, // 1-based
                        mirbooking_region_to_string (region),
                        probability,
