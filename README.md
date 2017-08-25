@@ -13,8 +13,8 @@ Implementation of the miRBooking algorithm and metrics in C
 ## Usage
 
 ```bash
-mirbooking --mirnas mirbase.fa 
-           --targets human-genome.fa 
+mirbooking --mirnas mirbase.fa
+           --targets human-genome.fa
            --score-table scores
            [--cds-regions cds-regions.tsv]
            [--threshold 0.0179]
@@ -46,13 +46,16 @@ The only requirements for the quantities is to be in the same magnitude order.
 
 The output is a TSV with the following columns:
 
- - target
- - mirna
- - position
- - location
- - probability
- - occupancy
- - silencing
+| Column      | Description                                   |
+| ----------- | --------------------------------------------- |
+| target      | Target accession with version                 |
+| mirna       | miRNA accession                               |
+| position    | Site position on the target                   |
+| location    | Location (e.g. 5', CDS, 3' or N/A if unknown) |
+| probability | Hybridization probability                     |
+| occupancy   | Number of occupied sites at this position     |
+| vacancy     | Number of vacant sites at this position       |
+| silencing   | Induced silencing                             |
 
 ## Installation
 
@@ -133,10 +136,10 @@ experimentation session is:
  3. setup quantities via `mirbooking_broker_set_sequence_quantity`
  4. call `mirbooking_broker_run` to perform a full hybridization
  5. retrieve and inspect the microtargetome with `mirbooking_broker_get_target_sites`
- 
+
 For a more detailed usage and code example, the [program source](https://github.com/major-lab/mirbooking/blob/master/bin/mirbooking.c)
 is very explicit as it perform a full session and fully output the target sites.
- 
+
 ## Parallelization (using GNU parallel)
 
 ```bash
