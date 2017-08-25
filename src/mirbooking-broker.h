@@ -51,7 +51,7 @@ gboolean               mirbooking_broker_run_finish              (MirbookingBrok
                                                                   GAsyncResult      *result,
                                                                   GError           **error);
 GArray *               mirbooking_broker_get_target_sites        (MirbookingBroker *self);
-guint                  mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
+gfloat                 mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
                                                                   const MirbookingTargetSite *target_site);
 
 G_END_DECLS

@@ -473,7 +473,7 @@ main (gint argc, gchar **argv)
             }
 
             #define COALESCE(x,d) (x == NULL ? (d) : (x))
-            g_fprintf (output_f, "%s\t%s\t%s\t%s\t%ld\t%s\t%f\t%d\t%d\t%f\n",
+            g_fprintf (output_f, "%s\t%s\t%s\t%s\t%ld\t%s\t%f\t%d\t%f\t%f\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        COALESCE(mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
