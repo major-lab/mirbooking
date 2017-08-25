@@ -472,17 +472,19 @@ main (gint argc, gchar **argv)
                 region = MIRBOOKING_REGION_UNKNOWN;
             }
 
+            #define COALESCE(x,d) (x == NULL ? (d) : (x))
             g_fprintf (output_f, "%s\t%s\t%s\t%s\t%ld\t%s\t%f\t%d\t%d\t%f\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
-                       mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)),
+                       COALESCE(mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
-                       mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)),
+                       COALESCE(mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
                        target_site->position + 1, // 1-based
                        mirbooking_region_to_string (region),
                        probability,
                        occupant->quantity,
                        mirbooking_broker_get_target_site_vacancy (mirbooking, target_site),
                        occupant->quantity * probability * mirbooking_region_get_multiplier (region));
+            #undef COALESCE
         }
     }
 
