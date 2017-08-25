@@ -10,5 +10,6 @@ class Broker(Mirbooking.Broker):
         def get_target_sites():
             for target_site in self.get_target_sites():
                 for occupant in target_site.occupants:
-                    yield target_site.target.get_accession(), occupant.mirna.get_accession(), target_site.position, self.get_score_table().compute_score(occupant.mirna, target_site.target, target_site.position), occupant.quantity, self.get_target_site_vacancy(target_site)
-        return pd.DataFrame(get_target_sites(), columns=['target', 'mirna', 'position', 'probability', 'occupancy', 'vacancy']).set_index(['target', 'mirna', 'position'])
+                    yield target_site.target.get_accession(), target_site.target.get_name(), occupant.mirna.get_accession(), occupant.mirna.get_name(), target_site.position, self.get_score_table().compute_score(occupant.mirna, target_site.target, target_site.position), occupant.quantity, self.get_target_site_vacancy(target_site)
+        columns = ['target', 'target_name', 'mirna', 'mirna_name', 'position', 'probability', 'occupancy', 'vacancy']
+        return pd.DataFrame(get_target_sites(), columns=columns).set_index(['target', 'mirna', 'position'])
