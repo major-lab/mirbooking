@@ -339,6 +339,11 @@ main (gint argc, gchar **argv)
         guint lineno = 0;
         while (lineno++, fgets (line, sizeof (line), cds_regions_f))
         {
+            if (lineno == 1 && g_str_has_prefix (line, "accession\tregion\n"))
+            {
+                continue;
+            }
+
             gchar *accession = strtok (line, "\t");
             guint16 cds_start, cds_end;
             if (sscanf (strtok (NULL, "\t"), "%" G_GUINT16_FORMAT ".." "%" G_GUINT16_FORMAT, &cds_start, &cds_end) != 2)
@@ -359,6 +364,11 @@ main (gint argc, gchar **argv)
     guint lineno = 0;
     while (lineno++, fgets (line, sizeof (line), quantities_f))
     {
+        if (lineno == 1 && g_str_has_prefix (line, "accession\tquantity\n"))
+        {
+            continue;
+        }
+
         gchar *accession = strtok (line, "\t");
         gchar *er = NULL;
         gdouble quantity = g_strtod (strtok (NULL, "\n"), &er);
