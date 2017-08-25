@@ -242,16 +242,21 @@ sequence_index (const gchar *seq, gsize seq_len)
         switch (seq[seq_len - i - 1])
         {
             case 'A':
+            case 'a':
                 index += 0 * base;
                 break;
             case 'C':
+            case 'c':
                 index += 1 * base;
                 break;
             case 'G':
+            case 'g':
                 index += 2 * base;
                 break;
             case 'T':
+            case 't':
             case 'U':
+            case 'u':
                 index += 3 * base;
                 break;
             default:
