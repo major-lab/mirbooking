@@ -3,6 +3,8 @@
 from Bio import SeqIO
 import sys
 
+print('accession\tregion')
+
 for record in SeqIO.parse(sys.stdin, 'genbank'):
     features = {feature.type: feature for feature in record.features}
     if 'CDS' in features:

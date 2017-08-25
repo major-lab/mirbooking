@@ -13,4 +13,4 @@ mirnas = pd.read_csv(sys.argv[2], sep='\t', names=['accession', 'quantity'])
 
 mirnas['quantity'] *= targets['quantity'].sum() / mirnas['quantity'].sum()
 
-pd.concat([targets, mirnas]).to_csv(sys.stdout, sep='\t', header=False, index=False)
+pd.concat([targets, mirnas]).to_csv(sys.stdout, sep='\t', index=False)
