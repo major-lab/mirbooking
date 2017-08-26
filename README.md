@@ -94,31 +94,6 @@ suitable for `mirbooking`.
 mirbooking-calibrate targets.tsv mirnas.tsv | mirbooking [...]
 ```
 
-The `mirbooking-aggregate` tool perform an sum aggregation on both the
-`occupancy` and `silencing` columns. This can be used for various scenarios:
-
-Telling how many duplex have been formed per target and their effective
-silencing:
-
-```bash
-mirbooking [...] | mirbooking-aggregate target
-```
-
-Telling how many duplex have been formed per miRNA and their induced silencing:
-
-```bash
-mirbooking [...] | mirbooking-aggregate mirna
-```
-
-Telling how effectively miRNAs are occupying their targets:
-
-```bash
-mirbooking [...] | mirbooking-aggregate target mirna
-```
-
-Note that the output contains the aggregated columns, the occupancy and the
-silencing. Both metrics are summed among the group.
-
 The `mirbooking-extract-cds-regions` tool extract the coding regions from
 a GenBank file.
 
