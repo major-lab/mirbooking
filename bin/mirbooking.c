@@ -427,7 +427,18 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_fprintf (output_f, "target\ttarget_name\ttarget_quantity\tmirna\tmirna_name\tmirna_quantity\tposition\tlocation\tprobability\toccupancy\tvacancy\tsilencing\n");
+    g_fprintf (output_f, "target_accession\t"
+                         "target_name\t"
+                         "target_quantity\t"
+                         "position\t"
+                         "location\t"
+                         "vacancy\t"
+                         "mirna_accession\t"
+                         "mirna_name\t"
+                         "mirna_quantity\t"
+                         "probability\t"
+                         "occupancy\t"
+                         "silencing\n");
 
     GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
@@ -473,18 +484,18 @@ main (gint argc, gchar **argv)
             }
 
             #define COALESCE(x,d) (x == NULL ? (d) : (x))
-            g_fprintf (output_f, "%s\t%s\t%f\t%s\t%s\t%f\t%ld\t%s\t%f\t%d\t%f\t%f\n",
+            g_fprintf (output_f, "%s\t%s\t%f\t%lu\t%s\t%f\t%s\t%s\t%f\t%f\t%u\t%f\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
-                       COALESCE(mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
-                       mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target_site->target)),
-                       mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
-                       COALESCE(mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
+                       COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target_site->target)),
                        target_site->position + 1, // 1-based
                        mirbooking_region_to_string (region),
+                       mirbooking_broker_get_target_site_vacancy (mirbooking, target_site),
+                       mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
+                       COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
+                       mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target_site->target)),
                        probability,
                        occupant->quantity,
-                       mirbooking_broker_get_target_site_vacancy (mirbooking, target_site),
                        occupant->quantity * probability * mirbooking_region_get_multiplier (region));
             #undef COALESCE
         }

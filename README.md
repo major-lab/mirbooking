@@ -46,16 +46,20 @@ The only requirements for the quantities is to be in the same magnitude order.
 
 The output is a TSV with the following columns:
 
-| Column      | Description                                   |
-| ----------- | --------------------------------------------- |
-| target      | Target accession with version                 |
-| mirna       | miRNA accession                               |
-| position    | Site position on the target                   |
-| location    | Location (e.g. 5', CDS, 3' or N/A if unknown) |
-| probability | Hybridization probability                     |
-| occupancy   | Number of occupied sites at this position     |
-| vacancy     | Number of vacant sites at this position       |
-| silencing   | Induced silencing                             |
+| Column           | Description                                            |
+| ---------------- | ------------------------------------------------------ |
+| target_accession | Target accession with version                          |
+| target_name      | Name of the target or N/A if unknown                   |
+| target_quantity  | Number of targets                                      |
+| position         | Site position on the target                            |
+| location         | Location (e.g. 5', CDS, 3' or N/A if unknown)          |
+| vacancy          | Number of vacant sites at this position                |
+| mirna_accession  | miRNA accession                                        |
+| mirna_name       | Name of the miRNA or N/A if unknown                    |
+| mirna_quantity   | Number of miRNAs                                       |
+| probability      | Hybridization probability of the site by the miRNA     |
+| occupancy        | Number of occupied sites at this position by the miRNA |
+| silencing        | Induced silencing on the site by the miRNA             |
 
 ## Installation
 
