@@ -41,6 +41,8 @@ void               mirbooking_broker_set_score_index         (MirbookingBroker  
                                                               MirbookingScoreIndex *score_index);
 void               mirbooking_broker_set_score_table         (MirbookingBroker     *self,
                                                               MirbookingScoreTable *score_table);
+gfloat             mirbooking_broker_get_sequence_quantity   (MirbookingBroker   *self,
+                                                              MirbookingSequence *sequence);
 void               mirbooking_broker_set_sequence_quantity   (MirbookingBroker   *self,
                                                               MirbookingSequence *sequence,
                                                               gfloat              quantity);
