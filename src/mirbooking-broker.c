@@ -281,6 +281,12 @@ guint_from_gpointer (gpointer p)
     return ptr.u;
 }
 
+gfloat
+mirbooking_broker_get_sequence_quantity (MirbookingBroker *self, MirbookingSequence *sequence)
+{
+    return gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
+}
+
 /**
  * mirbooking_set_sequence_quantity:
  * @sequence: A #MirbookingSequence being quantified for the
