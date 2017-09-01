@@ -523,7 +523,7 @@ main (gint argc, gchar **argv)
                        mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target_site->target)),
                        probability,
                        occupant->quantity,
-                       occupant->quantity * probability * mirbooking_region_get_multiplier (region));
+                       occupant->quantity * mirbooking_region_get_multiplier (region));
             #undef COALESCE
         }
     }
