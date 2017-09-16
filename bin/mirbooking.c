@@ -26,9 +26,6 @@ static gsize    seed_offset      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SE
 static gsize    seed_length      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
 static gsize    prime5_footprint = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
 static gsize    prime3_footprint = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
-static gdouble  utr5_multiplier  = 0.1;
-static gdouble  cds_multiplier   = 0.1;
-static gdouble  utr3_multiplier  = 1.0;
 
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
@@ -45,9 +42,6 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"seed-length",           0, 0, G_OPTION_ARG_INT,      &seed_length,      "MiRNA seed length",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
     {"5prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime5_footprint, "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
     {"3prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime3_footprint, "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
-    {"5prime-utr-multiplier", 0, 0, G_OPTION_ARG_DOUBLE,   &utr5_multiplier,  "Silencing multiplier for the 3'UTR region",                                                       "0.1"},
-    {"cds-multiplier",        0, 0, G_OPTION_ARG_DOUBLE,   &cds_multiplier,   "Silencing multiplier for the CDS region",                                                         "0.1"},
-    {"3prime-utr-multiplier", 0, 0, G_OPTION_ARG_DOUBLE,   &utr3_multiplier,  "Silencing multiplier for the 5'UTR region",                                                       "1.0"},
     {NULL}
 };
 
@@ -176,24 +170,6 @@ mirbooking_region_to_string (MirbookingRegion region)
             return "N/A";
         default:
             g_assert_not_reached ();
-    }
-}
-
-static gfloat
-mirbooking_region_get_multiplier (MirbookingRegion region)
-{
-    switch (region)
-    {
-        case MIRBOOKING_REGION_5PRIME_UTR:
-            return utr5_multiplier;
-        case MIRBOOKING_REGION_CDS:
-            return cds_multiplier;
-        case MIRBOOKING_REGION_3PRIME_UTR:
-            return utr3_multiplier;
-        case MIRBOOKING_REGION_UNKNOWN:
-            return 1.0f;
-        default:
-            g_return_val_if_reached (1.0f);
     }
 }
 
@@ -464,8 +440,7 @@ main (gint argc, gchar **argv)
                          "mirna_name\t"
                          "mirna_quantity\t"
                          "probability\t"
-                         "occupancy\t"
-                         "silencing\n");
+                         "occupancy\n");
 
     GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
@@ -511,7 +486,7 @@ main (gint argc, gchar **argv)
             }
 
             #define COALESCE(x,d) (x == NULL ? (d) : (x))
-            g_fprintf (output_f, "%s\t%s\t%f\t%lu\t%s\t%f\t%s\t%s\t%f\t%f\t%u\t%f\n",
+            g_fprintf (output_f, "%s\t%s\t%.6f\t%lu\t%s\t%f\t%s\t%s\t%f\t%f\t%u\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target_site->target)),
@@ -522,8 +497,7 @@ main (gint argc, gchar **argv)
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
                        mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target_site->target)),
                        probability,
-                       occupant->quantity,
-                       occupant->quantity * mirbooking_region_get_multiplier (region));
+                       occupant->quantity);
             #undef COALESCE
         }
     }
