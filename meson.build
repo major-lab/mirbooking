@@ -14,7 +14,8 @@ if get_option('with_introspection')
     python3_module_deps += 'gi'
 endif
 foreach module_dep : python3_module_deps
-    if run_command([python3_bin, '-c', 'import @0@'.format(module_dep)]).returncode() != 0
+    result = run_command([python3_bin, '-c', 'import @0@'.format(module_dep)])
+    if result.returncode() != 0
         error('Python 3 module \'@0@\' not found: @1@'.format(module_dep, result.stderr()))
     endif
 endforeach
