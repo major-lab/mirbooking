@@ -434,7 +434,7 @@ main (gint argc, gchar **argv)
                          "target_name\t"
                          "target_quantity\t"
                          "position\t"
-                         "location\t"
+                         "region\t"
                          "vacancy\t"
                          "mirna_accession\t"
                          "mirna_name\t"
