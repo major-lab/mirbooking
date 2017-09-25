@@ -495,7 +495,7 @@ main (gint argc, gchar **argv)
                        mirbooking_broker_get_target_site_vacancy (mirbooking, target_site),
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
-                       mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target_site->target)),
+                       mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna)),
                        probability,
                        occupant->quantity);
             #undef COALESCE
