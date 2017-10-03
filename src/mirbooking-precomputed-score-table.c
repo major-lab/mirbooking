@@ -54,12 +54,25 @@ compute_score (MirbookingScoreTable *score_table,
     gsize seed_offset = self->priv->seed_offset;
     gsize seed_len    = self->priv->seed_length;
 
+    // the seed does not fit in the target
+    if (position + seed_len > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)))
+    {
+        return 0.0f;
+    }
+
+    // the seed does not fit in the mirna
+    if (seed_offset + seed_len > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (mirna)))
+    {
+        return 0.0f;
+    }
+
     gsize  data_len;
     const gfloat *data = g_bytes_get_data (self->priv->precomputed_table_bytes, &data_len);
 
     gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
     gssize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, seed_len);
 
+    // either sequence index is undefined
     if (i == -1 || j == -1)
     {
         return 0.0f;

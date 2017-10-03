@@ -373,7 +373,7 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
     GSList *target_list;
     for (target_list = self->priv->targets; target_list != NULL; target_list = target_list->next)
     {
-        target_sites_len += mirbooking_sequence_get_sequence_length (target_list->data) - 7;
+        target_sites_len += mirbooking_sequence_get_sequence_length (target_list->data);
     }
 
     // prepare an contiguous array
@@ -402,7 +402,7 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
         gsize seq_len = mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target));
 
         gsize position;
-        for (position = 0; position < seq_len - 7; position++)
+        for (position = 0; position < seq_len; position++)
         {
             MirbookingTargetSite target_site;
             target_site.target    = g_object_ref (target);
