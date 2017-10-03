@@ -194,6 +194,36 @@ test_mirbooking_empty ()
     g_assert (mirbooking_broker_run (broker, NULL));
 }
 
+static void
+test_mirbooking_bad_seed_range ()
+{
+    g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
+
+    g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
+    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table, 18, 7);
+    mirbooking_broker_set_score_table (broker, g_object_ref (score_table));
+
+    g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
+    g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
+
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE, strlen (TARGET_SEQUENCE));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
+
+    mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
+    mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
+
+    GError *error = NULL;
+    g_assert (mirbooking_broker_run (broker, &error));
+
+    // ensure that no MREs has been assigned
+    GArray *target_sites = mirbooking_broker_get_target_sites (broker);
+    gint i;
+    for (i = 0; i < target_sites->len; i++)
+    {
+        g_assert_null (g_array_index (target_sites, MirbookingTargetSite, i).occupants);
+    }
+}
+
 gint
 main (gint argc, gchar **argv)
 {
@@ -202,6 +232,7 @@ main (gint argc, gchar **argv)
     g_test_add_func ("/mirbooking", test_mirbooking);
     g_test_add_func ("/mirbooking/run-async", test_mirbooking_run_async);
     g_test_add_func ("/mirbooking/empty", test_mirbooking_empty);
+    g_test_add_func ("/mirbooking/bad-seed-range", test_mirbooking_bad_seed_range);
 
     return g_test_run ();
 }
