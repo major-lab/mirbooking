@@ -13,8 +13,8 @@ Implementation of the miRBooking algorithm and metrics in C
 ## Usage
 
 ```bash
-mirbooking --mirnas mirbase.fa
-           --targets human-genome.fa
+mirbooking --mirnas mature.fa
+           --targets GCF_000001405.37_GRCh38.p11_rna.fna
            --score-table scores
            [--cds-regions cds-regions.tsv]
            [--threshold 0.0179]
