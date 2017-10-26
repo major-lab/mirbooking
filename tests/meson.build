@@ -1,6 +1,5 @@
 mirbooking_tests = [
     'score-table',
-    'score-index',
     'sequence',
     'mirbooking']
 foreach name : mirbooking_tests

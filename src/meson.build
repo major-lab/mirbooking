@@ -5,9 +5,7 @@ mirbooking_headers = [
     'mirbooking-mirna.h',
     'mirbooking-occupant.h',
     'mirbooking-precomputed-score-table.h',
-    'mirbooking-precomputed-score-index.h',
     'mirbooking-score-table.h',
-    'mirbooking-score-index.h',
     'mirbooking-sequence.h',
     'mirbooking-target.h',
     'mirbooking-target-site.h']
@@ -19,9 +17,7 @@ mirbooking_sources = [
     'mirbooking-error.c',
     'mirbooking-mirna.c',
     'mirbooking-precomputed-score-table.c',
-    'mirbooking-precomputed-score-index.c',
     'mirbooking-score-table.c',
-    'mirbooking-score-index.c',
     'mirbooking-sequence.c',
     'mirbooking-target.c']
 
