@@ -19,4 +19,5 @@ endif
 
 subdir('src')
 subdir('bin')
+subdir('data')
 subdir('tests')
