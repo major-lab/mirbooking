@@ -371,6 +371,8 @@ gboolean
 mirbooking_broker_run (MirbookingBroker *self, GError **error)
 {
     gsize target_sites_len = 0;
+    gdouble total_mirna_quantity = 0.0;
+    gdouble total_target_quantity = 0.0;
 
     g_return_val_if_fail (self != NULL, FALSE);
     g_return_val_if_fail (self->priv->score_table != NULL, FALSE);
@@ -391,7 +393,23 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
     GSList *target_list;
     for (target_list = self->priv->targets; target_list != NULL; target_list = target_list->next)
     {
+        total_target_quantity += gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification,
+                                                                            target_list->data));
         target_sites_len += mirbooking_sequence_get_sequence_length (target_list->data);
+    }
+
+    GSList *mirna_list;
+    for (mirna_list = self->priv->mirnas; mirna_list != NULL; mirna_list = mirna_list->next)
+    {
+        total_mirna_quantity += gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification,
+                                                                           mirna_list->data));
+    }
+
+    if (ABS (logf (total_target_quantity) - logf (total_mirna_quantity)) >= 1.0f)
+    {
+        g_warning ("The quantity of mirnas %f is not in the same scale as the quantity of target %f.\n",
+                   total_mirna_quantity,
+                   total_target_quantity);
     }
 
     // prepare an contiguous array
