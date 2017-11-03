@@ -343,9 +343,6 @@ main (gint argc, gchar **argv)
         }
     }
 
-    gfloat total_mirna_quantity = 0.0f;
-    gfloat total_target_quantity = 0.0f;
-
     gchar line[1024];
     guint lineno = 0;
     while (lineno++, fgets (line, sizeof (line), quantities_f))
@@ -376,26 +373,9 @@ main (gint argc, gchar **argv)
         mirbooking_broker_set_sequence_quantity (mirbooking,
                                                  sequence,
                                                  quantity);
-
-        if (MIRBOOKING_IS_MIRNA (sequence))
-        {
-            total_mirna_quantity += quantity;
-        }
-
-        if (MIRBOOKING_IS_TARGET (sequence))
-        {
-            total_target_quantity += quantity;
-        }
     }
 
     g_hash_table_unref (sequences_hash);
-
-    if (ABS (logf (total_target_quantity) - logf (total_mirna_quantity)) >= 1.0f)
-    {
-        g_printerr ("The quantity of mirnas %f is not in the same scale as the quantity of target %f.\n",
-                    total_mirna_quantity,
-                    total_target_quantity);
-    }
 
     if (!mirbooking_broker_run (mirbooking, &error))
     {
