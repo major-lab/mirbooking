@@ -2,7 +2,7 @@
 
 typedef struct
 {
-    GBytes *precomputed_table_bytes;
+    GBytes *score_table_bytes;
     gsize   seed_offset;
     gsize   seed_length;
 } MirbookingPrecomputedScoreTablePrivate;
@@ -26,9 +26,9 @@ mirbooking_precomputed_score_table_finalize (GObject *object)
 {
     MirbookingPrecomputedScoreTable *self = MIRBOOKING_PRECOMPUTED_SCORE_TABLE (object);
 
-    if (self->priv->precomputed_table_bytes != NULL)
+    if (self->priv->score_table_bytes != NULL)
     {
-        g_bytes_unref (self->priv->precomputed_table_bytes);
+        g_bytes_unref (self->priv->score_table_bytes);
     }
 
     g_free (self->priv);
@@ -67,7 +67,7 @@ compute_score (MirbookingScoreTable *score_table,
     }
 
     gsize  data_len;
-    const gfloat *data = g_bytes_get_data (self->priv->precomputed_table_bytes, &data_len);
+    const gfloat *data = g_bytes_get_data (self->priv->score_table_bytes, &data_len);
 
     gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
     gssize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, seed_len);
@@ -101,7 +101,7 @@ mirbooking_precomputed_score_table_get_property (GObject *object, guint property
     switch (property_id)
     {
         case PROP_SCORE_TABLE:
-            g_value_set_boxed (value, MIRBOOKING_PRECOMPUTED_SCORE_TABLE (object)->priv->precomputed_table_bytes);
+            g_value_set_boxed (value, MIRBOOKING_PRECOMPUTED_SCORE_TABLE (object)->priv->score_table_bytes);
             break;
         default:
                 g_assert_not_reached ();
@@ -119,7 +119,7 @@ mirbooking_precomputed_score_table_set_property (GObject *object, guint property
     {
         case PROP_SCORE_TABLE:
             precomputed_table = g_value_get_boxed (value);
-            self->priv->precomputed_table_bytes = g_bytes_ref (precomputed_table);
+            self->priv->score_table_bytes = g_bytes_ref (precomputed_table);
             break;
         case PROP_SEED_OFFSET:
             self->priv->seed_offset = g_value_get_uint (value);
