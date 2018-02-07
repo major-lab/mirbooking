@@ -11,6 +11,11 @@ typedef struct _MirbookingOccupant
 {
     MirbookingMirna *mirna;
     gdouble          quantity;
+    gdouble          cleaved_quantity;
+    gdouble ES_delta;
+    gdouble E_delta;
+    gdouble S_delta;
+    gdouble P_delta;
 } MirbookingOccupant;
 
 G_END_DECLS

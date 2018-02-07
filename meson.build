@@ -6,6 +6,14 @@ gobject_dep = dependency('gobject-2.0', version: '>=2.44')
 gio_dep = dependency('gio-2.0', version: '>=2.44')
 m_dep = meson.get_compiler('c').find_library('m')
 fftw3_dep = dependency('fftw3', required: get_option('with_fftw3'))
+if get_option('with_openmp')
+    add_project_arguments('-DHAVE_OPENMP', language: 'c')
+    openmp_dep = declare_dependency(compile_args: '-fopenmp',
+                                    dependencies: meson.get_compiler('c').find_library('gomp'))
+else
+    openmp_dep = []
+    warning('OpenMP is needed to perform computation in reasonable time.')
+endif
 if get_option('with_fftw3')
     add_project_arguments('-DHAVE_FFTW3', language: 'c')
 else

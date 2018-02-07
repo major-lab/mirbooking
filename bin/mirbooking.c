@@ -23,7 +23,11 @@ static gchar   *cds_regions_file = NULL;
 static gchar   *score_table_file = NULL;
 static gchar   *input_file       = NULL;
 static gchar   *output_file      = NULL;
-static gdouble  log_base         = MIRBOOKING_BROKER_DEFAULT_LOG_BASE;
+static gdouble  kappa            = MIRBOOKING_BROKER_DEFAULT_KAPPA;
+static gdouble  cutoff           = MIRBOOKING_BROKER_DEFAULT_CUTOFF;
+static gdouble  step_size        = MIRBOOKING_BROKER_DEFAULT_STEP_SIZE;
+static gdouble  tolerance        = MIRBOOKING_BROKER_DEFAULT_TOLERANCE;
+static gdouble  max_iterations   = MIRBOOKING_BROKER_DEFAULT_MAX_ITERATIONS;
 static gsize    seed_offset      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
 static gsize    seed_length      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
 static gsize    prime5_footprint = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
@@ -34,10 +38,14 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"mirnas",           0, 0, G_OPTION_ARG_FILENAME, &mirnas_file,      "MiRNAs sequences FASTA file",                                                                     "FILE"},
     {"targets",          0, 0, G_OPTION_ARG_FILENAME, &targets_file,     "Transcripts sequences FASTA file",                                                                "FILE"},
     {"cds-regions",      0, 0, G_OPTION_ARG_FILENAME, &cds_regions_file, "Coding regions as a two-column (accession, 1-based inclusive interval) TSV file",                 "FILE"},
-    {"score-table",      0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE duplex table as a row-major big-endian float matrix file",                   "FILE"},
+    {"score-table",      0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE Gibbs free energy duplex table as a row-major big-endian float matrix file", "FILE"},
     {"input",            0, 0, G_OPTION_ARG_FILENAME, &input_file,       "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
     {"output",           0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
-    {"log-base",         0, 0, G_OPTION_ARG_DOUBLE,   &log_base,         "Logarithm base for spreading quantites across sites",                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_LOG_BASE)},
+    {"kappa",            0, 0, G_OPTION_ARG_DOUBLE,   &kappa,            "Concentration ratio in nM/FPKM",                                                                  G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_KAPPA)},
+    {"cutoff",           0, 0, G_OPTION_ARG_DOUBLE,   &cutoff,           "Cutoff for miRNA and target expression in FPKM",                                                  G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_CUTOFF)},
+    {"step-size",        0, 0, G_OPTION_ARG_DOUBLE,   &step_size,        "Step size for the steepest descent",                                                              G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_STEP_SIZE)},
+    {"tolerance",        0, 0, G_OPTION_ARG_DOUBLE,   &tolerance,        "Absolute tolerance for the Jacobian norm",                                                        G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_TOLERANCE)},
+    {"max-iterations",   0, 0, G_OPTION_ARG_DOUBLE,   &max_iterations,   "Maximum number of iterations",                                                                    G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_MAX_ITERATIONS)},
     {"seed-offset",      0, 0, G_OPTION_ARG_INT,      &seed_offset,      "MiRNA seed offset",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
     {"seed-length",      0, 0, G_OPTION_ARG_INT,      &seed_length,      "MiRNA seed length",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
     {"5prime-footprint", 0, 0, G_OPTION_ARG_INT,      &prime5_footprint, "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
@@ -194,7 +202,10 @@ main (gint argc, gchar **argv)
 
     g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new ();
 
-    mirbooking_broker_set_log_base (mirbooking, log_base);
+    mirbooking_broker_set_kappa (mirbooking, kappa);
+    mirbooking_broker_set_step_size (mirbooking, step_size);
+    mirbooking_broker_set_tolerance (mirbooking, tolerance);
+    mirbooking_broker_set_max_iterations (mirbooking, max_iterations);
     mirbooking_broker_set_5prime_footprint (mirbooking, prime5_footprint);
     mirbooking_broker_set_3prime_footprint (mirbooking, prime3_footprint);
 
@@ -417,9 +428,12 @@ main (gint argc, gchar **argv)
             return EXIT_FAILURE;
         }
 
-        mirbooking_broker_set_sequence_quantity (mirbooking,
-                                                 sequence,
-                                                 quantity);
+        if (quantity >= cutoff)
+        {
+            mirbooking_broker_set_sequence_quantity (mirbooking,
+                                                     sequence,
+                                                     quantity);
+        }
     }
 
     g_hash_table_unref (sequences_hash);

@@ -1,5 +1,7 @@
 #include "mirbooking-score-table.h"
 
+#include <math.h>
+
 G_DEFINE_TYPE (MirbookingScoreTable, mirbooking_score_table, G_TYPE_OBJECT)
 
 void
@@ -47,4 +49,38 @@ mirbooking_score_table_compute_score (MirbookingScoreTable *self,
                                  target,
                                  position,
                                  error);
+}
+
+/**
+ * mirbooking_score_table_compute_scores:
+ * @param: (unowned) positions
+ * @param: (unowned) positions_len
+ *
+ * Compute scores for all positions where the #mirna might be encoutered on the
+ * #target. This is much more efficient than traversing all the positions of a
+ * target.
+ *
+ * Returns: A #gfloat vector of #positions_len entries where corresponding
+ * position on the target is given by the #positions out array.
+ */
+gfloat *
+mirbooking_score_table_compute_scores (MirbookingScoreTable  *self,
+                                       MirbookingMirna       *mirna,
+                                       MirbookingTarget      *target,
+                                       gsize                **positions,
+                                       gsize                 *positions_len,
+                                       GError               **error)
+{
+    g_return_val_if_fail (self != NULL, NULL);
+    g_return_val_if_fail (mirna != NULL, NULL);
+    g_return_val_if_fail (target != NULL, NULL);
+
+    MirbookingScoreTableClass *klass = MIRBOOKING_SCORE_TABLE_GET_CLASS (self);
+
+    return klass->compute_scores (self,
+                                  mirna,
+                                  target,
+                                  positions,
+                                  positions_len,
+                                  error);
 }

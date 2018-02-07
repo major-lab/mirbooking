@@ -317,6 +317,12 @@ mirbooking_sequence_get_subsequence_index (MirbookingSequence *self, gsize offse
 
     g_return_val_if_fail (offset + len <= priv->sequence_len - priv->sequence_skips->len, 0);
 
+    // not worth to cache small subsequences
+    if (len <= 2)
+    {
+        return sequence_index (mirbooking_sequence_get_subsequence (self, offset, len), len);
+    }
+
     if (priv->subsequence_index_cache_prefix_len == 0)
     {
         priv->subsequence_index_cache_prefix_len = len;

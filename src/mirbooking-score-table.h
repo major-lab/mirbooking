@@ -16,18 +16,32 @@ struct _MirbookingScoreTableClass
 {
     GObjectClass parent_class;
 
-    gfloat (*compute_score) (MirbookingScoreTable *self,
-                             MirbookingMirna      *mirna,
-                             MirbookingTarget     *target,
-                             gsize                 position,
-                             GError              **error);
+    gfloat (*compute_score)    (MirbookingScoreTable *self,
+                                MirbookingMirna      *mirna,
+                                MirbookingTarget     *target,
+                                gsize                 position,
+                                GError              **error);
+
+    gfloat * (*compute_scores) (MirbookingScoreTable  *self,
+                                MirbookingMirna       *mirna,
+                                MirbookingTarget      *target,
+                                gsize                **positions,
+                                gsize                 *positions_len,
+                                GError               **error);
 };
 
-gfloat mirbooking_score_table_compute_score (MirbookingScoreTable *self,
-                                             MirbookingMirna      *mirna,
-                                             MirbookingTarget     *target,
-                                             gsize                 position,
-                                             GError              **error);
+gfloat   mirbooking_score_table_compute_score  (MirbookingScoreTable *self,
+                                                MirbookingMirna      *mirna,
+                                                MirbookingTarget     *target,
+                                                gsize                 position,
+                                                GError              **error);
+
+gfloat * mirbooking_score_table_compute_scores (MirbookingScoreTable  *self,
+                                                MirbookingMirna       *mirna,
+                                                MirbookingTarget      *target,
+                                                gsize                **positions,
+                                                gsize                 *num_positions,
+                                                GError               **error);
 
 G_END_DECLS
 

@@ -18,8 +18,10 @@ mirbooking --mirnas mature.fa
            --targets GCF_000001405.37_GRCh38.p11_rna.fna
            --score-table scores|scores.gz
            [--cds-regions cds-regions.tsv]
-           [--threshold 0.0179]
-           [--log-base 512]
+           [--kappa 6.4135955621023e-5]
+           [--step-size 5e-6]
+           [--tolerance 1e-3]
+           [--max-iterations 1e8]
            [--5prime-footprint 26]
            [--3prime-footprint 19]
            [--5prime-utr-multiplier 0.1]
@@ -33,17 +35,44 @@ To obtain detailed usage and options, launch `mirbooking --help`.
 
 The command line program expects a number of inputs:
 
- - a FASTA containing mRNA transcripts where the identifier is the accession
-   (i.e. NM_002710.3)
- - a FASTA containing mature miRNAs where the first token in the comment is the
-   accession (i.e. MIMAT0004792)
- - a two columns TSV document mapping target accessions to coding regions the
-   'a..b' format where a and b are inclusive 1-based indexes
- - a score table with hybridization probabilities for seeds
- - a quantity file mapping target and mirna accessions to expressed quantity in
-   any comparable units
+ - `--targets`, a FASTA containing mRNA transcripts where the identifier is the
+   accession (i.e. NM_002710.3)
+ - `--mirnas`, a FASTA containing mature miRNAs where the first token in the
+   comment is the accession (i.e. MIMAT0004792)
+ - `--score-table`, a score table with free energy for seeds
+ - `--quantities`, a quantity file mapping target and mirna accessions to
+   expressed quantity in FPKM/RPKM/RPM
 
-The only requirements for the quantities is to be in the same magnitude order.
+The `--kappa` parameter indicates how many nM (1e-9 Molar) of concentration
+a FPKM represents in the quantification. It can be estimated using spike-ins if
+their prior concentration is known. The default value has been calculated from
+ENCODE's HeLa S3 reference epigenome[^hela-s3-encode] using the following
+procedure:
+
+ 1. Obtain spike-ins concentration from Thermofisher and convert attomoles/µL
+    to nM
+ 2. Take ~2% of that total concentration since this is the mixture
+ 3. Compute the total FPKM for the spike-ins for both replicate
+ 4. Divide the concentration in nM by the mean FPKM from both replicates to
+    obtain $\kappa$
+
+[^hela-s3-encode]: https://www.encodeproject.org/reference-epigenomes/ENCSR068MRQ/
+[^spike-ins-thermofisher]: https://www.thermofisher.com/order/catalog/product/4456740
+
+For control conditions (i.e. wildtype or empty vector), long RNA-Seq (in RPKM
+or FPKM) with small RNA-Seq (RPM) quantifications should be combined as-is. If
+you have spike-ins, use them to adjust the fragment or read counts.
+
+For simulated over-expression conditions, an arbitrary value (i.e 1e5) can be
+added to endogenous or as a synthetic microRNA. No renormalization should be
+performed: the resulting library size will just be bigger, as expected for such
+an experiment.
+
+For knock-out conditions, zero the miRNA or mRNA expression.
+
+To compute the silencing, `--cds-regions` is a two columns TSV document mapping
+target accessions to coding regions the 'a..b' format where a and b are
+inclusive 1-based indexes
 
 The output is a TSV with the following columns:
 
@@ -59,7 +88,7 @@ The output is a TSV with the following columns:
 | mirna_accession  | miRNA accession                                        |
 | mirna_name       | Name of the miRNA or N/A if unknown                    |
 | mirna_quantity   | Number of miRNAs                                       |
-| score            | Hybridization probability of the site by the miRNA     |
+| score            | Molar Gibbs free energy of the miRNA::MRE duplex       |
 | quantity         | Number of occupants miRNAs at a this target position   |
 
 ## Installation
@@ -88,6 +117,9 @@ FFTW can be optionally used to compute more accurate silencing by specifying
 `meson -Dwith_fftw3=true`. If you redistribute miRBooking source code, be
 careful not to enable this as a default because of the GPL license covering
 this dependency.
+
+OpenMP can be optionally used to parallelize the evaluation of partial
+derivatives by specifying `-Dwith_openmp=true`.
 
 ## Other tools
 

@@ -14,8 +14,11 @@
 
 G_BEGIN_DECLS
 
-#define MIRBOOKING_BROKER_DEFAULT_THRESHOLD        0.0179f
-#define MIRBOOKING_BROKER_DEFAULT_LOG_BASE         512.0f
+#define MIRBOOKING_BROKER_DEFAULT_KAPPA            6.4135955621023e-5
+#define MIRBOOKING_BROKER_DEFAULT_CUTOFF           500
+#define MIRBOOKING_BROKER_DEFAULT_STEP_SIZE        1e-6 // 7e-6
+#define MIRBOOKING_BROKER_DEFAULT_TOLERANCE        1e-3
+#define MIRBOOKING_BROKER_DEFAULT_MAX_ITERATIONS   1e8
 #define MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT 26
 #define MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT 19
 
@@ -28,10 +31,16 @@ struct _MirbookingBrokerClass
 };
 
 MirbookingBroker *     mirbooking_broker_new                     (void);
-void                   mirbooking_broker_set_threshold           (MirbookingBroker *self,
-                                                                  gfloat            threshold);
-void                   mirbooking_broker_set_log_base            (MirbookingBroker *self,
-                                                                  gfloat            log_base);
+void                   mirbooking_broker_set_kappa               (MirbookingBroker *self,
+                                                                  gdouble           kappa);
+void                   mirbooking_broker_set_cutoff              (MirbookingBroker *self,
+                                                                  gfloat            cutoff);
+void                   mirbooking_broker_set_step_size           (MirbookingBroker *self,
+                                                                  gdouble           step_size);
+void                   mirbooking_broker_set_tolerance           (MirbookingBroker *self,
+                                                                  gdouble           tolerance);
+void                   mirbooking_broker_set_max_iterations      (MirbookingBroker *self,
+                                                                  guint64           max_iterations);
 void                   mirbooking_broker_set_5prime_footprint    (MirbookingBroker *self,
                                                                   gsize             footprint);
 void                   mirbooking_broker_set_3prime_footprint    (MirbookingBroker *self,
@@ -44,6 +53,9 @@ gfloat                 mirbooking_broker_get_sequence_quantity   (MirbookingBrok
 void                   mirbooking_broker_set_sequence_quantity   (MirbookingBroker   *self,
                                                                   MirbookingSequence *sequence,
                                                                   gfloat              quantity);
+gboolean               mirbooking_broker_iter                    (MirbookingBroker  *self,
+                                                                  gdouble            step_size,
+                                                                  GError           **error);
 gboolean               mirbooking_broker_run                     (MirbookingBroker  *self,
                                                                   GError           **error);
 void                   mirbooking_broker_run_async               (MirbookingBroker    *self,

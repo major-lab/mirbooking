@@ -48,9 +48,14 @@ test_score_table_compute_seed_score ()
                                                               target, 1, // CACACAG =>
                                                               &error);
 
-    gdouble kT = 0.593;
-    g_assert_cmpfloat (site_score, ==, expf (20.0/kT) / (expf (20.0/kT) + expf (19.0/kT) + expf(18.0/kT)));
+    g_assert_cmpfloat (site_score, ==, -20.0);
     g_assert_null (error);
+}
+
+static void
+test_score_table_compute_seed_scores ()
+{
+
 }
 
 int main (int argc, gchar **argv)
@@ -58,6 +63,7 @@ int main (int argc, gchar **argv)
     g_test_init (&argc, &argv, NULL);
 
     g_test_add_func ("/score-table/compute-seed-score", test_score_table_compute_seed_score);
+    g_test_add_func ("/score-table/compute-seed-scores", test_score_table_compute_seed_scores);
 
     return g_test_run ();
 }

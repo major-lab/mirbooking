@@ -22,6 +22,8 @@ struct _MirbookingTargetSite
     MirbookingTarget *target;
     gsize             position;
     GSList           *occupants; // #GSList of #MirbookingOccupant
+    gdouble           quantity;
+    gdouble           cleaved_quantity;
 };
 
 #endif /* __MIRBOOKING_TARGET_SITE_H__ */

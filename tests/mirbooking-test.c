@@ -101,8 +101,8 @@ test_mirbooking ()
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE, strlen (TARGET_SEQUENCE));
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
 
-    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target), 10);
-    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna), 10);
+    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target), 6e5);
+    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna), 4e5);
 
     g_autoptr (GError) error = NULL;
     g_assert (mirbooking_broker_run (mirbooking, &error));
@@ -125,10 +125,11 @@ test_mirbooking ()
         total_occupancy += site_occupancy;
     }
 
+    g_print ("%d\n", total_occupancy);
     g_assert_cmpint (total_occupancy, ==, 10);
 
     // only one execution is permitted
-    g_assert_cmpfloat (mirbooking_broker_run (mirbooking, &error), ==, 0.0f);
+    g_assert (!mirbooking_broker_run (mirbooking, &error));
     g_assert_nonnull (error);
 }
 

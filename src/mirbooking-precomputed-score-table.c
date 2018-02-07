@@ -2,15 +2,11 @@
 
 #include <math.h>
 
-#define R 1.987203611e-3
-#define T 310.15
-
 typedef struct
 {
     GBytes  *score_table_bytes;
     gsize    seed_offset;
     gsize    seed_length;
-    gdouble *Z;
 } MirbookingPrecomputedScoreTablePrivate;
 
 struct _MirbookingPrecomputedScoreTable
@@ -28,16 +24,6 @@ mirbooking_precomputed_score_table_init (MirbookingPrecomputedScoreTable *self)
 }
 
 static void
-mirbooking_precomputed_score_table_constructed (GObject *object)
-{
-    MirbookingPrecomputedScoreTable *self = MIRBOOKING_PRECOMPUTED_SCORE_TABLE (object);
-
-    G_OBJECT_CLASS (mirbooking_precomputed_score_table_parent_class)->constructed (object);
-
-    self->priv->Z = g_new0 (gdouble, 1l << 2 * self->priv->seed_length);
-}
-
-static void
 mirbooking_precomputed_score_table_finalize (GObject *object)
 {
     MirbookingPrecomputedScoreTable *self = MIRBOOKING_PRECOMPUTED_SCORE_TABLE (object);
@@ -47,11 +33,32 @@ mirbooking_precomputed_score_table_finalize (GObject *object)
         g_bytes_unref (self->priv->score_table_bytes);
     }
 
-    g_free (self->priv->Z);
-
     g_free (self->priv);
 
     G_OBJECT_CLASS (mirbooking_precomputed_score_table_parent_class)->finalize (object);
+}
+
+static gfloat
+_compute_score (const gfloat *data,
+                gsize         data_len,
+                gsize         i,
+                gsize         j,
+                gsize         seed_len)
+{
+    union
+    {
+        gint32 i;
+        gfloat f;
+    } ret;
+
+    gsize k = i * (1l << 2 * seed_len) + j;
+
+    g_return_val_if_fail (k * sizeof (gfloat) < data_len, INFINITY);
+
+    ret.f = data[k];
+    ret.i = GINT32_FROM_BE (ret.i);
+
+    return ret.f;
 }
 
 static gfloat
@@ -61,12 +68,6 @@ compute_score (MirbookingScoreTable *score_table,
                gsize                 position,
                GError              **error)
 {
-    union
-    {
-        gint32 i;
-        gfloat f;
-    } ret;
-
     MirbookingPrecomputedScoreTable *self = MIRBOOKING_PRECOMPUTED_SCORE_TABLE (score_table);
 
     gsize seed_offset = self->priv->seed_offset;
@@ -75,17 +76,14 @@ compute_score (MirbookingScoreTable *score_table,
     // the seed does not fit in the target
     if (position + seed_len > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)))
     {
-        return 0.0f;
+        return INFINITY;
     }
 
     // the seed does not fit in the mirna
     if (seed_offset + seed_len > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (mirna)))
     {
-        return 0.0f;
+        return INFINITY;
     }
-
-    gsize  data_len;
-    const gfloat *data = g_bytes_get_data (self->priv->score_table_bytes, &data_len);
 
     gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
     gssize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, seed_len);
@@ -93,36 +91,74 @@ compute_score (MirbookingScoreTable *score_table,
     // either sequence index is undefined
     if (i == -1 || j == -1)
     {
-        return 0.0f;
+        return INFINITY;
     }
 
-    gsize l = (1l << 2 * seed_len);
-    gsize k = i * l + j;
+    gsize  data_len;
+    const gfloat *data = g_bytes_get_data (self->priv->score_table_bytes, &data_len);
 
-    g_return_val_if_fail (k * sizeof (gfloat) < data_len, 0.0f);
+    return _compute_score (data, data_len, i, j, seed_len);
+}
 
-    // compute the probability
-    ret.f = data[k];
-    ret.i = GINT32_FROM_BE (ret.i);
-    gdouble p = exp (-ret.f/(R*T));
+static gfloat *
+compute_scores (MirbookingScoreTable  *score_table,
+                MirbookingMirna       *mirna,
+                MirbookingTarget      *target,
+                gsize                **positions,
+                gsize                 *positions_len,
+                GError               **error)
+{
+    MirbookingPrecomputedScoreTable *self = MIRBOOKING_PRECOMPUTED_SCORE_TABLE (score_table);
 
-    // compute the partition function
-    gdouble Z = self->priv->Z[i];
+    gsize k = 0;
 
-    if (Z == 0)
+    gsize seed_offset = self->priv->seed_offset;
+    gsize seed_len    = self->priv->seed_length;
+
+    gsize  data_len;
+    const gfloat *data = g_bytes_get_data (self->priv->score_table_bytes, &data_len);
+
+    gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
+
+    // miRNA seed is undefined (thus no suitable targets)
+    g_return_val_if_fail (i != -1, NULL);
+
+    gsize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), 0, seed_len);
+
+    gsize seq_len = mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target));
+
+    gsize total_positions_len = seq_len - seed_len + 1;
+
+    gsize  *_positions   = g_malloc (total_positions_len * sizeof (gsize));
+    gfloat *_seed_scores = g_malloc (total_positions_len * sizeof (gfloat));
+
+    gsize p;
+    for (p = 0; p < total_positions_len; p++)
     {
-        for (j = 0; j < l; j++)
+        gfloat score = _compute_score (data, data_len, i, j, seed_len);
+
+        if (score < INFINITY)
         {
-            k = i * l + j;
-            ret.f = data[k];
-            ret.i = GINT32_FROM_BE (ret.i);
-            Z += exp (-ret.f/(R*T));
+            _positions[k]   = p;
+            _seed_scores[k] = score;
+            ++k;
         }
 
-        self->priv->Z[i] = Z;
+        if (p < seq_len - seed_len)
+        {
+            gsize out = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p, 1);
+            gsize in  = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p+seed_len, 1);
+
+            j -= out * (2l << (2 * (seed_len - 1) - 1));
+            j *= 4;
+            j += in;
+        }
     }
 
-    return p / Z;
+    *positions     = _positions;
+    *positions_len = k;
+
+    return _seed_scores;
 }
 
 enum
@@ -176,10 +212,10 @@ mirbooking_precomputed_score_table_class_init (MirbookingPrecomputedScoreTableCl
 
     object_class->get_property = mirbooking_precomputed_score_table_get_property;
     object_class->set_property = mirbooking_precomputed_score_table_set_property;
-    object_class->constructed  = mirbooking_precomputed_score_table_constructed;
     object_class->finalize     = mirbooking_precomputed_score_table_finalize;
 
-    klass->parent_class.compute_score = compute_score;
+    klass->parent_class.compute_score  = compute_score;
+    klass->parent_class.compute_scores = compute_scores;
 
     g_object_class_install_property (object_class,
                                      PROP_SCORE_TABLE,
