@@ -439,7 +439,8 @@ main (gint argc, gchar **argv)
             }
 
             #define COALESCE(x,d) (x == NULL ? (d) : (x))
-            g_fprintf (output_f, "%s\t%s\t%.6f\t%lu\t%s\t%f\t%s\t%s\t%f\t%f\t%u\n",
+            #define FLOAT_FORMAT "%6f"
+            g_fprintf (output_f, "%s\t%s\t" FLOAT_FORMAT "\t%lu\t%s\t" FLOAT_FORMAT "\t%s\t%s\t" FLOAT_FORMAT "\t" FLOAT_FORMAT "\t%u\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target_site->target)),

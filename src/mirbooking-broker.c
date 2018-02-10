@@ -466,7 +466,7 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
                                                                   target);
 
         // keep a copy for sorting per hybridation probability
-        gsize scored_target_sites_len = mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) - 7;
+        gsize scored_target_sites_len = mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target));
         g_autoptr (GArray) scored_target_sites = g_array_sized_new (FALSE,
                                                                     FALSE,
                                                                     sizeof (MirbookingScoredTargetSite),
