@@ -1,5 +1,5 @@
 project('mirbooking', 'c',
-        version: '1.2.2')
+        version: '1.2.3')
 
 glib_dep = dependency('glib-2.0', version: '>=2.44')
 gobject_dep = dependency('gobject-2.0', version: '>=2.44')
