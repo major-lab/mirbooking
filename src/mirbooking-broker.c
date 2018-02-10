@@ -673,7 +673,7 @@ mean_silencing_by_number_of_sites (guint k)
  *
  * Returns: The silencing computed across all the occupied sites
  */
-gfloat
+gdouble
 mirbooking_broker_get_target_silencing (MirbookingBroker *self, MirbookingTarget *target)
 {
     gdouble target_silencing = 0;

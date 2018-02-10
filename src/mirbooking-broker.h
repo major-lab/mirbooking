@@ -55,7 +55,7 @@ gboolean               mirbooking_broker_run_finish              (MirbookingBrok
 GArray *               mirbooking_broker_get_target_sites        (MirbookingBroker *self);
 gfloat                 mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
                                                                   const MirbookingTargetSite *target_site);
-gfloat                 mirbooking_broker_get_target_silencing    (MirbookingBroker *self,
+gdouble                mirbooking_broker_get_target_silencing    (MirbookingBroker *self,
                                                                   MirbookingTarget *target);
 
 G_END_DECLS
