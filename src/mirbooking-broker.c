@@ -3,6 +3,7 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <math.h>
+#include <pb.h>
 
 typedef struct
 {
@@ -648,4 +649,76 @@ mirbooking_broker_get_target_sites (MirbookingBroker *self)
     g_return_val_if_fail (self->priv->target_sites != NULL, NULL);
 
     return self->priv->target_sites;
+}
+
+static gdouble
+mean_silencing_by_number_of_sites (guint k)
+{
+    return 1 - pow (2, -0.0070 * k + 0.0253) + 0.01769129305647188;
+}
+
+/**
+ * mirbooking_broker_get_target_silencing:
+ * @target: The #MirbookingTarget for which we are retrieving the silencing
+ *
+ * Compute the silencing of the target according to the Poisson-Binomial
+ * distribution.
+ *
+ * First we estimate the number of occupant per target using the
+ * Poisson-Binomial PMF and then we use an empirical regression for computing
+ * the expected miRNA-induced silencing by weighting each discrete outcomes.
+ *
+ * For individual miRNA-induced silencing, this value should be distributed
+ * proportionally to the individual occupancy.
+ *
+ * Returns: The silencing computed across all the occupied sites
+ */
+gfloat
+mirbooking_broker_get_target_silencing (MirbookingBroker *self, MirbookingTarget *target)
+{
+    gdouble target_silencing = 0;
+    MirbookingTargetSite *target_site = g_hash_table_lookup (self->priv->target_sites_by_target, target);
+    gfloat target_quantity = mirbooking_broker_get_sequence_quantity (self, MIRBOOKING_SEQUENCE (target));
+
+    g_return_val_if_fail (target_site != NULL, 0.0f);
+
+    g_autoptr (GArray) probability_by_position = g_array_new (FALSE, FALSE, sizeof (gdouble));
+    while (target_site < &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len) &&
+           target_site->target == target)
+    {
+        GSList *occupant_list;
+        MirbookingOccupant *occupant;
+        guint target_site_occupancy = 0;
+
+        for (occupant_list = target_site->occupants; occupant_list != NULL; occupant_list = occupant_list->next)
+        {
+            occupant = occupant_list->data;
+            target_site_occupancy += occupant->quantity;
+        }
+
+        if (target_site_occupancy > 0)
+        {
+            gdouble proba = target_site_occupancy / target_quantity;
+            g_array_append_val (probability_by_position, proba);
+        }
+
+        ++target_site;
+    }
+
+    // TODO: compute the joint probability with footprint
+    PoissonBinomial pb;
+    pb_init (&pb,
+             (gdouble*) probability_by_position->data,
+             probability_by_position->len);
+    guint k;
+    for (k = 0; k <= probability_by_position->len; k++)
+    {
+        target_silencing += pb_pmf (&pb, k) * mean_silencing_by_number_of_sites (k);
+    }
+
+    target_silencing *= target_quantity;
+
+    pb_destroy (&pb);
+
+    return target_silencing;
 }

@@ -8,11 +8,17 @@ class Broker(Mirbooking.Broker):
     def get_target_sites_as_dataframe(self):
         import pandas as pd
         def get_target_sites():
+            cur_target = None
             for target_site in self.get_target_sites():
+                if target_site.target != cur_target:
+                    cur_target = target_site.target
+                    target_silencing = self.get_target_silencing(target_site.target)
+                    target_quantity = self.get_sequence_quantity(target_site.target)
                 for occupant in target_site.occupants:
                     yield [target_site.target.get_accession(),
                            target_site.target.get_name(),
-                           self.get_sequence_quantity(target_site.target),
+                           target_quantity,
+                           target_silencing,
                            target_site.position,
                            self.get_target_site_vacancy(target_site),
                            occupant.mirna.get_accession(),
@@ -23,6 +29,7 @@ class Broker(Mirbooking.Broker):
         columns = ['target_accession',
                    'target_name',
                    'target_quantity',
+                   'target_silencing',
                    'position',
                    'vacancy',
                    'mirna_accession',
