@@ -51,6 +51,7 @@ The output is a TSV with the following columns:
 | target_accession | Target accession with version                          |
 | target_name      | Name of the target or N/A if unknown                   |
 | target_quantity  | Number of targets                                      |
+| target_silencing | Number of targets silenced by the miRNAs               |
 | position         | Site position on the target                            |
 | location         | Location (e.g. 5', CDS, 3' or N/A if unknown)          |
 | vacancy          | Number of vacant sites at this position                |
@@ -59,7 +60,6 @@ The output is a TSV with the following columns:
 | mirna_quantity   | Number of miRNAs                                       |
 | probability      | Hybridization probability of the site by the miRNA     |
 | occupancy        | Number of occupied sites at this position by the miRNA |
-| silencing        | Induced silencing on the site by the miRNA             |
 
 ## Installation
 
