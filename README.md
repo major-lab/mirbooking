@@ -67,7 +67,7 @@ You'll need [Meson](http://mesonbuild.com/) and [Ninja](http://ninja-build.org/)
 as well as GLib development files installed on your system.
 
 ```bash
-mkdir build
+mkdir build && cd build
 meson --buildtype=release
 ninja
 ninja install
