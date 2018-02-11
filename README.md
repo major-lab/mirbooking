@@ -83,6 +83,11 @@ uses a shared library. Otherwise, a static linkage can be done by calling
 To generate introspection metadata, use `meson -Dwith_introspection=true`. To
 generate Vala bindings, use `meson -Dwith_vapi=true`.
 
+FFTW can be optionally used to compute more accurate silencing by specifying
+`meson -Dwith_fftw3=true`. If you redistribute miRBooking source code, be
+careful not to enable this as a default because of the GPL license covering
+this dependency.
+
 ## Other tools
 
 In addition to the `mirbooking` binary, this package ship a number of utilities
