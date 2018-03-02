@@ -716,8 +716,6 @@ mirbooking_broker_get_target_silencing (MirbookingBroker *self, MirbookingTarget
         target_silencing += pb_pmf (&pb, k) * mean_silencing_by_number_of_sites (k);
     }
 
-    target_silencing *= target_quantity;
-
     pb_destroy (&pb);
 
     return target_silencing;

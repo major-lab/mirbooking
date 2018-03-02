@@ -389,12 +389,12 @@ main (gint argc, gchar **argv)
                          "target_silencing\t"
                          "position\t"
                          "region\t"
-                         "vacancy\t"
+                         "occupancy\t"
                          "mirna_accession\t"
                          "mirna_name\t"
                          "mirna_quantity\t"
-                         "probability\t"
-                         "occupancy\n");
+                         "score\t"
+                         "quantity\n");
 
     GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
@@ -417,21 +417,23 @@ main (gint argc, gchar **argv)
                                                                        target_site->target);
         }
 
+        gfloat occupancy = (target_quantity - mirbooking_broker_get_target_site_vacancy (mirbooking, target_site)) / target_quantity;
+
         GSList *occupants;
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
         {
-            gfloat probability;
+            gfloat score;
             MirbookingRegion region;
             gpointer cds_ptr;
 
             MirbookingOccupant *occupant = occupants->data;
 
             g_autoptr (GError) error = NULL;
-            probability = mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
-                                                                occupant->mirna,
-                                                                target_site->target,
-                                                                target_site->position,
-                                                                &error);
+            score = mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
+                                                          occupant->mirna,
+                                                          target_site->target,
+                                                          target_site->position,
+                                                          &error);
             if (error != NULL)
             {
                 g_printerr ("%s (%s, %d)\n", error->message, g_quark_to_string (error->domain), error->code);
@@ -462,11 +464,11 @@ main (gint argc, gchar **argv)
                        target_silencing,
                        target_site->position + 1, // 1-based
                        mirbooking_region_to_string (region),
-                       mirbooking_broker_get_target_site_vacancy (mirbooking, target_site),
+                       occupancy,
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
                        mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna)),
-                       probability,
+                       score,
                        occupant->quantity);
             #undef COALESCE
         }
