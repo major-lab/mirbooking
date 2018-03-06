@@ -88,7 +88,7 @@ read_sequences_from_fasta (FILE        *file,
     {
         if (line[0] == '>')
         {
-            accession = strtok (line + 1, " ");
+            accession = strtok (line + 1, " |");
 
             if (accession_in_comment)
             {
