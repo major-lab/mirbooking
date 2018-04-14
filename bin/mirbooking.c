@@ -13,6 +13,10 @@
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
+#define MIRBOOKING_OUTPUT_FLOAT_FORMAT "%6f"
+#define MIRBOOKING_OUTPUT_FORMAT "%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%lu\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\n"
+#define COALESCE(x,d) (x == NULL ? (d) : (x))
+
 static gchar   *mirnas_file      = NULL;
 static gchar   *targets_file     = NULL;
 static gchar   *cds_regions_file = NULL;
@@ -419,12 +423,27 @@ main (gint argc, gchar **argv)
 
         gfloat occupancy = (target_quantity - mirbooking_broker_get_target_site_vacancy (mirbooking, target_site)) / target_quantity;
 
+        MirbookingRegion region;
+        gpointer cds_ptr = g_hash_table_lookup (cds_hash,
+                                                mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)));
+        if (cds_ptr != NULL)
+        {
+            guint16 cds[2];
+            two_guint16_from_gpointer (cds_ptr, cds);
+            region = mirbooking_region_from_target_site (target_site,
+                                                         cds[0],
+                                                         cds[1]);
+        }
+        else
+        {
+            region = MIRBOOKING_REGION_UNKNOWN;
+        }
+
+        // report individual occupants
         GSList *occupants;
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
         {
             gfloat score;
-            MirbookingRegion region;
-            gpointer cds_ptr;
 
             MirbookingOccupant *occupant = occupants->data;
 
@@ -440,24 +459,7 @@ main (gint argc, gchar **argv)
                 return 1;
             }
 
-            cds_ptr = g_hash_table_lookup (cds_hash,
-                                           mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)));
-            if (cds_ptr != NULL)
-            {
-                guint16 cds[2];
-                two_guint16_from_gpointer (cds_ptr, cds);
-                region = mirbooking_region_from_target_site (target_site,
-                                                             cds[0],
-                                                             cds[1]);
-            }
-            else
-            {
-                region = MIRBOOKING_REGION_UNKNOWN;
-            }
-
-            #define COALESCE(x,d) (x == NULL ? (d) : (x))
-            #define FLOAT_FORMAT "%6f"
-            g_fprintf (output_f, "%s\t%s\t" FLOAT_FORMAT "\t" FLOAT_FORMAT "\t%lu\t%s\t" FLOAT_FORMAT "\t%s\t%s\t" FLOAT_FORMAT "\t" FLOAT_FORMAT "\t%u\n",
+            g_fprintf (output_f, MIRBOOKING_OUTPUT_FORMAT,
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        target_quantity,
@@ -470,7 +472,6 @@ main (gint argc, gchar **argv)
                        mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna)),
                        score,
                        occupant->quantity);
-            #undef COALESCE
         }
     }
 
