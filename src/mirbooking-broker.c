@@ -329,10 +329,12 @@ mirbooking_broker_get_target_site_vacancy (MirbookingBroker *self, const Mirbook
     gfloat vacancy = available_target_quantity;
 
     // find the lower target site
-    const MirbookingTargetSite *from_target_site = MAX (target_site - self->priv->prime5_footprint, &g_array_index (self->priv->target_sites, MirbookingTargetSite, 0));
+    const MirbookingTargetSite *from_target_site = target_site - MIN (self->priv->prime5_footprint,
+                                                                      target_site->position);
 
     // find the upper target site
-    const MirbookingTargetSite *to_target_site = MIN (target_site + self->priv->prime3_footprint + 1, &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len));
+    const MirbookingTargetSite *to_target_site = MIN (target_site + self->priv->prime3_footprint + 1,
+                                                      &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len));
 
     // minimize vacancy around the footprint
     const MirbookingTargetSite *nearby_target_site;
