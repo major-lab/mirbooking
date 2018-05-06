@@ -3,4 +3,5 @@ mirbooking_bin = executable('mirbooking', 'mirbooking.c',
                             install: true)
 
 install_data(['mirbooking-calibrate',
-              'mirbooking-extract-cds-regions'], install_dir: 'bin')
+              'mirbooking-extract-cds-regions',
+              'mirbooking-generate-score-table'], install_dir: 'bin')

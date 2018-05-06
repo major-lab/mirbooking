@@ -93,6 +93,19 @@ this dependency.
 In addition to the `mirbooking` binary, this package ship a number of utilities
 to process quantity files and compute summaries based on Pandas.
 
+Te `mirbooking-generate-score-table` compute a hybridization energy table for
+the given seed size and upper bound on the number of mismatches.
+[MC-Flashfold](https://major.iric.ca/mc-tools/) is required.
+
+```bash
+mirbooking-generate-score-table [--mcff=mcff]
+                                [--mcff-args]
+                                [--seed-length=7]
+                                [--max-mismatches=1]
+                                [--max-workers=1]
+                                --output scores
+```
+
 The `mirbooking-calibrate` tool is expecting a transcript and miRNA
 quantification (e.g. two-column TSV document mapping accession to quantity) and
 process it such that it contains approximately the same amount of each kind by
