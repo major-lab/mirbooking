@@ -7,7 +7,6 @@
 
 typedef struct
 {
-    gfloat                threshold;
     gfloat                log_base;
     gsize                 prime5_footprint;
     gsize                 prime3_footprint;
@@ -57,9 +56,6 @@ mirbooking_broker_set_property (GObject *object, guint property_id, const GValue
 
     switch (property_id)
     {
-        case PROP_THRESHOLD:
-            self->priv->threshold = g_value_get_float (value);
-            break;
         case PROP_LOG_BASE:
             self->priv->log_base = g_value_get_float (value);
             break;
@@ -84,9 +80,6 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
 
     switch (property_id)
     {
-        case PROP_THRESHOLD:
-            g_value_set_float (value, self->priv->threshold);
-            break;
         case PROP_LOG_BASE:
             g_value_set_float (value, self->priv->log_base);
             break;
@@ -175,8 +168,6 @@ mirbooking_broker_class_init (MirbookingBrokerClass *klass)
     object_class->get_property = mirbooking_broker_get_property;
     object_class->finalize     = mirbooking_broker_finalize;
 
-    g_object_class_install_property (object_class, PROP_THRESHOLD,
-                                     g_param_spec_float ("threshold", "", "", 0, 1, MIRBOOKING_BROKER_DEFAULT_THRESHOLD, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_LOG_BASE,
                                      g_param_spec_float ("log-base", "", "", 1, G_MAXFLOAT, MIRBOOKING_BROKER_DEFAULT_LOG_BASE, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_5PRIME_FOOTPRINT,
@@ -196,13 +187,6 @@ MirbookingBroker *
 mirbooking_broker_new (void)
 {
     return g_object_new (MIRBOOKING_BROKER_TYPE, NULL);
-}
-
-void
-mirbooking_broker_set_threshold (MirbookingBroker *self,
-                                 gfloat            threshold)
-{
-    self->priv->threshold = threshold;
 }
 
 void
@@ -491,7 +475,6 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
 
             gfloat available_mirna_quantity = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, mirna));
 
-            // filter by threshold
             gint i;
             for (i = 0; i < scored_target_sites_len; i++)
             {
@@ -501,7 +484,7 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
                                                                           target_sites[i].position,
                                                                           error);
 
-                if (seed_score >= self->priv->threshold)
+                if (seed_score > 0)
                 {
                     MirbookingScoredTargetSite scored_target_site = { .target_site = &target_sites[i], .score = seed_score };
                     g_array_append_val (scored_target_sites, scored_target_site);

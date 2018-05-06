@@ -91,8 +91,6 @@ test_mirbooking ()
 {
     g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new ();
 
-    mirbooking_broker_set_threshold (mirbooking, 0.0f); // the score table is zeroed anyway
-
     g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
     g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table, 1, 7);
     mirbooking_broker_set_score_table (mirbooking, g_object_ref (score_table));

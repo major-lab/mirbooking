@@ -23,7 +23,6 @@ static gchar   *cds_regions_file = NULL;
 static gchar   *score_table_file = NULL;
 static gchar   *quantities_file  = NULL;
 static gchar   *output_file      = NULL;
-static gdouble  threshold        = MIRBOOKING_BROKER_DEFAULT_THRESHOLD;
 static gdouble  log_base         = MIRBOOKING_BROKER_DEFAULT_LOG_BASE;
 static gsize    seed_offset      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
 static gsize    seed_length      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
@@ -38,7 +37,6 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"score-table",           0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE duplex table as a row-major big-endian float matrix file",                   "FILE"},
     {"quantities",            0, 0, G_OPTION_ARG_FILENAME, &quantities_file,  "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
     {"output",                0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
-    {"threshold",             0, 0, G_OPTION_ARG_DOUBLE,   &threshold,        "Probability threshold for site matching",                                                         G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_THRESHOLD)},
     {"log-base",              0, 0, G_OPTION_ARG_DOUBLE,   &log_base,         "Logarithm base for spreading quantites across sites",                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_LOG_BASE)},
     {"seed-offset",           0, 0, G_OPTION_ARG_INT,      &seed_offset,      "MiRNA seed offset",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
     {"seed-length",           0, 0, G_OPTION_ARG_INT,      &seed_length,      "MiRNA seed length",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
@@ -196,7 +194,6 @@ main (gint argc, gchar **argv)
 
     g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new ();
 
-    mirbooking_broker_set_threshold (mirbooking, threshold);
     mirbooking_broker_set_log_base (mirbooking, log_base);
     mirbooking_broker_set_5prime_footprint (mirbooking, prime5_footprint);
     mirbooking_broker_set_3prime_footprint (mirbooking, prime3_footprint);
