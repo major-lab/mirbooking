@@ -2,6 +2,8 @@
 
 #include <math.h>
 
+#define kT 0.593 // kcal/mol
+
 typedef struct
 {
     GBytes  *score_table_bytes;
@@ -101,7 +103,7 @@ compute_score (MirbookingScoreTable *score_table,
     // compute the probability
     ret.f = data[k];
     ret.i = GINT32_FROM_BE (ret.i);
-    gdouble p = exp (-ret.f);
+    gdouble p = exp (-ret.f/kT);
 
     // compute the partition function
     gdouble Z = self->priv->Z[i];
@@ -113,7 +115,7 @@ compute_score (MirbookingScoreTable *score_table,
             k = i * l + j;
             ret.f = data[k];
             ret.i = GINT32_FROM_BE (ret.i);
-            Z += exp (-ret.f);
+            Z += exp (-ret.f/kT);
         }
 
         self->priv->Z[i] = Z;
