@@ -1,10 +1,13 @@
 #include "mirbooking-precomputed-score-table.h"
 
+#include <math.h>
+
 typedef struct
 {
-    GBytes *score_table_bytes;
-    gsize   seed_offset;
-    gsize   seed_length;
+    GBytes  *score_table_bytes;
+    gsize    seed_offset;
+    gsize    seed_length;
+    gdouble *Z;
 } MirbookingPrecomputedScoreTablePrivate;
 
 struct _MirbookingPrecomputedScoreTable
@@ -22,6 +25,16 @@ mirbooking_precomputed_score_table_init (MirbookingPrecomputedScoreTable *self)
 }
 
 static void
+mirbooking_precomputed_score_table_constructed (GObject *object)
+{
+    MirbookingPrecomputedScoreTable *self = MIRBOOKING_PRECOMPUTED_SCORE_TABLE (object);
+
+    G_OBJECT_CLASS (mirbooking_precomputed_score_table_parent_class)->constructed (object);
+
+    self->priv->Z = g_new0 (gdouble, 1l << 2 * self->priv->seed_length);
+}
+
+static void
 mirbooking_precomputed_score_table_finalize (GObject *object)
 {
     MirbookingPrecomputedScoreTable *self = MIRBOOKING_PRECOMPUTED_SCORE_TABLE (object);
@@ -30,6 +43,8 @@ mirbooking_precomputed_score_table_finalize (GObject *object)
     {
         g_bytes_unref (self->priv->score_table_bytes);
     }
+
+    g_free (self->priv->Z);
 
     g_free (self->priv);
 
@@ -78,14 +93,33 @@ compute_score (MirbookingScoreTable *score_table,
         return 0.0f;
     }
 
-    gsize k = i * (1l << 2 * seed_len) + j;
+    gsize l = (1l << 2 * seed_len);
+    gsize k = i * l + j;
 
     g_return_val_if_fail (k * sizeof (gfloat) < data_len, 0.0f);
 
+    // compute the probability
     ret.f = data[k];
     ret.i = GINT32_FROM_BE (ret.i);
+    gdouble p = exp (-ret.f);
 
-    return ret.f;
+    // compute the partition function
+    gdouble Z = self->priv->Z[i];
+
+    if (Z == 0)
+    {
+        for (j = 0; j < l; j++)
+        {
+            k = i * l + j;
+            ret.f = data[k];
+            ret.i = GINT32_FROM_BE (ret.i);
+            Z += exp (-ret.f);
+        }
+
+        self->priv->Z[i] = Z;
+    }
+
+    return p / Z;
 }
 
 enum
@@ -139,6 +173,7 @@ mirbooking_precomputed_score_table_class_init (MirbookingPrecomputedScoreTableCl
 
     object_class->get_property = mirbooking_precomputed_score_table_get_property;
     object_class->set_property = mirbooking_precomputed_score_table_set_property;
+    object_class->constructed  = mirbooking_precomputed_score_table_constructed;
     object_class->finalize     = mirbooking_precomputed_score_table_finalize;
 
     klass->parent_class.compute_score = compute_score;
