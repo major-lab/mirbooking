@@ -21,7 +21,7 @@ static gchar   *mirnas_file      = NULL;
 static gchar   *targets_file     = NULL;
 static gchar   *cds_regions_file = NULL;
 static gchar   *score_table_file = NULL;
-static gchar   *quantities_file  = NULL;
+static gchar   *input_file       = NULL;
 static gchar   *output_file      = NULL;
 static gdouble  log_base         = MIRBOOKING_BROKER_DEFAULT_LOG_BASE;
 static gsize    seed_offset      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
@@ -31,17 +31,17 @@ static gsize    prime3_footprint = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
 
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
-    {"mirnas",                0, 0, G_OPTION_ARG_FILENAME, &mirnas_file,      "MiRNAs sequences FASTA file",                                                                     "FILE"},
-    {"targets",               0, 0, G_OPTION_ARG_FILENAME, &targets_file,     "Transcripts sequences FASTA file",                                                                "FILE"},
-    {"cds-regions",           0, 0, G_OPTION_ARG_FILENAME, &cds_regions_file, "Coding regions as a two-column (accession, 1-based inclusive interval) TSV file",                 "FILE"},
-    {"score-table",           0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE duplex table as a row-major big-endian float matrix file",                   "FILE"},
-    {"quantities",            0, 0, G_OPTION_ARG_FILENAME, &quantities_file,  "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
-    {"output",                0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
-    {"log-base",              0, 0, G_OPTION_ARG_DOUBLE,   &log_base,         "Logarithm base for spreading quantites across sites",                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_LOG_BASE)},
-    {"seed-offset",           0, 0, G_OPTION_ARG_INT,      &seed_offset,      "MiRNA seed offset",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
-    {"seed-length",           0, 0, G_OPTION_ARG_INT,      &seed_length,      "MiRNA seed length",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
-    {"5prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime5_footprint, "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
-    {"3prime-footprint",      0, 0, G_OPTION_ARG_INT,      &prime3_footprint, "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
+    {"mirnas",           0, 0, G_OPTION_ARG_FILENAME, &mirnas_file,      "MiRNAs sequences FASTA file",                                                                     "FILE"},
+    {"targets",          0, 0, G_OPTION_ARG_FILENAME, &targets_file,     "Transcripts sequences FASTA file",                                                                "FILE"},
+    {"cds-regions",      0, 0, G_OPTION_ARG_FILENAME, &cds_regions_file, "Coding regions as a two-column (accession, 1-based inclusive interval) TSV file",                 "FILE"},
+    {"score-table",      0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE duplex table as a row-major big-endian float matrix file",                   "FILE"},
+    {"input",            0, 0, G_OPTION_ARG_FILENAME, &input_file,       "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
+    {"output",           0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
+    {"log-base",         0, 0, G_OPTION_ARG_DOUBLE,   &log_base,         "Logarithm base for spreading quantites across sites",                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_LOG_BASE)},
+    {"seed-offset",      0, 0, G_OPTION_ARG_INT,      &seed_offset,      "MiRNA seed offset",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
+    {"seed-length",      0, 0, G_OPTION_ARG_INT,      &seed_length,      "MiRNA seed length",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
+    {"5prime-footprint", 0, 0, G_OPTION_ARG_INT,      &prime5_footprint, "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
+    {"3prime-footprint", 0, 0, G_OPTION_ARG_INT,      &prime3_footprint, "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
     {NULL}
 };
 
@@ -240,7 +240,7 @@ main (gint argc, gchar **argv)
 
     g_autoptr (FILE) mirnas_f = NULL;
     g_autoptr (FILE) targets_f = NULL;
-    g_autoptr (FILE) quantities_f = NULL;
+    g_autoptr (FILE) input_f = NULL;
     g_autoptr (FILE) output_f = NULL;
 
     if ((mirnas_f = g_fopen (mirnas_file, "r")) == NULL)
@@ -255,9 +255,9 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    if ((quantities_f = quantities_file == NULL ? stdin : g_fopen (quantities_file, "r")) == NULL)
+    if ((input_f = input_file == NULL ? stdin : g_fopen (input_file, "r")) == NULL)
     {
-        g_printerr ("Could not open the quantities file '%s': %s.\n", quantities_file, g_strerror (errno));
+        g_printerr ("Could not open the quantities file '%s': %s.\n", input_file, g_strerror (errno));
         return EXIT_FAILURE;
     }
 
@@ -346,7 +346,7 @@ main (gint argc, gchar **argv)
 
     gchar line[1024];
     guint lineno = 0;
-    while (lineno++, fgets (line, sizeof (line), quantities_f))
+    while (lineno++, fgets (line, sizeof (line), input_f))
     {
         if (lineno == 1 && g_str_has_prefix (line, "accession\tquantity\n"))
         {
