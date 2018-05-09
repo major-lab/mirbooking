@@ -132,12 +132,13 @@ Te `mirbooking-generate-score-table` compute a hybridization energy table for
 the given seed size and upper bound on the number of mismatches.
 [MC-Flashfold](https://major.iric.ca/mc-tools/) is required.
 
+The number of workers can be tuned by setting `OMP_NUM_THREADS` environment
+variable.
+
 ```bash
 mirbooking-generate-score-table [--mcff=mcff]
-                                [--mcff-args]
                                 [--seed-length=7]
                                 [--max-mismatches=1]
-                                [--max-workers=1]
                                 --output scores
 ```
 
