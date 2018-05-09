@@ -10,7 +10,7 @@ G_BEGIN_DECLS
 typedef struct _MirbookingOccupant
 {
     MirbookingMirna *mirna;
-    guint            quantity;
+    gdouble          quantity;
 } MirbookingOccupant;
 
 G_END_DECLS

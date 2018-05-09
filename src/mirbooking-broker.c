@@ -97,7 +97,7 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
 }
 
 static MirbookingOccupant *
-mirbooking_occupant_new (MirbookingMirna *mirna, guint quantity)
+mirbooking_occupant_new (MirbookingMirna *mirna, gdouble quantity)
 {
     MirbookingOccupant *ret = g_slice_new (MirbookingOccupant);
     ret->mirna              = g_object_ref (mirna);
@@ -115,7 +115,7 @@ mirbooking_occupant_free (MirbookingOccupant *self)
 static guint
 mirbooking_target_site_get_occupancy (const MirbookingTargetSite *self)
 {
-    guint occupancy = 0;
+    gdouble occupancy = 0;
 
     GSList *occupants_list;
     for (occupants_list = self->occupants; occupants_list != NULL; occupants_list = occupants_list->next)
@@ -660,7 +660,7 @@ mirbooking_broker_get_target_silencing (MirbookingBroker *self, MirbookingTarget
     {
         GSList *occupant_list;
         MirbookingOccupant *occupant;
-        guint target_site_occupancy = 0;
+        gdouble target_site_occupancy = 0;
 
         for (occupant_list = target_site->occupants; occupant_list != NULL; occupant_list = occupant_list->next)
         {
