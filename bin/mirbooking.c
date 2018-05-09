@@ -464,7 +464,7 @@ main (gint argc, gchar **argv)
                                                                        target_site->target);
         }
 
-        gfloat occupancy = (target_quantity - mirbooking_broker_get_target_site_vacancy (mirbooking, target_site)) / target_quantity;
+        gfloat occupancy = 1 - mirbooking_broker_get_target_site_vacancy (mirbooking, target_site);
 
         MirbookingRegion region;
         gpointer cds_ptr = g_hash_table_lookup (cds_hash,
