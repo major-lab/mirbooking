@@ -18,24 +18,39 @@ omp_get_wtime ()
 #define R 1.987203611e-3
 #define T 310.15
 
+typedef struct _IntegratorMeta {
+    gchar   *name;
+    gint     steps;
+    gdouble  c[4];
+    gdouble  w[4];
+} IntegratorMeta;
+
+IntegratorMeta INTEGRATOR_META[] =
+{
+     {"euler",       1, {0, 0,   0,   0}, {1,       0,       0,       0}},
+     {"heuns",       2, {0, 1,   0,   0}, {0.5,     0.5,     0,       0}},
+     {"range-kutta", 4, {0, 0.5, 0.5, 1}, {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0}}
+};
+
 typedef struct
 {
-    gdouble               kappa;
-    gdouble               step_size;
-    gdouble               tolerance;
-    guint64               max_iterations;
-    gsize                 prime5_footprint;
-    gsize                 prime3_footprint;
-    MirbookingScoreTable *score_table;
+    gdouble                    kappa;
+    MirbookingBrokerIntegrator integrator;
+    gdouble                     step_size;
+    gdouble                     tolerance;
+    guint64                     max_iterations;
+    gsize                       prime5_footprint;
+    gsize                       prime3_footprint;
+    MirbookingScoreTable       *score_table;
 
-    GPtrArray            *targets;
-    GPtrArray            *mirnas;
+    GPtrArray                  *targets;
+    GPtrArray                  *mirnas;
 
-    GHashTable           *quantification; // #MirbookingSequence -> #gfloat (initial quantity)
+    GHashTable                 *quantification; // #MirbookingSequence -> #gfloat (initial quantity)
 
     /* all the target sites, stored contiguously */
-    GArray               *target_sites;
-    GHashTable           *target_sites_by_target;
+    GArray                     *target_sites;
+    GHashTable                 *target_sites_by_target;
 } MirbookingBrokerPrivate;
 
 struct _MirbookingBroker
@@ -227,6 +242,13 @@ mirbooking_broker_set_kappa (MirbookingBroker *self,
 }
 
 void
+mirbooking_broker_set_integrator (MirbookingBroker           *self,
+                                  MirbookingBrokerIntegrator  integrator)
+{
+    self->priv->integrator = integrator;
+}
+
+void
 mirbooking_broker_set_step_size (MirbookingBroker *self,
                                  gdouble           step_size)
 {
@@ -403,6 +425,20 @@ typedef struct _MirbookingTargetSitesScores
     GPtrArray *occupants;
 } MirbookingTargetSitesScores;
 
+/**
+ * 'EVALUATE' will evaluate the partial derivatives and store them for the
+ * given 'step'.
+ * 'STEP' will perform the step described by 'step'.
+ * 'UPDATE' will combine the previous, individual step computations into a
+ * final update
+ */
+typedef enum _MirbookingBrokerIterMode
+{
+    MIRBOOKING_BROKER_ITER_MODE_EVALUATE,
+    MIRBOOKING_BROKER_ITER_MODE_STEP,
+    MIRBOOKING_BROKER_ITER_MODE_UPDATE
+} MirbookingBrokerIterMode;
+
 static gboolean
 _mirbooking_broker_iter (MirbookingBroker             *self,
                          gdouble                      *available_target_quantities,
@@ -410,8 +446,10 @@ _mirbooking_broker_iter (MirbookingBroker             *self,
                          gdouble                      *unassigned_mirna_quantities,
                          GPtrArray                    *target_sites_by_target_index,
                          MirbookingTargetSitesScores  *target_sites_scores,
+                         IntegratorMeta                integrator_meta,
                          gdouble                       step_size,
-                         gboolean                      update,
+                         MirbookingBrokerIterMode      iter_mode,
+                         gint                          step,
                          gdouble                      *jac_norm,
                          GError                      **error)
 {
@@ -449,25 +487,7 @@ _mirbooking_broker_iter (MirbookingBroker             *self,
                 g_assert_cmpint (target_site->position, ==, seed_scores->positions[p]);
                 g_assert (occupant->mirna == mirna);
 
-                if (update)
-                {
-                    // d[E]/dt
-                    #pragma omp atomic update
-                    unassigned_mirna_quantities[j] += occupant->E_delta;
-
-                    // d[ES]/dt
-                    #pragma omp atomic update
-                    occupant->quantity += occupant->ES_delta;
-
-                    // d[S]/dt
-                    #pragma omp atomic update
-                    target_site->quantity -= occupant->S_delta;
-
-                    // d[P]/dt
-                    target_site->cleaved_quantity += occupant->P_delta;
-                    occupant->cleaved_quantity += occupant->P_delta;
-                }
-                else
+                if (iter_mode == MIRBOOKING_BROKER_ITER_MODE_EVALUATE)
                 {
                     gfloat seed_score = seed_scores->seed_scores[p];
 
@@ -501,21 +521,56 @@ _mirbooking_broker_iter (MirbookingBroker             *self,
 
                     _jac_norm += pow (ES_jac, 2) + pow (E_jac, 2) + pow (S_jac, 2) + pow (P_jac, 2);
 
-                    // Euler's method
-                    // FIXME: use a higher-order method
-                    occupant->E_delta  = step_size * E_jac;
-                    occupant->S_delta  = step_size * S_jac;
-                    occupant->ES_delta = step_size * ES_jac;
-                    occupant->P_delta  = step_size * P_jac;
+                    occupant->E_jac[step]  = E_jac;
+                    occupant->S_jac[step]  = S_jac;
+                    occupant->ES_jac[step] = ES_jac;
+                    occupant->P_jac[step]  = P_jac;
+                }
+                else if (iter_mode == MIRBOOKING_BROKER_ITER_MODE_STEP)
+                {
+                    // step mode
+                    #define PREDICT(x) (step_size*(integrator_meta.c[step] * x[step]))
 
-                    // remain the the feasible interval
-                    // why?
-                    /*
-                    occupant->ES_delta = CLAMP (occupant->ES_delta, -ES, -ES + MIN (available_target_quantity, available_mirna_quantity));
-                    occupant->E_delta  = CLAMP (occupant->E_delta,  -E,  -E  + available_mirna_quantity);
-                    occupant->S_delta  = CLAMP (occupant->S_delta,  -S,  -S  + available_target_quantity);
-                    occupant->P_delta  = CLAMP (occupant->P_delta,  -P,  -P  + available_target_quantity);
-                    */
+                    // d[E]/dt
+                    #pragma omp atomic update
+                    unassigned_mirna_quantities[j] += PREDICT (occupant->E_jac);
+
+                    // d[S]/dt
+                    #pragma omp atomic update
+                    target_site->quantity -= PREDICT (occupant->S_jac);
+
+                    // d[ES]/dt
+                    occupant->quantity += PREDICT (occupant->ES_jac);
+
+                    // d[P]/dt
+                    #pragma omp atomic update
+                    target_site->cleaved_quantity += PREDICT (occupant->P_jac);
+                    occupant->cleaved_quantity    += PREDICT (occupant->P_jac);
+                }
+                else if (iter_mode == MIRBOOKING_BROKER_ITER_MODE_UPDATE)
+                {
+                    // final update
+                    #define CORRECT(x) (step_size*(integrator_meta.w[0] * x[0] + integrator_meta.w[1] * x[1] + integrator_meta.w[2] * x[2] + integrator_meta.w[3] * x[3]))
+
+                    // d[E]/dt
+                    #pragma omp atomic update
+                    unassigned_mirna_quantities[j] += CORRECT (occupant->E_jac);
+
+                    // d[S]/dt
+                    #pragma omp atomic update
+                    target_site->quantity -= CORRECT (occupant->S_jac);
+
+                    // d[ES]/dt
+                    occupant->quantity += CORRECT (occupant->ES_jac);
+
+                    // d[P]/dt
+                    #pragma omp atomic update
+                    target_site->cleaved_quantity += CORRECT (occupant->P_jac);
+                    occupant->cleaved_quantity    += CORRECT (occupant->P_jac);
+                }
+                else
+                {
+                    g_assert_not_reached ();
                 }
             }
         }
@@ -679,19 +734,24 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
     guint64 iteration = 0;
     gdouble jac_norm = G_MAXDOUBLE;
 
+    IntegratorMeta integrator_meta = INTEGRATOR_META[self->priv->integrator];
+
     while (iteration < self->priv->max_iterations)
     {
         gdouble iteration_begin = omp_get_wtime ();
         iteration++;
 
+        // initial step with criterion evalation
         _mirbooking_broker_iter (self,
                                  available_target_quantities,
                                  available_mirna_quantities,
                                  unassigned_mirna_quantities,
                                  target_sites_by_target_index,
                                  target_sites_scores,
+                                 integrator_meta,
                                  self->priv->step_size,
-                                 FALSE,
+                                 MIRBOOKING_BROKER_ITER_MODE_EVALUATE,
+                                 0,
                                  &jac_norm,
                                  error);
 
@@ -700,14 +760,63 @@ mirbooking_broker_run (MirbookingBroker *self, GError **error)
             break;
         }
 
+        gint step;
+        for (step = 1; step < integrator_meta.steps; step++)
+        {
+            // take the last predicted step
+            _mirbooking_broker_iter (self,
+                                     available_target_quantities,
+                                     available_mirna_quantities,
+                                     unassigned_mirna_quantities,
+                                     target_sites_by_target_index,
+                                     target_sites_scores,
+                                     integrator_meta,
+                                     self->priv->step_size,
+                                     MIRBOOKING_BROKER_ITER_MODE_STEP,
+                                     step - 1,
+                                     NULL,
+                                     error);
+
+            // evaluate this position
+            _mirbooking_broker_iter (self,
+                                     available_target_quantities,
+                                     available_mirna_quantities,
+                                     unassigned_mirna_quantities,
+                                     target_sites_by_target_index,
+                                     target_sites_scores,
+                                     integrator_meta,
+                                     self->priv->step_size,
+                                     MIRBOOKING_BROKER_ITER_MODE_EVALUATE,
+                                     step,
+                                     NULL,
+                                     error);
+
+            // restore to the original state with a negative step
+            _mirbooking_broker_iter (self,
+                                     available_target_quantities,
+                                     available_mirna_quantities,
+                                     unassigned_mirna_quantities,
+                                     target_sites_by_target_index,
+                                     target_sites_scores,
+                                     integrator_meta,
+                                     -self->priv->step_size,
+                                     MIRBOOKING_BROKER_ITER_MODE_STEP,
+                                     step - 1,
+                                     NULL,
+                                     error);
+        }
+
+        // final update
         _mirbooking_broker_iter (self,
                                  available_target_quantities,
                                  available_mirna_quantities,
                                  unassigned_mirna_quantities,
                                  target_sites_by_target_index,
                                  target_sites_scores,
+                                 integrator_meta,
                                  self->priv->step_size,
-                                 TRUE,
+                                 MIRBOOKING_BROKER_ITER_MODE_UPDATE,
+                                 0,
                                  NULL,
                                  error);
 

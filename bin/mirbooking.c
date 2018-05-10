@@ -17,21 +17,48 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 #define MIRBOOKING_OUTPUT_FORMAT "%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%lu\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\n"
 #define COALESCE(x,d) (x == NULL ? (d) : (x))
 
-static gchar   *mirnas_file      = NULL;
-static gchar   *targets_file     = NULL;
-static gchar   *cds_regions_file = NULL;
-static gchar   *score_table_file = NULL;
-static gchar   *input_file       = NULL;
-static gchar   *output_file      = NULL;
-static gdouble  kappa            = MIRBOOKING_BROKER_DEFAULT_KAPPA;
-static gdouble  cutoff           = MIRBOOKING_BROKER_DEFAULT_CUTOFF;
-static gdouble  step_size        = MIRBOOKING_BROKER_DEFAULT_STEP_SIZE;
-static gdouble  tolerance        = MIRBOOKING_BROKER_DEFAULT_TOLERANCE;
-static gdouble  max_iterations   = MIRBOOKING_BROKER_DEFAULT_MAX_ITERATIONS;
-static gsize    seed_offset      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
-static gsize    seed_length      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
-static gsize    prime5_footprint = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
-static gsize    prime3_footprint = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
+static gchar                      *mirnas_file      = NULL;
+static gchar                      *targets_file     = NULL;
+static gchar                      *cds_regions_file = NULL;
+static gchar                      *score_table_file = NULL;
+static gchar                      *input_file       = NULL;
+static gchar                      *output_file      = NULL;
+static gdouble                     kappa            = MIRBOOKING_BROKER_DEFAULT_KAPPA;
+static gdouble                     cutoff           = MIRBOOKING_BROKER_DEFAULT_CUTOFF;
+static MirbookingBrokerIntegrator  integrator       = MIRBOOKING_BROKER_DEFAULT_INTEGRATOR;
+static gdouble                     step_size        = MIRBOOKING_BROKER_DEFAULT_STEP_SIZE;
+static gdouble                     tolerance        = MIRBOOKING_BROKER_DEFAULT_TOLERANCE;
+static gdouble                     max_iterations   = MIRBOOKING_BROKER_DEFAULT_MAX_ITERATIONS;
+static gsize                       seed_offset      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
+static gsize                       seed_length      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
+static gsize                       prime5_footprint = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
+static gsize                       prime3_footprint = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
+
+static gboolean
+set_integrator (const gchar *option_name,
+                const gchar *value,
+                gpointer data,
+                GError **error)
+{
+    GEnumClass *enum_class = g_type_class_ref (MIRBOOKING_BROKER_INTEGRATOR_ENUM);
+    GEnumValue *enum_value = g_enum_get_value_by_nick (enum_class,
+                                                       value);
+
+    if (enum_value == NULL)
+    {
+        g_set_error (error,
+                     G_OPTION_ERROR,
+                     G_OPTION_ERROR_BAD_VALUE,
+                     "The integrator '%s' is unknown.", value);
+        g_type_class_unref (enum_class);
+        return FALSE;
+    }
+
+    integrator = enum_value->value;
+    g_type_class_unref (enum_class);
+
+    return TRUE;
+}
 
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
@@ -43,7 +70,8 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"output",           0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
     {"kappa",            0, 0, G_OPTION_ARG_DOUBLE,   &kappa,            "Concentration ratio in nM/FPKM",                                                                  G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_KAPPA)},
     {"cutoff",           0, 0, G_OPTION_ARG_DOUBLE,   &cutoff,           "Cutoff for miRNA and target expression in FPKM",                                                  G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_CUTOFF)},
-    {"step-size",        0, 0, G_OPTION_ARG_DOUBLE,   &step_size,        "Step size for the steepest descent",                                                              G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_STEP_SIZE)},
+    {"integrator",       0, 0, G_OPTION_ARG_CALLBACK, &set_integrator,   "Integrator to use (i.e. 'euler', 'heuns', 'range-kutta')",                                        "euler"},
+    {"step-size",        0, 0, G_OPTION_ARG_DOUBLE,   &step_size,        "Step size used by the integrator",                                                                G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_STEP_SIZE)},
     {"tolerance",        0, 0, G_OPTION_ARG_DOUBLE,   &tolerance,        "Absolute tolerance for the Jacobian norm",                                                        G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_TOLERANCE)},
     {"max-iterations",   0, 0, G_OPTION_ARG_DOUBLE,   &max_iterations,   "Maximum number of iterations",                                                                    G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_MAX_ITERATIONS)},
     {"seed-offset",      0, 0, G_OPTION_ARG_INT,      &seed_offset,      "MiRNA seed offset",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
@@ -203,6 +231,7 @@ main (gint argc, gchar **argv)
     g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new ();
 
     mirbooking_broker_set_kappa (mirbooking, kappa);
+    mirbooking_broker_set_integrator (mirbooking, integrator);
     mirbooking_broker_set_step_size (mirbooking, step_size);
     mirbooking_broker_set_tolerance (mirbooking, tolerance);
     mirbooking_broker_set_max_iterations (mirbooking, max_iterations);

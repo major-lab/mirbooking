@@ -15,8 +15,9 @@
 G_BEGIN_DECLS
 
 #define MIRBOOKING_BROKER_DEFAULT_KAPPA            6.4135955621023e-5
-#define MIRBOOKING_BROKER_DEFAULT_CUTOFF           500
-#define MIRBOOKING_BROKER_DEFAULT_STEP_SIZE        1e-6 // 7e-6
+#define MIRBOOKING_BROKER_DEFAULT_CUTOFF           1000
+#define MIRBOOKING_BROKER_DEFAULT_INTEGRATOR       MIRBOOKING_BROKER_INTEGRATOR_EULER
+#define MIRBOOKING_BROKER_DEFAULT_STEP_SIZE        1e-5
 #define MIRBOOKING_BROKER_DEFAULT_TOLERANCE        1e-3
 #define MIRBOOKING_BROKER_DEFAULT_MAX_ITERATIONS   1e8
 #define MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT 26
@@ -30,11 +31,20 @@ struct _MirbookingBrokerClass
     GObjectClass parent_class;
 };
 
+typedef enum _MirbookingBrokerIntegrator
+{
+    MIRBOOKING_BROKER_INTEGRATOR_EULER = 0,
+    MIRBOOKING_BROKER_INTEGRATOR_HEUNS,
+    MIRBOOKING_BROKER_INTEGRATOR_RANGE_KUTTA
+} MirbookingBrokerIntegrator;
+
 MirbookingBroker *     mirbooking_broker_new                     (void);
 void                   mirbooking_broker_set_kappa               (MirbookingBroker *self,
                                                                   gdouble           kappa);
 void                   mirbooking_broker_set_cutoff              (MirbookingBroker *self,
                                                                   gfloat            cutoff);
+void                   mirbooking_broker_set_integrator          (MirbookingBroker           *self,
+                                                                  MirbookingBrokerIntegrator  integrator);
 void                   mirbooking_broker_set_step_size           (MirbookingBroker *self,
                                                                   gdouble           step_size);
 void                   mirbooking_broker_set_tolerance           (MirbookingBroker *self,
