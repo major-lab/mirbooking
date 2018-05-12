@@ -104,8 +104,10 @@ test_mirbooking ()
     mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target), 6e5);
     mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna), 4e5);
 
+    gdouble norm;
     g_autoptr (GError) error = NULL;
-    g_assert (mirbooking_broker_run (mirbooking, &error));
+    g_assert (mirbooking_broker_evaluate (mirbooking, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, &norm, &error));
+    g_assert (mirbooking_broker_step (mirbooking, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 0, &error));
     g_assert_null (error);
 
     GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
@@ -127,58 +129,6 @@ test_mirbooking ()
 
     g_print ("%d\n", total_occupancy);
     g_assert_cmpint (total_occupancy, ==, 10);
-
-    // only one execution is permitted
-    g_assert (!mirbooking_broker_run (mirbooking, &error));
-    g_assert_nonnull (error);
-}
-
-static void
-broker_callback (GObject      *broker,
-                 GAsyncResult *result,
-                 gpointer      user_data)
-{
-    GError *err = NULL;
-
-    if (mirbooking_broker_run_finish (MIRBOOKING_BROKER (broker),
-                                      result,
-                                      &err))
-    {
-        g_print ("pass");
-    }
-    else
-    {
-        g_print ("fail");
-    }
-
-    g_main_loop_quit (user_data);
-}
-
-static void
-test_mirbooking_run_async ()
-{
-    if (g_test_subprocess ())
-    {
-        g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
-
-        g_autoptr (GMainLoop) loop = g_main_loop_new (NULL, FALSE);
-
-        g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
-        g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table, 1, 7);
-        mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
-
-        mirbooking_broker_run_async (broker,
-                                     broker_callback,
-                                     loop);
-
-        g_main_loop_run (loop);
-
-        return;
-    }
-
-    g_test_trap_subprocess (NULL, 0, 0);
-    g_test_trap_assert_passed ();
-    g_test_trap_assert_stdout ("pass");
 }
 
 static void
@@ -190,7 +140,9 @@ test_mirbooking_empty ()
     g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table, 1, 7);
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
-    g_assert (mirbooking_broker_run (broker, NULL));
+    gdouble norm;
+    g_assert (mirbooking_broker_evaluate (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, &norm, NULL));
+    g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 0, NULL));
 }
 
 static void
@@ -211,8 +163,10 @@ test_mirbooking_bad_seed_range ()
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
 
+    gdouble norm;
     GError *error = NULL;
-    g_assert (mirbooking_broker_run (broker, &error));
+    g_assert (mirbooking_broker_evaluate (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, &norm, &error));
+    g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 0, &error));
 
     // ensure that no MREs has been assigned
     GArray *target_sites = mirbooking_broker_get_target_sites (broker);
@@ -229,7 +183,6 @@ main (gint argc, gchar **argv)
     g_test_init (&argc, &argv, NULL);
 
     g_test_add_func ("/mirbooking", test_mirbooking);
-    g_test_add_func ("/mirbooking/run-async", test_mirbooking_run_async);
     g_test_add_func ("/mirbooking/empty", test_mirbooking_empty);
     g_test_add_func ("/mirbooking/bad-seed-range", test_mirbooking_bad_seed_range);
 

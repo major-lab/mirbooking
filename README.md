@@ -18,10 +18,7 @@ mirbooking --mirnas mature.fa
            --targets GCF_000001405.37_GRCh38.p11_rna.fna
            --score-table scores|scores.gz
            [--cds-regions cds-regions.tsv]
-           [--kappa 6.4135955621023e-5]
-           [--step-size 5e-6]
-           [--tolerance 1e-3]
-           [--max-iterations 1e8]
+           [--tolerance 1e-8]
            [--5prime-footprint 26]
            [--3prime-footprint 19]
            [--5prime-utr-multiplier 0.1]
@@ -42,33 +39,6 @@ The command line program expects a number of inputs:
  - `--score-table`, a score table with free energy for seeds
  - `--quantities`, a quantity file mapping target and mirna accessions to
    expressed quantity in FPKM/RPKM/RPM
-
-The `--kappa` parameter indicates how many nM (1e-9 Molar) of concentration
-a FPKM represents in the quantification. It can be estimated using spike-ins if
-their prior concentration is known. The default value has been calculated from
-ENCODE's HeLa S3 reference epigenome[^hela-s3-encode] using the following
-procedure:
-
- 1. Obtain spike-ins concentration from Thermofisher and convert attomoles/µL
-    to nM
- 2. Take ~2% of that total concentration since this is the mixture
- 3. Compute the total FPKM for the spike-ins for both replicate
- 4. Divide the concentration in nM by the mean FPKM from both replicates to
-    obtain $\kappa$
-
-[^hela-s3-encode]: https://www.encodeproject.org/reference-epigenomes/ENCSR068MRQ/
-[^spike-ins-thermofisher]: https://www.thermofisher.com/order/catalog/product/4456740
-
-For control conditions (i.e. wildtype or empty vector), long RNA-Seq (in RPKM
-or FPKM) with small RNA-Seq (RPM) quantifications should be combined as-is. If
-you have spike-ins, use them to adjust the fragment or read counts.
-
-For simulated over-expression conditions, an arbitrary value (i.e 1e5) can be
-added to endogenous or as a synthetic microRNA. No renormalization should be
-performed: the resulting library size will just be bigger, as expected for such
-an experiment.
-
-For knock-out conditions, zero the miRNA or mRNA expression.
 
 To compute the silencing, `--cds-regions` is a two columns TSV document mapping
 target accessions to coding regions the 'a..b' format where a and b are
@@ -120,6 +90,41 @@ this dependency.
 
 OpenMP can be optionally used to parallelize the evaluation of partial
 derivatives by specifying `-Dwith_openmp=true`.
+
+## Numerical integration
+
+In addition to determine the steady state, miRBooking can also perform
+numerical integration of the microtargetome.
+
+The `kappa` parameter indicates how many nM (1e-9 Molar) of concentration
+a FPKM represents in the quantification. It can be estimated using spike-ins if
+their prior concentration is known. The default value has been calculated from
+ENCODE's HeLa S3 reference epigenome[^hela-s3-encode] using the following
+procedure:
+
+ 1. Obtain spike-ins concentration from Thermofisher and convert attomoles/µL
+    to nM
+ 2. Take ~2% of that total concentration since this is the mixture
+ 3. Compute the total FPKM for the spike-ins for both replicate
+ 4. Divide the concentration in nM by the mean FPKM from both replicates to
+    obtain $\kappa$
+
+[^hela-s3-encode]: https://www.encodeproject.org/reference-epigenomes/ENCSR068MRQ/
+[^spike-ins-thermofisher]: https://www.thermofisher.com/order/catalog/product/4456740
+
+The `lambda`, expressed in $s^{-1}$ let one convert $K_d$ into proper forward
+and reverse reaction rates.
+
+For control conditions (i.e. wildtype or empty vector), long RNA-Seq (in RPKM
+or FPKM) with small RNA-Seq (RPM) quantifications should be combined as-is. If
+you have spike-ins, use them to adjust the fragment or read counts.
+
+For simulated over-expression conditions, an arbitrary value (i.e 1e5) can be
+added to endogenous or as a synthetic microRNA. No renormalization should be
+performed: the resulting library size will just be bigger, as expected for such
+an experiment.
+
+For knock-out conditions, zero the miRNA or mRNA expression.
 
 ## Other tools
 

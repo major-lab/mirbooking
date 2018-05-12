@@ -1,6 +1,7 @@
 #ifndef __MIRBOOKING_BROKER_H__
 #define __MIRBOOKING_BROKER_H__
 
+#include "mirbooking-broker-integrator.h"
 #include "mirbooking-error.h"
 #include "mirbooking-mirna.h"
 #include "mirbooking-occupant.h"
@@ -15,11 +16,8 @@
 G_BEGIN_DECLS
 
 #define MIRBOOKING_BROKER_DEFAULT_KAPPA            6.4135955621023e-5
-#define MIRBOOKING_BROKER_DEFAULT_CUTOFF           1000
+#define MIRBOOKING_BROKER_DEFAULT_LAMBDA           1
 #define MIRBOOKING_BROKER_DEFAULT_INTEGRATOR       MIRBOOKING_BROKER_INTEGRATOR_EULER
-#define MIRBOOKING_BROKER_DEFAULT_STEP_SIZE        1e-5
-#define MIRBOOKING_BROKER_DEFAULT_TOLERANCE        1e-3
-#define MIRBOOKING_BROKER_DEFAULT_MAX_ITERATIONS   1e8
 #define MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT 26
 #define MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT 19
 
@@ -31,26 +29,19 @@ struct _MirbookingBrokerClass
     GObjectClass parent_class;
 };
 
-typedef enum _MirbookingBrokerIntegrator
+typedef enum _MirbookingBrokerStepMode
 {
-    MIRBOOKING_BROKER_INTEGRATOR_EULER = 0,
-    MIRBOOKING_BROKER_INTEGRATOR_HEUNS,
-    MIRBOOKING_BROKER_INTEGRATOR_RANGE_KUTTA
-} MirbookingBrokerIntegrator;
+    MIRBOOKING_BROKER_STEP_MODE_INTEGRATE,
+    MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE
+} MirbookingBrokerStepMode;
 
 MirbookingBroker *     mirbooking_broker_new                     (void);
 void                   mirbooking_broker_set_kappa               (MirbookingBroker *self,
                                                                   gdouble           kappa);
-void                   mirbooking_broker_set_cutoff              (MirbookingBroker *self,
-                                                                  gfloat            cutoff);
+void                   mirbooking_broker_set_labmda              (MirbookingBroker *self,
+                                                                  gdouble           lambda);
 void                   mirbooking_broker_set_integrator          (MirbookingBroker           *self,
                                                                   MirbookingBrokerIntegrator  integrator);
-void                   mirbooking_broker_set_step_size           (MirbookingBroker *self,
-                                                                  gdouble           step_size);
-void                   mirbooking_broker_set_tolerance           (MirbookingBroker *self,
-                                                                  gdouble           tolerance);
-void                   mirbooking_broker_set_max_iterations      (MirbookingBroker *self,
-                                                                  guint64           max_iterations);
 void                   mirbooking_broker_set_5prime_footprint    (MirbookingBroker *self,
                                                                   gsize             footprint);
 void                   mirbooking_broker_set_3prime_footprint    (MirbookingBroker *self,
@@ -63,17 +54,14 @@ gfloat                 mirbooking_broker_get_sequence_quantity   (MirbookingBrok
 void                   mirbooking_broker_set_sequence_quantity   (MirbookingBroker   *self,
                                                                   MirbookingSequence *sequence,
                                                                   gfloat              quantity);
-gboolean               mirbooking_broker_iter                    (MirbookingBroker  *self,
-                                                                  gdouble            step_size,
-                                                                  GError           **error);
-gboolean               mirbooking_broker_run                     (MirbookingBroker  *self,
-                                                                  GError           **error);
-void                   mirbooking_broker_run_async               (MirbookingBroker    *self,
-                                                                  GAsyncReadyCallback  callback,
-                                                                  gpointer             callback_data);
-gboolean               mirbooking_broker_run_finish              (MirbookingBroker  *self,
-                                                                  GAsyncResult      *result,
-                                                                  GError           **error);
+gboolean               mirbooking_broker_evaluate                (MirbookingBroker          *self,
+                                                                  MirbookingBrokerStepMode   step_mode,
+                                                                  gdouble                   *jac_norm,
+                                                                  GError                   **error);
+gboolean               mirbooking_broker_step                    (MirbookingBroker          *self,
+                                                                  MirbookingBrokerStepMode   step_mode,
+                                                                  gdouble                    step_size,
+                                                                  GError                   **error);
 GArray *               mirbooking_broker_get_target_sites        (MirbookingBroker *self);
 gdouble                mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
                                                                   const MirbookingTargetSite *target_site);

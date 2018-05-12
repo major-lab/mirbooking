@@ -12,11 +12,7 @@ typedef struct _MirbookingOccupant
     MirbookingMirna *mirna;
     gdouble          quantity;
     gdouble          cleaved_quantity;
-    /* component of the Jacbobian for each step */
-    gdouble ES_jac[4];
-    gdouble E_jac[4];
-    gdouble S_jac[4];
-    gdouble P_jac[4];
+    gsize            k; /* reference index for the compact representation */
 } MirbookingOccupant;
 
 G_END_DECLS

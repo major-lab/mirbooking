@@ -32,6 +32,7 @@ if get_option('with_introspection')
 endif
 
 subdir('contrib/poisson-binomial')
+subdir('contrib/sparse')
 subdir('src')
 subdir('bin')
 subdir('data')

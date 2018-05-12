@@ -103,7 +103,8 @@ class MirbookingBrokerTestCase(unittest.TestCase):
                 score_table=SimpleScoreTable())
         mirbooking.set_sequence_quantity(target, 5.0)
         mirbooking.set_sequence_quantity(mirna, 5.0)
-        mirbooking.run()
+        mirbooking.evaluate()
+        mirbooking.step(Mirbooking.StepMode.SOLVE_STEADY_STATE)
         for target_site in mirbooking.get_target_sites():
             for occupant in target_site.occupants:
                 print('Target {} receives {} miRNA {} at position {}.'.format(target_site.target.get_accession(), occupant.quantity, occupant.mirna.get_accession(), target_site.position))
