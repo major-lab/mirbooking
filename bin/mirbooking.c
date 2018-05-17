@@ -246,7 +246,7 @@ main (gint argc, gchar **argv)
                                                                                                                  seed_offset,
                                                                                                                  seed_length);
     mirbooking_broker_set_score_table (mirbooking,
-                                       g_object_ref (score_table));
+                                       MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     if (mirnas_file == NULL)
     {
