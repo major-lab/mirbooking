@@ -6,6 +6,7 @@ Implementation of the miRBooking algorithm and metrics in C
  - usable from Python, JavaScript and Vala via GObject introspection
  - usable from Java via JNA
  - memory-mapped score tables, target and mirnas (for parallel execution)
+ - gzip-compressed score tables
  - memory-mapped and zero-copy for input files containing sequences (i.e. FASTA)
  - binary with support for static linking for more portability
  - stdin/stdout for piping from and into other tools
@@ -15,7 +16,7 @@ Implementation of the miRBooking algorithm and metrics in C
 ```bash
 mirbooking --mirnas mature.fa
            --targets GCF_000001405.37_GRCh38.p11_rna.fna
-           --score-table scores
+           --score-table scores|scores.gz
            [--cds-regions cds-regions.tsv]
            [--threshold 0.0179]
            [--log-base 512]
