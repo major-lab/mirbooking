@@ -204,22 +204,68 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_autoptr (GMappedFile) score_map = g_mapped_file_new (score_table_file, FALSE, &error);
-    if (score_map == NULL)
+    GBytes *score_map_bytes;
+    gsize l = (1l << 2 * seed_length) * (1l << 2 * seed_length);
+
+    if (g_str_has_suffix (score_table_file, "gz"))
     {
-        g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-        return EXIT_FAILURE;
+        g_autoptr (GZlibDecompressor) gzip_decompressor = g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP);
+        g_autoptr (GFile) f = g_file_new_for_path (score_table_file);
+        g_autoptr (GFileInputStream) score_table_file_in = g_file_read (f,
+                                                                        NULL,
+                                                                        &error);
+
+        if (score_table_file_in == NULL)
+        {
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
+        }
+
+        g_autoptr (GInputStream) score_table_in = g_converter_input_stream_new (G_INPUT_STREAM (score_table_file_in),
+                                                                                G_CONVERTER (gzip_decompressor));
+
+        gfloat *buffer = g_new (gfloat, l);
+        gsize bytes_read;
+        gboolean ret;
+        ret = g_input_stream_read_all (score_table_in,
+                                       buffer,
+                                       l * sizeof (gfloat),
+                                       &bytes_read,
+                                       NULL,
+                                       &error);
+
+        if (!ret)
+        {
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            g_free (buffer);
+            return EXIT_FAILURE;
+        }
+
+        score_map_bytes = g_bytes_new_take (buffer,
+                                            bytes_read);
+    }
+    else
+    {
+        g_autoptr (GMappedFile) score_map = g_mapped_file_new (score_table_file, FALSE, &error);
+
+        if (score_map == NULL)
+        {
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
+        }
+
+        score_map_bytes = g_mapped_file_get_bytes (score_map);
     }
 
-    if (g_mapped_file_get_length (score_map) != (1 << 2 * seed_length) * (1 << 2 * seed_length) * sizeof (gfloat))
+    if (g_bytes_get_size (score_map_bytes) != l * sizeof (gfloat))
     {
         g_printerr ("The specified '--seed-length' parameter would require a %luB score table, but %luB were provided.\n",
-                    (1l << 2 * seed_length) * (1l << 2 * seed_length) * sizeof (gfloat),
-                    g_mapped_file_get_length (score_map));
+                    l * sizeof (gfloat),
+                    g_bytes_get_size (score_map_bytes));
         return EXIT_FAILURE;
     }
 
-    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (g_mapped_file_get_bytes (score_map),
+    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (score_map_bytes,
                                                                                                                  seed_offset,
                                                                                                                  seed_length);
     mirbooking_broker_set_score_table (mirbooking,
