@@ -2,8 +2,21 @@
 
 #include <mirbooking.h>
 #include <string.h>
+#include <math.h>
 
 static gfloat SCORE_TABLE[16384][16384];
+
+static gfloat
+gfloat_to_be (gfloat f)
+{
+    union {
+        gint32 i;
+        gfloat f;
+    } val;
+    val.f = f;
+    val.i = GINT32_TO_BE (val.i);
+    return val.f;
+}
 
 static void
 test_score_table_compute_seed_score ()
@@ -23,13 +36,10 @@ test_score_table_compute_seed_score ()
     g_assert_cmpmem (mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), 1, 7), 7, "CACACAG", 7);
     g_assert_cmpmem (mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), 1, 7), 7, "GAGGUAG", 7);
 
-    union {
-        gint32 i;
-        gfloat f;
-    } val;
-    val.f = 5.6f;
-    val.i = GINT32_TO_BE (val.i);
-    SCORE_TABLE[8882][4370] = val.f;
+    // 3-state Botlzmann
+    SCORE_TABLE[8882][4370] = gfloat_to_be (-20.0);
+    SCORE_TABLE[8882][4371] = gfloat_to_be (-19.0);
+    SCORE_TABLE[8882][4372] = gfloat_to_be (-18.0);
 
     // test for a seed
     g_autoptr (GError) error = NULL;
@@ -38,7 +48,8 @@ test_score_table_compute_seed_score ()
                                                               target, 1, // CACACAG =>
                                                               &error);
 
-    g_assert_cmpfloat (site_score, ==, 5.6f);
+    gdouble kT = 0.593;
+    g_assert_cmpfloat (site_score, ==, expf (20.0/kT) / (expf (20.0/kT) + expf (19.0/kT) + expf(18.0/kT)));
     g_assert_null (error);
 }
 

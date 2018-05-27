@@ -4,7 +4,7 @@ mirbooking_tests = [
     'mirbooking']
 foreach name : mirbooking_tests
     test(name, executable(name + '-test', name + '-test.c',
-                          dependencies: [glib_dep, gobject_dep, mirbooking_dep]))
+                          dependencies: [glib_dep, gobject_dep, mirbooking_dep, m_dep]))
 endforeach
 
 if get_option('with_introspection')
