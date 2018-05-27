@@ -29,7 +29,7 @@ mirbooking --mirnas mature.fa
            [--output output.tsv]
 ```
 
-To obtain detailed usage and options, launch `mirbookng --help`.
+To obtain detailed usage and options, launch `mirbooking --help`.
 
 The command line program expects a number of inputs:
 
