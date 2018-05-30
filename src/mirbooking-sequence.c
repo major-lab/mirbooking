@@ -200,6 +200,13 @@ mirbooking_sequence_get_sequence_length (MirbookingSequence *self)
 
 /**
  * mirbooking_sequence_get_subsequence:
+ * @self: A #MirbookingSequence
+ * @subsequence_offset: Offset in the sequence
+ * @subsequence_len: Length of the queried subsequence
+ *
+ * Obtain a subsequence at given offset and length.
+ *
+ * Note that this function is thread-safe, but not always reentrant.
  *
  * Returns: (transfer none): A view of the sequence with line feed characters
  * trimmed
@@ -211,7 +218,7 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
 
     const gchar *subsequence = priv->sequence + subsequence_offset;
 
-    static gchar subsequence_buffer[64];
+    static __thread gchar subsequence_buffer[64];
     gsize subsequence_buffer_offset = 0;
 
     g_return_val_if_fail (subsequence_offset + subsequence_len <= priv->sequence_len - priv->sequence_skips->len, NULL);
