@@ -14,7 +14,7 @@
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
 #define MIRBOOKING_DEFAULT_CUTOFF    1000
-#define MIRBOOKING_DEFAULT_TOLERANCE 1e-8
+#define MIRBOOKING_DEFAULT_TOLERANCE 1e-7
 
 #define MIRBOOKING_OUTPUT_FLOAT_FORMAT "%6f"
 #define MIRBOOKING_OUTPUT_FORMAT "%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%lu\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\n"
@@ -432,7 +432,7 @@ main (gint argc, gchar **argv)
     g_hash_table_unref (sequences_hash);
 
     guint64 iteration = 0;
-    gdouble iteration_begin = g_get_monotonic_time ();
+    guint64 iteration_begin = g_get_monotonic_time ();
     gdouble norm;
     do
     {
@@ -449,10 +449,10 @@ main (gint argc, gchar **argv)
             return EXIT_FAILURE;
         }
 
-        g_debug ("iteration: %lu norm: %.2e throughput: %.2f us/step",
+        g_debug ("iteration: %lu norm: %.2e time: %lums",
                  iteration,
                  norm,
-                 g_get_monotonic_time () - iteration_begin);
+                 1000 * (g_get_monotonic_time () - iteration_begin) / G_USEC_PER_SEC);
 
         if (norm <= tolerance)
         {
@@ -461,7 +461,7 @@ main (gint argc, gchar **argv)
 
         if (!mirbooking_broker_step (mirbooking,
                                      MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE,
-                                     0,
+                                     1,
                                      &error))
         {
             g_printerr ("%s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);

@@ -89,6 +89,11 @@ typedef struct
     gdouble      *ES_delta;  // len(ES)
     gdouble      *dESdt_rhs; // len(ES)
 
+    // footprint breaks convexity, which is necessary for Newton method, so we
+    // solve a relaxed problem and iteratively refine the solution
+    gsize effective_prime5_footprint;
+    gsize effective_prime3_footprint;
+
 } MirbookingBrokerPrivate;
 
 struct _MirbookingBroker
@@ -396,11 +401,13 @@ sequence_cmp_desc (MirbookingSequence **a, MirbookingSequence **b, MirbookingBro
  */
 static void
 _mirbooking_broker_get_footprint_window (MirbookingBroker            *self,
-                                  const MirbookingTargetSite  *target_site,
-                                  const MirbookingTargetSite **from_target_site,
-                                  const MirbookingTargetSite **to_target_site)
+                                         const MirbookingTargetSite  *target_site,
+                                         gsize                        prime5_footprint,
+                                         gsize                        prime3_footprint,
+                                         const MirbookingTargetSite **from_target_site,
+                                         const MirbookingTargetSite **to_target_site)
 {
-    gsize window = self->priv->prime5_footprint + self->priv->prime3_footprint;
+    gsize window = prime5_footprint + prime3_footprint;
     const MirbookingTargetSite *_to_target_site;
 
     // find the lower target site
@@ -422,6 +429,8 @@ _mirbooking_broker_get_footprint_window (MirbookingBroker            *self,
 gdouble
 _mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
                                             const MirbookingTargetSite *target_site,
+                                            gsize                       prime5_footprint,
+                                            gsize                       prime3_footprint,
                                             gdouble                     S0)
 {
     gdouble vacancy = 1;
@@ -429,6 +438,8 @@ _mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
     const MirbookingTargetSite *from_target_site, *to_target_site;
     _mirbooking_broker_get_footprint_window (self,
                                              target_site,
+                                             prime5_footprint,
+                                             prime3_footprint,
                                              &from_target_site,
                                              &to_target_site);
 
@@ -453,6 +464,8 @@ mirbooking_broker_get_target_site_vacancy (MirbookingBroker *self, const Mirbook
     gfloat available_target_quantity = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, target));
     return _mirbooking_broker_get_target_site_vacancy (self,
                                                        target_site,
+                                                       self->priv->prime5_footprint,
+                                                       self->priv->prime3_footprint,
                                                        available_target_quantity);
 }
 
@@ -483,6 +496,8 @@ typedef enum _MirbookingBrokerIterMode
 static gboolean
 _mirbooking_broker_prepare_step (MirbookingBroker *self)
 {
+    guint64 prepare_begin = g_get_monotonic_time ();
+
     gsize target_sites_len = 0;
 
     g_return_val_if_fail (self != NULL, FALSE);
@@ -602,7 +617,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
         }
     }
 
-    g_debug ("Number of duplexes: %lu.", k);
+    g_debug ("Number of duplexes: %lu", k);
 
     // count nnz entries in the Jacobian
     gsize nnz = 0;
@@ -637,6 +652,8 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                 const MirbookingTargetSite *from_target_site, *to_target_site;
                 _mirbooking_broker_get_footprint_window (self,
                                                          target_site,
+                                                         self->priv->prime5_footprint,
+                                                         self->priv->prime3_footprint,
                                                          &from_target_site,
                                                          &to_target_site);
 
@@ -681,8 +698,12 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
     self->priv->ES_delta = g_new0 (gdouble, k);
     self->priv->dESdt_rhs = g_new0 (gdouble, k);
 
+    self->priv->effective_prime5_footprint = 0;
+    self->priv->effective_prime3_footprint = 0;
+
     // initialize the sparse slots beforehand because it is not thread-safe and
     // we want to keep the in order for fast access
+    #pragma omp parallel for collapse(2) ordered
     for (i = 0; i < self->priv->targets->len; i++)
     {
         for (j = 0; j < self->priv->mirnas->len; j++)
@@ -713,6 +734,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                         MirbookingOccupant *other_occupant = g_ptr_array_index (alternative_seed_scores->occupants,
                                                                                 w);
 
+                        #pragma omp ordered
                         sparse_matrix_set_value (self->priv->J,
                                                  occupant->k,
                                                  other_occupant->k,
@@ -724,6 +746,8 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                 const MirbookingTargetSite *from_target_site, *to_target_site;
                 _mirbooking_broker_get_footprint_window (self,
                                                          target_site,
+                                                         self->priv->prime5_footprint,
+                                                         self->priv->prime3_footprint,
                                                          &from_target_site,
                                                          &to_target_site);
 
@@ -736,6 +760,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                         MirbookingOccupant *other_occupant = occupant_list->data;
                         if (other_occupant->mirna != g_ptr_array_index (self->priv->mirnas, j))
                         {
+                            #pragma omp ordered
                             sparse_matrix_set_value (self->priv->J,
                                                      occupant->k,
                                                      other_occupant->k,
@@ -747,7 +772,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
         }
     }
 
-    g_debug ("Done preparing the first step.");
+    g_debug ("Done preparing the first step in %lums", 1000 * (g_get_monotonic_time () - prepare_begin) / G_USEC_PER_SEC);
 
     return TRUE;
 }
@@ -765,6 +790,11 @@ _mirbooking_broker_step (MirbookingBroker             *self,
     gdouble _norm = 0;
 
     IntegratorMeta integrator_meta = INTEGRATOR_META[self->priv->integrator];
+
+    gsize prime5_footprint = self->priv->effective_prime5_footprint;
+    gsize prime3_footprint = self->priv->effective_prime3_footprint;
+
+    guint64 step_begin = g_get_monotonic_time ();
 
     #pragma omp parallel for collapse(2) reduction(+:_norm)
     for (i = 0; i < self->priv->targets->len; i++)
@@ -810,6 +840,8 @@ _mirbooking_broker_step (MirbookingBroker             *self,
                     // compute the vacancy
                     self->priv->S[occupant->k] = self->priv->S0[i] * _mirbooking_broker_get_target_site_vacancy (self,
                                                                                                                  target_site,
+                                                                                                                 prime5_footprint,
+                                                                                                                 prime3_footprint,
                                                                                                                  self->priv->S0[i]);
 
                     self->priv->ES[occupant->k] = occupant->quantity;
@@ -844,6 +876,8 @@ _mirbooking_broker_step (MirbookingBroker             *self,
                     }
                     else if (step_mode == MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE)
                     {
+                        // TODO: build a fast index for retrieving the Jacobian entries
+
                         // substitute target
                         gint z;
                         for (z = 0; z < self->priv->targets->len; z++)
@@ -860,7 +894,7 @@ _mirbooking_broker_step (MirbookingBroker             *self,
 
                                 // TODO: fix those derivatives
                                 gdouble dEdES = -1; // always
-                                gboolean ofp = ABS (seed_scores->positions[p] - alternative_seed_scores->positions[w]) <= (self->priv->prime3_footprint + self->priv->prime5_footprint);
+                                gboolean ofp = ABS (seed_scores->positions[p] - alternative_seed_scores->positions[w]) <= (prime3_footprint + prime5_footprint);
                                 gdouble dSdES = (z == i && ofp) ? -S / (self->priv->S0[i] - target_site->quantity) : 0;
 
                                 gdouble dESdES = kf * (E * dSdES + S * dEdES) - kr * (occupant->k == other_occupant->k ? 1 : 0);
@@ -875,6 +909,8 @@ _mirbooking_broker_step (MirbookingBroker             *self,
                         const MirbookingTargetSite *from_target_site, *to_target_site, *ts;
                         _mirbooking_broker_get_footprint_window (self,
                                                                  target_site,
+                                                                 prime5_footprint,
+                                                                 prime3_footprint,
                                                                  &from_target_site,
                                                                  &to_target_site);
                         for (ts = from_target_site; ts <= to_target_site; ts++)
@@ -947,14 +983,14 @@ _mirbooking_broker_step (MirbookingBroker             *self,
                     {
                         // d[E]/dt
                         #pragma omp atomic update
-                        self->priv->E[j] -= self->priv->ES_delta[occupant->k];
+                        self->priv->E[j] -=  step_size * self->priv->ES_delta[occupant->k];
 
                         // d[S]/dt
                         #pragma omp atomic update
-                        target_site->quantity += self->priv->ES_delta[occupant->k];
+                        target_site->quantity +=  step_size * self->priv->ES_delta[occupant->k];
 
                         // d[ES]/dt
-                        occupant->quantity += self->priv->ES_delta[occupant->k];
+                        occupant->quantity += step_size * self->priv->ES_delta[occupant->k];
                     }
                     else
                     {
@@ -969,9 +1005,48 @@ _mirbooking_broker_step (MirbookingBroker             *self,
         }
     }
 
+    if (iter_mode == MIRBOOKING_BROKER_ITER_MODE_EVALUATE)
+    {
+        g_debug ("Evaluated in %lums", 1000 * (g_get_monotonic_time () - step_begin) / G_USEC_PER_SEC);
+    }
+    else
+    {
+        g_debug ("Stepped in %lums", 1000 * (g_get_monotonic_time () - step_begin) / G_USEC_PER_SEC);
+    }
+
+    if (norm)
+    {
+        *norm = sqrt (_norm);
+    }
+
+    // refinement
+    // if we're sufficiently close, we increase the footprint
+    // FIXME: provide API for tuning this parameter
+    if (norm                                                                  &&
+        *norm <= 1e4                                                          &&
+        self->priv->effective_prime5_footprint < self->priv->prime5_footprint &&
+        self->priv->effective_prime3_footprint < self->priv->prime3_footprint)
+    {
+        self->priv->effective_prime5_footprint = self->priv->prime5_footprint;
+        self->priv->effective_prime3_footprint = self->priv->prime3_footprint;
+        g_debug ("effective-footprint: [%lu, %lu]",
+                 self->priv->effective_prime5_footprint,
+                 self->priv->effective_prime3_footprint);
+
+        // reevaluate to get the correct norm
+        return _mirbooking_broker_step (self,
+                                        step_mode,
+                                        iter_mode,
+                                        step_size,
+                                        step,
+                                        norm,
+                                        error);
+    }
+
     if (step_mode == MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE &&
         iter_mode == MIRBOOKING_BROKER_ITER_MODE_EVALUATE)
     {
+        guint64 solve_begin = g_get_monotonic_time ();
         gboolean ret;
         ret = sparse_solver_solve (self->priv->solver,
                                    self->priv->J,
@@ -986,11 +1061,8 @@ _mirbooking_broker_step (MirbookingBroker             *self,
                                  "The solve step has failed.");
             return FALSE;
         }
-    }
 
-    if (norm)
-    {
-        *norm = sqrt (_norm);
+        g_debug ("Solved in %lums", 1000 * (g_get_monotonic_time () - solve_begin) / G_USEC_PER_SEC);
     }
 
     return TRUE;
