@@ -3,6 +3,7 @@ mirbooking_headers = [
     'mirbooking-error.h',
     'mirbooking-broker.h',
     'mirbooking-broker-integrator.h',
+    'mirbooking-broker-sparse-solver.h',
     'mirbooking-mirna.h',
     'mirbooking-occupant.h',
     'mirbooking-precomputed-score-table.h',
@@ -16,6 +17,7 @@ install_headers(mirbooking_headers, subdir: 'mirbooking-1.0')
 mirbooking_sources = [
     'mirbooking-broker.c',
     'mirbooking-broker-integrator.c',
+    'mirbooking-broker-sparse-solver.c',
     'mirbooking-error.c',
     'mirbooking-mirna.c',
     'mirbooking-precomputed-score-table.c',

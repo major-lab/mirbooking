@@ -2,6 +2,7 @@
 #define __MIRBOOKING_BROKER_H__
 
 #include "mirbooking-broker-integrator.h"
+#include "mirbooking-broker-sparse-solver.h"
 #include "mirbooking-error.h"
 #include "mirbooking-mirna.h"
 #include "mirbooking-occupant.h"
@@ -18,6 +19,7 @@ G_BEGIN_DECLS
 #define MIRBOOKING_BROKER_DEFAULT_KAPPA            6.4135955621023e-5
 #define MIRBOOKING_BROKER_DEFAULT_LAMBDA           1
 #define MIRBOOKING_BROKER_DEFAULT_INTEGRATOR       MIRBOOKING_BROKER_INTEGRATOR_EULER
+#define MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER    MIRBOOKING_BROKER_SPARSE_SOLVER_SUPERLU
 #define MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT 26
 #define MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT 19
 
@@ -42,6 +44,8 @@ void                   mirbooking_broker_set_labmda              (MirbookingBrok
                                                                   gdouble           lambda);
 void                   mirbooking_broker_set_integrator          (MirbookingBroker           *self,
                                                                   MirbookingBrokerIntegrator  integrator);
+void                   mirbooking_broker_set_sparse_solver       (MirbookingBroker             *self,
+                                                                  MirbookingBrokerSparseSolver  sparse_solver);
 void                   mirbooking_broker_set_5prime_footprint    (MirbookingBroker *self,
                                                                   gsize             footprint);
 void                   mirbooking_broker_set_3prime_footprint    (MirbookingBroker *self,

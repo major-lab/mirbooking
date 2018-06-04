@@ -10,29 +10,35 @@ typedef enum _SparseMatrixStorage
 
 typedef struct _SparseMatrix
 {
-    int     storage;
-    size_t  shape[2];
+    SparseMatrixStorage storage;
+    size_t shape[2];
     union
     {
         struct
         {
             size_t  nnz;
-            int    *colind;
-            int    *rowptr;
+            size_t *colind;
+            size_t *rowptr;
         } csr;
     } s;
     double *data;
+    /* optimal row and col permutations */
+    size_t *colperm;
+    size_t *rowperm;
 } SparseMatrix;
 
 void   sparse_matrix_init      (SparseMatrix *matrix, SparseMatrixStorage storage, size_t shape[2], size_t nnz);
 void   sparse_matrix_clear     (SparseMatrix *matrix);
-double sparse_matrix_get_value (SparseMatrix *matrix, int i, int j);
-void   sparse_matrix_set_value (SparseMatrix *matrix, int i, int j, double v);
+double sparse_matrix_get_value (SparseMatrix *matrix, size_t i, size_t j);
+void   sparse_matrix_set_value (SparseMatrix *matrix, size_t i, size_t j, double v);
 
 typedef enum _SparseSolverMethod
 {
     SPARSE_SOLVER_METHOD_SUPERLU,
-    SPARSE_SOLVER_METHOD_SUPERLU_MT
+    SPARSE_SOLVER_METHOD_SUPERLU_MT,
+    SPARSE_SOLVER_METHOD_UMFPACK,
+    SPARSE_SOLVER_METHOD_MKL_DSS,
+    SPARSE_SOLVER_METHOD_MKL_CLUSTER
 } SparseSolverMethod;
 
 typedef struct _SparseSolver SparseSolver;

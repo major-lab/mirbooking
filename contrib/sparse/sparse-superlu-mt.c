@@ -1,31 +1,32 @@
-#include "sparse-superlu-mt-private.h"
+#include "sparse.h"
 
 #include <SuperLUMT/slu_mt_ddefs.h>
 
+/* this API is not exposed in SuperLUMT */
+extern void
+dCreate_CompRow_Matrix(SuperMatrix *A, int_t m, int_t n, int_t nnz, double *nzval,
+                                  int_t *colind, int_t *rowptr,
+                                  Stype_t stype, Dtype_t dtype, Mtype_t mtype);
+
 int
-superlu_mt_solve (SparseSolver *solver,
+sparse_superlu_mt_solve (SparseSolver *solver,
                   SparseMatrix *A,
                   double       *x,
                   double       *b)
 {
     SuperMatrix AA, L, U, BB;
-    int info;
+    int_t info;
 
-    int *perm_r = malloc (A->shape[0] * sizeof (int));
-    int *perm_c = malloc (A->shape[1] * sizeof (int));
-
-    // FIXME: this is not working
-    AA.Stype = SLU_NR;
-    AA.Dtype = SLU_D;
-    AA.Mtype = SLU_GE;
-    AA.nrow = A->shape[0];
-    AA.ncol = A->shape[1];
-    AA.Store = malloc (sizeof (NRformat));
-    NRformat *AA_store = AA.Store;
-    AA_store->nnz = A->s.csr.nnz;
-    AA_store->nzval = A->data;
-    AA_store->colind = A->s.csr.colind;
-    AA_store->rowptr = A->s.csr.rowptr;
+    dCreate_CompRow_Matrix (&AA,
+                            A->shape[0],
+                            A->shape[1],
+                            A->s.csr.nnz,
+                            A->data,
+                            A->s.csr.colind,
+                            A->s.csr.rowptr,
+                            SLU_NR,
+                            SLU_D,
+                            SLU_GE);
 
     memcpy (x, b, A->shape[0] * sizeof (double));
 
@@ -40,18 +41,15 @@ superlu_mt_solve (SparseSolver *solver,
 
     pdgssv (8,
             &AA,
-            perm_c,
-            perm_r,
+            A->colperm,
+            A->rowperm,
             &L,
             &U,
             &BB,
             &info);
 
-    free (AA.Store);
     Destroy_SuperMatrix_Store (&L);
     Destroy_SuperMatrix_Store (&U);
-    free (perm_r);
-    free (perm_c);
 
     return info == 0;
 }
