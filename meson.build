@@ -11,8 +11,9 @@ if get_option('with_openmp')
     openmp_dep = declare_dependency(compile_args: '-fopenmp',
                                     dependencies: meson.get_compiler('c').find_library('gomp'))
 else
+    add_project_arguments('-Wno-unknown-pragmas', language: 'c')
     openmp_dep = []
-    warning('OpenMP is needed to perform computation in reasonable time.')
+    warning('OpenMP is suggested to perform computation in reasonable time.')
 endif
 if get_option('with_fftw3')
     add_project_arguments('-DHAVE_FFTW3', language: 'c')
