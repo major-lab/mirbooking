@@ -68,6 +68,7 @@ typedef struct
     GHashTable *target_sites_by_target;
     GPtrArray  *target_sites_by_target_index;
     GArray     *target_sites_scores; // (target, mirna) -> positions, scores and occupants in the target
+    MirbookingOccupant *occupants;
 
     /* state of the system */
     gdouble *E0; // number of mirnas
@@ -176,30 +177,26 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
     }
 }
 
-static MirbookingOccupant *
-mirbooking_occupant_new (MirbookingMirna *mirna,
-                         gdouble          quantity,
-                         gsize            ref)
+static void
+mirbooking_occupant_init (MirbookingOccupant* self, MirbookingMirna *mirna, gsize k)
 {
-    MirbookingOccupant *ret = g_slice_new0 (MirbookingOccupant);
-    ret->mirna              = g_object_ref (mirna);
-    ret->quantity           = quantity;
-    ret->k                  = ref;
-    return ret;
+    self->mirna    = g_object_ref (mirna);
+    self->quantity = 0;
+    self->k        = k;
 }
 
+
 static void
-mirbooking_occupant_free (MirbookingOccupant *self)
+mirbooking_occupant_clear (MirbookingOccupant *self)
 {
     g_object_unref (self->mirna);
-    g_slice_free (MirbookingOccupant, self);
 }
 
 static void
 mirbooking_target_site_clear (MirbookingTargetSite *self)
 {
     g_object_unref (self->target);
-    g_slist_free_full (self->occupants, (GDestroyNotify) mirbooking_occupant_free);
+    g_slist_free_full (self->occupants, (GDestroyNotify) mirbooking_occupant_clear);
 }
 
 static void
@@ -224,6 +221,7 @@ mirbooking_broker_finalize (GObject *object)
         g_hash_table_unref (self->priv->target_sites_by_target);
         g_ptr_array_unref (self->priv->target_sites_by_target_index);
         g_array_free (self->priv->target_sites_scores, TRUE);
+        g_free (self->priv->occupants);
 
         g_free (self->priv->E0);
         g_free (self->priv->E);
@@ -552,7 +550,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
 
     // memoize in a array-friendly way the target sites
     self->priv->target_sites_by_target_index = g_ptr_array_new ();
-    self->priv->S0 = g_malloc (self->priv->targets->len * sizeof (gdouble));
+    self->priv->S0 = g_new (gdouble, self->priv->targets->len);
     for (i = 0; i < self->priv->targets->len; i++)
     {
         gdouble q = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification,
@@ -563,8 +561,8 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
     }
 
     // memoize unassigned quantities
-    self->priv->E0 = g_malloc (self->priv->mirnas->len * sizeof (gdouble));
-    self->priv->E = g_malloc (self->priv->mirnas->len * sizeof (gdouble));
+    self->priv->E0 = g_new (gdouble, self->priv->mirnas->len);
+    self->priv->E = g_new (gdouble, self->priv->mirnas->len);
     gint j;
     for (j = 0; j < self->priv->mirnas->len; j++)
     {
@@ -581,17 +579,16 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                                                          self->priv->targets->len * self->priv->mirnas->len);
     g_array_set_clear_func (self->priv->target_sites_scores,
                             (GDestroyNotify) mirbooking_target_sites_scores_clear);
-    gsize k = 0;
 
-    #pragma omp parallel for collapse(2) ordered
+    // compute scores
+    gsize occupants_len = 0;
+    #pragma omp parallel for collapse(2) reduction(+:occupants_len)
     for (i = 0; i < self->priv->targets->len; i++)
     {
         for (j = 0; j < self->priv->mirnas->len; j++)
         {
             MirbookingTarget *target = g_ptr_array_index (self->priv->targets, i);
             MirbookingMirna *mirna   = g_ptr_array_index (self->priv->mirnas, j);
-            MirbookingTargetSite *target_sites = g_ptr_array_index (self->priv->target_sites_by_target_index,
-                                                                    i);
             MirbookingTargetSitesScores *seed_scores = &g_array_index (self->priv->target_sites_scores, MirbookingTargetSitesScores, i * self->priv->mirnas->len + j);
             seed_scores->seed_scores = mirbooking_score_table_compute_scores (self->priv->score_table,
                                                                               mirna,
@@ -599,18 +596,35 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                                                                               &seed_scores->positions,
                                                                               &seed_scores->positions_len,
                                                                               NULL);
+            occupants_len += seed_scores->positions_len;
+        }
+    }
+
+    // pre-allocate occupants in contiguous memory
+    self->priv->occupants = g_new (MirbookingOccupant, occupants_len);
+
+    // create occupants
+    gsize k = 0;
+    for (i = 0; i < self->priv->targets->len; i++)
+    {
+        for (j = 0; j < self->priv->mirnas->len; j++)
+        {
+            MirbookingMirna *mirna = g_ptr_array_index (self->priv->mirnas, j);
+
+            MirbookingTargetSite *target_sites = g_ptr_array_index (self->priv->target_sites_by_target_index,
+                                                                    i);
+
+            MirbookingTargetSitesScores *seed_scores = &g_array_index (self->priv->target_sites_scores,
+                                                                       MirbookingTargetSitesScores,
+                                                                       i * self->priv->mirnas->len + j);
 
             seed_scores->occupants = g_ptr_array_sized_new (seed_scores->positions_len);
             gint p;
             for (p = 0; p < seed_scores->positions_len; p++)
             {
                 MirbookingTargetSite *target_site = &target_sites[seed_scores->positions[p]];
-
-                #pragma omp ordered
-                k++;
-
-                MirbookingOccupant *occupant = mirbooking_occupant_new (mirna, 0, k - 1);
-                #pragma omp critical
+                MirbookingOccupant *occupant = &self->priv->occupants[k];
+                mirbooking_occupant_init (occupant, mirna, k++);
                 target_site->occupants = g_slist_prepend (target_site->occupants, occupant);
                 g_ptr_array_add (seed_scores->occupants, occupant);
             }
@@ -703,7 +717,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
 
     // initialize the sparse slots beforehand because it is not thread-safe and
     // we want to keep the in order for fast access
-    #pragma omp parallel for collapse(2) ordered
+    // FIXME: this is slow..?
     for (i = 0; i < self->priv->targets->len; i++)
     {
         for (j = 0; j < self->priv->mirnas->len; j++)
@@ -734,7 +748,6 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                         MirbookingOccupant *other_occupant = g_ptr_array_index (alternative_seed_scores->occupants,
                                                                                 w);
 
-                        #pragma omp ordered
                         sparse_matrix_set_value (self->priv->J,
                                                  occupant->k,
                                                  other_occupant->k,
@@ -760,7 +773,6 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                         MirbookingOccupant *other_occupant = occupant_list->data;
                         if (other_occupant->mirna != g_ptr_array_index (self->priv->mirnas, j))
                         {
-                            #pragma omp ordered
                             sparse_matrix_set_value (self->priv->J,
                                                      occupant->k,
                                                      other_occupant->k,
@@ -772,7 +784,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
         }
     }
 
-    g_debug ("Done preparing the first step in %lums", 1000 * (g_get_monotonic_time () - prepare_begin) / G_USEC_PER_SEC);
+    g_debug ("Prepared the first step in %lums", 1000 * (g_get_monotonic_time () - prepare_begin) / G_USEC_PER_SEC);
 
     return TRUE;
 }
@@ -1029,7 +1041,7 @@ _mirbooking_broker_step (MirbookingBroker             *self,
     {
         self->priv->effective_prime5_footprint = self->priv->prime5_footprint;
         self->priv->effective_prime3_footprint = self->priv->prime3_footprint;
-        g_debug ("effective-footprint: [%lu, %lu]",
+        g_debug ("Effective footprint is now [%lu, %lu]",
                  self->priv->effective_prime5_footprint,
                  self->priv->effective_prime3_footprint);
 
