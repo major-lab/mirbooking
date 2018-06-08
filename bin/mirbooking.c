@@ -13,7 +13,6 @@
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
-#define MIRBOOKING_DEFAULT_CUTOFF    1000
 #define MIRBOOKING_DEFAULT_TOLERANCE 1e-7
 
 #define MIRBOOKING_OUTPUT_FLOAT_FORMAT "%6f"
@@ -26,12 +25,11 @@ static gchar   *cds_regions_file = NULL;
 static gchar   *score_table_file = NULL;
 static gchar   *input_file       = NULL;
 static gchar   *output_file      = NULL;
-static gdouble  cutoff            = MIRBOOKING_DEFAULT_CUTOFF;
-static gdouble  tolerance         = MIRBOOKING_DEFAULT_TOLERANCE;
-static gsize    seed_offset       = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
-static gsize    seed_length       = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
-static gsize    prime5_footprint  = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
-static gsize    prime3_footprint  = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
+static gdouble  tolerance        = MIRBOOKING_DEFAULT_TOLERANCE;
+static gsize    seed_offset      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
+static gsize    seed_length      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
+static gsize    prime5_footprint = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
+static gsize    prime3_footprint = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
 
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
@@ -41,7 +39,6 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"score-table",      0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE Gibbs free energy duplex table as a row-major big-endian float matrix file", "FILE"},
     {"input",            0, 0, G_OPTION_ARG_FILENAME, &input_file,       "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
     {"output",           0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
-    {"cutoff",           0, 0, G_OPTION_ARG_DOUBLE,   &cutoff,           "Cutoff for miRNA and target expression in FPKM",                                                  G_STRINGIFY (MIRBOOKING_DEFAULT_CUTOFF)},
     {"tolerance",        0, 0, G_OPTION_ARG_DOUBLE,   &tolerance,        "Absolute tolerance for the system norm",                                                          G_STRINGIFY (MIRBOOKING_DEFAULT_TOLERANCE)},
     {"seed-offset",      0, 0, G_OPTION_ARG_INT,      &seed_offset,      "MiRNA seed offset",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
     {"seed-length",      0, 0, G_OPTION_ARG_INT,      &seed_length,      "MiRNA seed length",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
@@ -421,12 +418,9 @@ main (gint argc, gchar **argv)
             return EXIT_FAILURE;
         }
 
-        if (quantity >= cutoff)
-        {
-            mirbooking_broker_set_sequence_quantity (mirbooking,
-                                                     sequence,
-                                                     quantity);
-        }
+        mirbooking_broker_set_sequence_quantity (mirbooking,
+                                                 sequence,
+                                                 quantity);
     }
 
     g_hash_table_unref (sequences_hash);
