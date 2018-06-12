@@ -26,7 +26,7 @@ mirbooking_sources = [
     'mirbooking-target.c']
 
 mirbooking_lib = library('mirbooking-1.0', mirbooking_sources,
-                         dependencies: [glib_dep, gobject_dep, gio_dep, m_dep, pb_dep, openmp_dep, sparse_dep],
+                         dependencies: [glib_dep, gobject_dep, gio_dep, m_dep, pb_dep, openmp_dep, mpi_dep, sparse_dep],
                          install: true)
 
 mirbooking_dep = declare_dependency(include_directories: include_directories('.'),

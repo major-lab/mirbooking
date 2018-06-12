@@ -23,7 +23,7 @@ if get_option('with_umfpack')
     sparse_solvers_deps += umfpack_dep
 endif
 
-if get_option('with_mkl')
+if get_option('with_mkl_dss') or get_option('with_mkl_cluster')
     mkl_root = get_option('mkl_root')
     mkl_arch = get_option('mkl_arch')
     mkl_libdir = join_paths(mkl_root, 'lib', mkl_arch)
@@ -35,13 +35,21 @@ if get_option('with_mkl')
     mkl_m = meson.get_compiler('c').find_library('m')
     mkl_dl = meson.get_compiler('c').find_library('dl')
     mkl_dep = declare_dependency(compile_args: ['-DMKL_ILP64', '-m64', '-I@0@'.format(join_paths(mkl_root, 'include'))],
-                                 dependencies: [mkl_ilp64, mkl_gnu_thread, mkl_core,  mkl_gomp, mkl_pthread, mkl_m, mkl_dl])
-    sparse_solvers_compile_args += ['-DHAVE_MKL']
-    sparse_solvers_sources += 'sparse-mkl-dss.c'
-    sparse_solvers_deps += mkl_dep
-    if get_option('with_mpi')
-        sparse_solvers_compile_args += ['-DHAVE_MPI']
+                                 link_args: ['-Wl,--no-as-needed'],
+                                 dependencies: [mkl_ilp64, mkl_gnu_thread, mkl_core, mkl_gomp, mkl_pthread, mkl_m, mkl_dl])
+
+    if get_option('with_mkl_dss')
+        sparse_solvers_compile_args += ['-DHAVE_MKL_DSS']
+        sparse_solvers_sources += 'sparse-mkl-dss.c'
+        sparse_solvers_deps += mkl_dep
+    endif
+
+    if get_option('with_mkl_cluster')
+        sparse_solvers_compile_args += ['-DHAVE_MKL_CLUSTER']
         sparse_solvers_sources += 'sparse-mkl-cluster.c'
+        mkl_blacs_openmpi_ilp64 = meson.get_compiler('c').find_library('mkl_blacs_openmpi_ilp64', dirs: mkl_libdir)
+        sparse_solvers_deps += mkl_blacs_openmpi_ilp64
+        sparse_solvers_deps += mpi_dep
     endif
 endif
 
@@ -53,3 +61,8 @@ sparse_dep = declare_dependency(include_directories: include_directories('.'),
 
 test('sparse', executable('sparse-test', 'sparse-test.c',
                           dependencies: [sparse_dep]))
+
+if get_option('with_mkl') and get_option('with_mpi')
+test('sparse-mpi', executable('sparse-mpi-test', 'sparse-mpi-test.c',
+     dependencies: [sparse_dep, mpi_dep]))
+endif

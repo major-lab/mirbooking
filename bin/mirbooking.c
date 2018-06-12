@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if HAVE_MPI
+#include <mpi.h>
+#endif
 
 #include <mirbooking.h>
 
@@ -178,6 +181,12 @@ mirbooking_region_to_string (MirbookingRegion region)
 int
 main (gint argc, gchar **argv)
 {
+#if HAVE_MPI
+    gint provided;
+    MPI_Init_thread (&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+    g_return_val_if_fail (provided != MPI_THREAD_FUNNELED, EXIT_FAILURE);
+#endif
+
     g_autoptr (GOptionContext) context = g_option_context_new ("[FILE]");
 
     g_option_context_add_main_entries (context,

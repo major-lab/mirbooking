@@ -21,6 +21,16 @@ else
     warning('FFTW3 is needed to compute accurate target silencing.')
 endif
 
+if get_option('with_mpi')
+    add_project_arguments('-DHAVE_MPI', language: 'c')
+    mpicc_bin = find_program('mpicc')
+    mpi_dep = declare_dependency(compile_args: run_command(mpicc_bin, ['-showme:compile:']).stdout().split(),
+                                 link_args: run_command(mpicc_bin, ['-showme:link:']).stdout().split())
+else
+    mpi_dep = []
+    warning('MPI is needed to use the MKL Parallel Direct Sparse Solver for Clusters backend.')
+endif
+
 if get_option('with_introspection')
     python3_bin = import('python3').find_python()
     python3_module_deps = ['gi', 'Bio', 'pandas']

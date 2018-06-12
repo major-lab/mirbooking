@@ -1,25 +1,22 @@
 #include "sparse.h"
+#include "sparse-private.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-extern int
-sparse_superlu_solve (SparseSolver *solver, SparseMatrix *A, double *x, double *b);
+#define DECLARE_SOLVER(solver)                 \
+extern int                                     \
+sparse_##solver##_solve (SparseSolver *solver, \
+                         SparseMatrix *A,      \
+                         double       *x,      \
+                         double       *b);
 
-extern int
-sparse_superlu_mt_solve (SparseSolver *solver, SparseMatrix *A, double *x, double *b);
-
-extern int
-sparse_umfpack_solve (SparseSolver *solver, SparseMatrix *A, double *x, double *b);
-
-extern int
-sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, double *x, double *b);
-
-struct _SparseSolver
-{
-    int (*solve) (SparseSolver *solver, SparseMatrix *A, double *x, double *b);
-};
+DECLARE_SOLVER(superlu)
+DECLARE_SOLVER(superlu_mt)
+DECLARE_SOLVER(umfpack)
+DECLARE_SOLVER(mkl_dss)
+DECLARE_SOLVER(mkl_cluster)
 
 void
 sparse_matrix_init (SparseMatrix        *matrix,
@@ -152,6 +149,9 @@ SparseSolver *
 sparse_solver_new (SparseSolverMethod method)
 {
     SparseSolver *ret = malloc (sizeof (SparseSolver));
+
+    ret->verbose = 0;
+
     switch (method)
     {
         case SPARSE_SOLVER_METHOD_SUPERLU:
@@ -176,22 +176,36 @@ sparse_solver_new (SparseSolverMethod method)
 #endif
             break;
         case SPARSE_SOLVER_METHOD_MKL_DSS:
-#if HAVE_MKL
+#if HAVE_MKL_DSS
             ret->solve = sparse_mkl_dss_solve;
 #else
             return NULL;
 #endif
             break;
         case SPARSE_SOLVER_METHOD_MKL_CLUSTER:
-#if HAVE_MKL & HAVE_MPI
+#if HAVE_MKL_CLUSTER
             ret->solve = sparse_mkl_cluster_solve;
 #else
             return NULL;
 #endif
+            break;
         default:
             assert (0);
     }
     return ret;
+}
+
+/**
+ * sparse_solver_set_verbose:
+ * @verbose: A verbosity level where 0 is no message (the default) and >=1
+ * print resource usage statistics.
+ *
+ * Set the verbosity level of the solver.
+ */
+void
+sparse_solver_set_verbose (SparseSolver *solver, int verbose)
+{
+    solver->verbose = verbose;
 }
 
 /**
