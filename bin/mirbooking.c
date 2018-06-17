@@ -77,10 +77,17 @@ two_guint16_from_gpointer (gpointer ptr, guint16 out[2])
     out[1] = ret.u[1];
 }
 
+typedef enum _FastaFormat
+{
+    FASTA_FORMAT_REFSEQ,
+    FASTA_FORMAT_GENCODE,
+    FASTA_FORMAT_MIRBASE
+} FastaFormat;
+
 static void
 read_sequences_from_fasta (FILE        *file,
                            GMappedFile *mapped_file,
-                           gboolean     accession_in_comment,
+                           FastaFormat  fasta_format,
                            GHashTable  *sequences_hash)
 {
     gchar *accession;
@@ -92,20 +99,32 @@ read_sequences_from_fasta (FILE        *file,
     {
         if (line[0] == '>')
         {
-            accession = strtok (line + 1, " |");
-
-            if (accession_in_comment)
+            if (fasta_format == FASTA_FORMAT_MIRBASE)
             {
-                name      = accession;
+                name      = strtok (line + 1, " ");
                 accession = strtok (NULL, " ");
             }
-            else if (strtok (NULL, "(") != NULL)
+            else if (fasta_format == FASTA_FORMAT_GENCODE)
             {
-                name = strtok (NULL, ")");
+                // for GENCODE-style annotation, the name is in the sixth field
+                accession = strtok (line + 1, "|");
+                gint i;
+                for (i = 0; i < 5; i++)
+                {
+                    name = strtok (NULL, "|");
+                }
             }
-            else
+            else // including REFSEQ
             {
+                accession = strtok (line + 1, " ");
                 name = NULL;
+
+                /* pick last opening brace */
+                gchar *name_p;
+                while (strtok (NULL, "(") && (name_p = strtok (NULL, ")")))
+                {
+                    name = name_p;
+                }
             }
 
             seq = g_mapped_file_get_contents (mapped_file) + ftell (file);
@@ -412,13 +431,13 @@ main (gint argc, gchar **argv)
     // precondition mirnas
     read_sequences_from_fasta (mirnas_f,
                                mirnas_map,
-                               TRUE,
+                               FASTA_FORMAT_MIRBASE,
                                sequences_hash);
 
     // precondition targets
     read_sequences_from_fasta (targets_f,
                                targets_map,
-                               FALSE,
+                               g_str_has_prefix (targets_file, "gencode") ? FASTA_FORMAT_GENCODE : FASTA_FORMAT_REFSEQ,
                                sequences_hash);
 
     g_autoptr (GHashTable) cds_hash = g_hash_table_new_full (g_str_hash,
