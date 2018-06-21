@@ -16,7 +16,8 @@
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
-#define MIRBOOKING_DEFAULT_TOLERANCE 1e-7
+#define MIRBOOKING_DEFAULT_TOLERANCE      1e-7
+#define MIRBOOKING_DEFAULT_MAX_ITERATIONS 100
 
 #define MIRBOOKING_OUTPUT_FLOAT_FORMAT "%6f"
 #define MIRBOOKING_OUTPUT_FORMAT "%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%lu\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\n"
@@ -29,6 +30,7 @@ static gchar   *score_table_file = NULL;
 static gchar   *input_file       = NULL;
 static gchar   *output_file      = NULL;
 static gdouble  tolerance        = MIRBOOKING_DEFAULT_TOLERANCE;
+static guint64  max_iterations   = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
 static gsize    seed_offset      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
 static gsize    seed_length      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
 static gsize    prime5_footprint = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
@@ -43,6 +45,7 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"input",            0, 0, G_OPTION_ARG_FILENAME, &input_file,       "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
     {"output",           0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
     {"tolerance",        0, 0, G_OPTION_ARG_DOUBLE,   &tolerance,        "Absolute tolerance for the system norm",                                                          G_STRINGIFY (MIRBOOKING_DEFAULT_TOLERANCE)},
+    {"max-iterations",   0, 0, G_OPTION_ARG_INT,      &max_iterations,   "Maximum number of iterations",                                                                    G_STRINGIFY (MIRBOOKING_DEFAULT_MAX_ITERATIONS)},
     {"seed-offset",      0, 0, G_OPTION_ARG_INT,      &seed_offset,      "MiRNA seed offset",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
     {"seed-length",      0, 0, G_OPTION_ARG_INT,      &seed_length,      "MiRNA seed length",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
     {"5prime-footprint", 0, 0, G_OPTION_ARG_INT,      &prime5_footprint, "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
@@ -441,6 +444,12 @@ main (gint argc, gchar **argv)
     {
         iteration++;
 
+        if (iteration > max_iterations)
+        {
+            g_print ("Did not converge after %lu iterations.", iteration);
+            return EXIT_FAILURE;
+        }
+
         iteration_begin = g_get_monotonic_time ();
 
         if (!mirbooking_broker_evaluate (mirbooking,
@@ -456,6 +465,12 @@ main (gint argc, gchar **argv)
                  iteration,
                  norm,
                  1000 * (g_get_monotonic_time () - iteration_begin) / G_USEC_PER_SEC);
+
+        if (!isfinite (norm))
+        {
+            g_printerr ("Failed to converge.\n");
+            return EXIT_FAILURE;
+        }
 
         if (norm <= tolerance)
         {
