@@ -38,12 +38,15 @@ mirbooking_precomputed_score_table_finalize (GObject *object)
     G_OBJECT_CLASS (mirbooking_precomputed_score_table_parent_class)->finalize (object);
 }
 
+/**
+ * Estimate the seed duplex free energy using a pre-computed table.
+ */
 static gfloat
-_compute_score (const gfloat *data,
-                gsize         data_len,
-                gsize         i,
-                gsize         j,
-                gsize         seed_len)
+_compute_seed_score (const gfloat *data,
+                     gsize         data_len,
+                     gsize         i,
+                     gsize         j,
+                     gsize         seed_len)
 {
     union
     {
@@ -97,7 +100,7 @@ compute_score (MirbookingScoreTable *score_table,
     gsize  data_len;
     const gfloat *data = g_bytes_get_data (self->priv->score_table_bytes, &data_len);
 
-    return _compute_score (data, data_len, i, j, seed_len);
+    return _compute_seed_score (data, data_len, i, j, seed_len) + mirbooking_target_get_accessibility_score (target, position);
 }
 
 static gfloat *
@@ -135,9 +138,10 @@ compute_scores (MirbookingScoreTable  *score_table,
     gsize p;
     for (p = 0; p < total_positions_len; p++)
     {
-        gfloat score = _compute_score (data, data_len, i, j, seed_len);
+        gfloat score = _compute_seed_score (data, data_len, i, j, seed_len) + mirbooking_target_get_accessibility_score (target, p);
 
-        if (score < INFINITY)
+        /* only propose spontaneous reactions */
+        if (score < 0)
         {
             _positions[k]   = p;
             _seed_scores[k] = score;

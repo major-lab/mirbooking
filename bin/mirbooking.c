@@ -136,6 +136,62 @@ read_sequences_from_fasta (FILE        *file,
     }
 }
 
+void
+read_sequence_accessibility (GInputStream     *in,
+                             GHashTable       *sequences_hash,
+                             MirbookingBroker *broker)
+{
+    g_autoptr (GDataInputStream) data_in = g_data_input_stream_new (in);
+
+    while (TRUE)
+    {
+        g_autofree gchar *accession = g_data_input_stream_read_upto (data_in,
+                                                                     "\t",
+                                                                     1,
+                                                                     NULL,
+                                                                     NULL,
+                                                                     NULL);
+
+        if (accession == NULL)
+        {
+            return; /* done */
+        }
+
+        MirbookingSequence *sequence = g_hash_table_lookup (sequences_hash,
+                                                            accession);
+
+        if (sequence && mirbooking_broker_get_sequence_quantity (broker, sequence) > 0)
+        {
+            gsize sequence_len = mirbooking_sequence_get_sequence_length (sequence);
+            gsize position;
+            for (position = 0; position < sequence_len; position++)
+            {
+                g_return_if_fail (g_data_input_stream_read_byte (data_in, NULL, NULL) == '\t');
+
+                g_autofree gchar *score_str = g_data_input_stream_read_upto (data_in, "\t", 1, NULL, NULL, NULL);
+
+                gfloat score;
+                if (*score_str == '\0')
+                {
+                    score = INFINITY;
+                }
+                else
+                {
+                    sscanf (score_str, "%f", &score);
+                }
+
+                // FIXME: have prefix instead of suffix positions
+                mirbooking_target_set_accessibility_score (MIRBOOKING_TARGET (sequence),
+                                                           (position - 7) % sequence_len,
+                                                           score);
+            }
+        }
+
+        // consume the rest of the line
+        g_autofree gchar *remaining = g_data_input_stream_read_line (data_in, NULL, NULL, NULL);
+    }
+}
+
 typedef enum _MirbookingRegion
 {
     MIRBOOKING_REGION_5PRIME_UTR,
@@ -433,6 +489,37 @@ main (gint argc, gchar **argv)
         mirbooking_broker_set_sequence_quantity (mirbooking,
                                                  sequence,
                                                  quantity);
+    }
+
+    // mark targets with  scores
+    if (accessibility_scores_file != NULL)
+    {
+        g_autoptr (GFile) accessibility_scores_f = g_file_new_for_path (accessibility_scores_file);
+        g_autoptr (GInputStream) accessibility_scores_in = G_INPUT_STREAM (g_file_read (accessibility_scores_f,
+                                                                                        NULL,
+                                                                                        &error));
+
+        if (accessibility_scores_in == NULL)
+        {
+            g_printerr ("Could not open the accessibility scores file '%s': %s.\n", accessibility_scores_file, g_strerror (errno));
+            return EXIT_FAILURE;
+        }
+
+        if (g_str_has_suffix (accessibility_scores_file, ".gz"))
+        {
+            g_autoptr (GZlibDecompressor) gzip_decompressor = g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP);
+            accessibility_scores_in = g_converter_input_stream_new (accessibility_scores_in,
+                                                                    G_CONVERTER (gzip_decompressor));
+        }
+
+        guint64 accessibility_read_begin = g_get_monotonic_time ();
+
+        // update sequence
+        read_sequence_accessibility (G_INPUT_STREAM (accessibility_scores_in),
+                                     sequences_hash,
+                                     mirbooking);
+
+        g_debug ("Done reading accessibility scores in %lums", 1000 * (g_get_monotonic_time () - accessibility_read_begin) / G_USEC_PER_SEC);
     }
 
     g_hash_table_unref (sequences_hash);
