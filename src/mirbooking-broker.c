@@ -9,6 +9,7 @@
 #include <omp.h>
 #endif
 #include <sparse.h>
+#include <stdio.h>
 
 #define R 1.987203611e-3
 #define T 310.15
@@ -178,11 +179,12 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
 }
 
 static void
-mirbooking_occupant_init (MirbookingOccupant* self, MirbookingMirna *mirna, gsize k)
+mirbooking_occupant_init (MirbookingOccupant* self, MirbookingMirna *mirna, gsize k, gfloat score)
 {
     self->mirna    = g_object_ref (mirna);
     self->quantity = 0;
     self->k        = k;
+    self->score    = score;
 }
 
 
@@ -624,7 +626,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
             {
                 MirbookingTargetSite *target_site = &target_sites[seed_scores->positions[p]];
                 MirbookingOccupant *occupant = &self->priv->occupants[k];
-                mirbooking_occupant_init (occupant, mirna, k++);
+                mirbooking_occupant_init (occupant, mirna, k++, seed_scores->seed_scores[p]);
                 target_site->occupants = g_slist_prepend (target_site->occupants, occupant);
                 g_ptr_array_add (seed_scores->occupants, occupant);
             }
@@ -840,11 +842,11 @@ _mirbooking_broker_step (MirbookingBroker             *self,
 
                 if (iter_mode == MIRBOOKING_BROKER_ITER_MODE_EVALUATE)
                 {
-                    gfloat seed_score = seed_scores->seed_scores[p];
+                    gfloat score = occupant->score;
 
                     // The dissociation constant is derived from the duplex's Gibbs
                     // free energy
-                    gdouble duplex_Kd = 1e9 * exp (seed_score / (R*T)); // nM
+                    gdouble duplex_Kd = 1e9 * exp (score / (R*T)); // nM
 
                     // compute the dissociation constant
                     gdouble Kd = duplex_Kd / self->priv->kappa; // nM -> FPKM
@@ -904,7 +906,6 @@ _mirbooking_broker_step (MirbookingBroker             *self,
 
                                 g_assert (other_occupant->mirna == g_ptr_array_index (self->priv->mirnas, j));
 
-                                // TODO: fix those derivatives
                                 gdouble dEdES = -1; // always
                                 gboolean ofp = ABS (seed_scores->positions[p] - alternative_seed_scores->positions[w]) <= (prime3_footprint + prime5_footprint);
                                 gdouble dSdES = (z == i && ofp) ? -S / (self->priv->S0[i] - target_site->quantity) : 0;

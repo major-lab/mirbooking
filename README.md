@@ -21,10 +21,7 @@ mirbooking --mirnas mature.fa
            [--tolerance 1e-8]
            [--5prime-footprint 26]
            [--3prime-footprint 19]
-           [--5prime-utr-multiplier 0.1]
-           [--cds-multiplier 0.1]
-           [--3prime-utr-multiplier 1.0]
-           [--quantities quantities.tsv]
+           [--input input.tsv]
            [--output output.tsv]
 ```
 

@@ -13,6 +13,7 @@ typedef struct _MirbookingOccupant
     gdouble          quantity;
     gdouble          cleaved_quantity;
     gsize            k; /* reference index for the compact representation */
+    gfloat           score; /* cumulative of all Gibbs free energy scores */
 } MirbookingOccupant;
 
 G_END_DECLS

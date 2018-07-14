@@ -11,6 +11,8 @@
 #if HAVE_MPI
 #include <mpi.h>
 #endif
+#include <stdarg.h>
+#include <string.h>
 
 #include <mirbooking.h>
 
@@ -19,37 +21,65 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 #define MIRBOOKING_DEFAULT_TOLERANCE      1e-7
 #define MIRBOOKING_DEFAULT_MAX_ITERATIONS 100
 
-#define MIRBOOKING_OUTPUT_FLOAT_FORMAT "%6f"
-#define MIRBOOKING_OUTPUT_FORMAT "%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%lu\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\n"
-#define COALESCE(x,d) (x == NULL ? (d) : (x))
+typedef enum _MirbookingOutputFormat
+{
+    MIRBOOKING_OUTPUT_FORMAT_TSV,
+    MIRBOOKING_OUTPUT_FORMAT_GFF3
+} MirbookingOutputFormat;
 
-static gchar   *mirnas_file      = NULL;
-static gchar   *targets_file     = NULL;
-static gchar   *cds_regions_file = NULL;
-static gchar   *score_table_file = NULL;
-static gchar   *input_file       = NULL;
-static gchar   *output_file      = NULL;
-static gdouble  tolerance        = MIRBOOKING_DEFAULT_TOLERANCE;
-static guint64  max_iterations   = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
-static gsize    seed_offset      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
-static gsize    seed_length      = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
-static gsize    prime5_footprint = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
-static gsize    prime3_footprint = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
+static gchar     **sequences_files           = {NULL};
+static gchar      *cds_regions_file          = NULL;
+static gchar      *seed_scores_file          = NULL;
+static gchar      *accessibility_scores_file = NULL;
+static gchar      *input_file                = NULL;
+static gchar      *output_file               = NULL;
+static gboolean   output_format              = MIRBOOKING_OUTPUT_FORMAT_TSV;
+static gdouble    tolerance                  = MIRBOOKING_DEFAULT_TOLERANCE;
+static guint64    max_iterations             = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
+static gsize      seed_offset                = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
+static gsize      seed_length                = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
+static gsize      prime5_footprint           = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
+static gsize      prime3_footprint           = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
+static gboolean   verbose                    = FALSE;
+
+static gboolean
+set_output_format (const gchar   *key,
+                   const gchar   *value,
+                   gpointer       data,
+                   GError      **error)
+{
+    if (g_strcmp0 (value, "tsv") == 0)
+    {
+        output_format = MIRBOOKING_OUTPUT_FORMAT_TSV;
+    }
+    else if (g_strcmp0 (value, "gff3") == 0)
+    {
+        output_format = MIRBOOKING_OUTPUT_FORMAT_GFF3;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
 
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
-    {"mirnas",           0, 0, G_OPTION_ARG_FILENAME, &mirnas_file,      "MiRNAs sequences FASTA file",                                                                     "FILE"},
-    {"targets",          0, 0, G_OPTION_ARG_FILENAME, &targets_file,     "Transcripts sequences FASTA file",                                                                "FILE"},
-    {"cds-regions",      0, 0, G_OPTION_ARG_FILENAME, &cds_regions_file, "Coding regions as a two-column (accession, 1-based inclusive interval) TSV file",                 "FILE"},
-    {"score-table",      0, 0, G_OPTION_ARG_FILENAME, &score_table_file, "Precomputed seed-MRE Gibbs free energy duplex table as a row-major big-endian float matrix file", "FILE"},
-    {"input",            0, 0, G_OPTION_ARG_FILENAME, &input_file,       "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
-    {"output",           0, 0, G_OPTION_ARG_FILENAME, &output_file,      "Output destination file (defaults to stdout)",                                                    "FILE"},
-    {"tolerance",        0, 0, G_OPTION_ARG_DOUBLE,   &tolerance,        "Absolute tolerance for the system norm",                                                          G_STRINGIFY (MIRBOOKING_DEFAULT_TOLERANCE)},
-    {"max-iterations",   0, 0, G_OPTION_ARG_INT,      &max_iterations,   "Maximum number of iterations",                                                                    G_STRINGIFY (MIRBOOKING_DEFAULT_MAX_ITERATIONS)},
-    {"seed-offset",      0, 0, G_OPTION_ARG_INT,      &seed_offset,      "MiRNA seed offset",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
-    {"seed-length",      0, 0, G_OPTION_ARG_INT,      &seed_length,      "MiRNA seed length",                                                                               G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
-    {"5prime-footprint", 0, 0, G_OPTION_ARG_INT,      &prime5_footprint, "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
-    {"3prime-footprint", 0, 0, G_OPTION_ARG_INT,      &prime3_footprint, "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
+    {"sequences",            0, 0, G_OPTION_ARG_FILENAME_ARRAY, &sequences_files,           "Sequences FASTA file",                                                                             NULL},
+    {"cds-regions",          0, 0, G_OPTION_ARG_FILENAME,       &cds_regions_file,          "Coding regions as a two-column (accession, 1-based inclusive interval) TSV file",                  "FILE"},
+    {"seed-scores",          0, 0, G_OPTION_ARG_FILENAME,       &seed_scores_file,          "Precomputed seed::MRE Gibbs free energy duplex table as a row-major big-endian float matrix file", "FILE"},
+    {"accessibility-scores", 0, 0, G_OPTION_ARG_FILENAME,       &accessibility_scores_file, "Accessibility scores as a variable columns (accession, positions...) TSV file",                    "FILE"},
+    {"input",                0, 0, G_OPTION_ARG_FILENAME,       &input_file,                "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)",  "FILE"},
+    {"output",               0, 0, G_OPTION_ARG_FILENAME,       &output_file,               "Output destination file (defaults to stdout)",                                                     "FILE"},
+    {"output-format",        0, 0, G_OPTION_ARG_CALLBACK,       &set_output_format,         "Output format (i.e. 'tsv', 'gff3')",                                                               "tsv"},
+    {"tolerance",            0, 0, G_OPTION_ARG_DOUBLE,         &tolerance,                 "Absolute tolerance for the system norm to declare convergence",                                    G_STRINGIFY (MIRBOOKING_DEFAULT_TOLERANCE)},
+    {"max-iterations",       0, 0, G_OPTION_ARG_INT,            &max_iterations,            "Maximum number of iterations",                                                                     G_STRINGIFY (MIRBOOKING_DEFAULT_MAX_ITERATIONS)},
+    {"seed-offset",          0, 0, G_OPTION_ARG_INT,            &seed_offset,               "MiRNA seed offset",                                                                                G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
+    {"seed-length",          0, 0, G_OPTION_ARG_INT,            &seed_length,               "MiRNA seed length",                                                                                G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
+    {"5prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime5_footprint,          "Footprint in the MRE's 5' direction",                                                              G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
+    {"3prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime3_footprint,          "Footprint in the MRE's 3' direction",                                                              G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
+    {"verbose",              0, 0, G_OPTION_ARG_NONE,           &verbose,                   "Turn on verbose output",                                                                           NULL},
     {NULL}
 };
 
@@ -143,6 +173,9 @@ read_sequences_from_fasta (FILE        *file,
             {
                 sequence = MIRBOOKING_SEQUENCE (mirbooking_target_new_with_name (accession, name));
             }
+
+            // FIXME: add a destroy notify to clear this ref when the sequence is disposed
+            g_mapped_file_ref (mapped_file);
 
             mirbooking_sequence_set_raw_sequence (sequence,
                                                   seq,
@@ -256,6 +289,121 @@ mirbooking_region_to_string (MirbookingRegion region)
     }
 }
 
+#define MIRBOOKING_OUTPUT_FLOAT_FORMAT "%6f"
+#define MIRBOOKING_OUTPUT_FORMAT "%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%lu\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\n"
+#define COALESCE(x,d) (x == NULL ? (d) : (x))
+
+static void
+write_output_to_tsv (MirbookingBroker *mirbooking,
+                     GHashTable       *cds_hash,
+                     FILE             *output_f)
+{
+    g_fprintf (output_f, "target_accession\t"
+                         "target_name\t"
+                         "target_quantity\t"
+                         "target_silencing\t"
+                         "position\t"
+                         "region\t"
+                         "occupancy\t"
+                         "mirna_accession\t"
+                         "mirna_name\t"
+                         "mirna_quantity\t"
+                         "score\t"
+                         "quantity\n");
+
+    GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
+
+    gdouble target_silencing = 0;
+    gfloat target_quantity = 0;
+
+    const MirbookingTargetSite *target_site;
+    MirbookingTarget *cur_target = NULL;
+    for (target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
+         target_site < &g_array_index (target_sites, MirbookingTargetSite, target_sites->len);
+         target_site++)
+    {
+        // recompute each time the target changes
+        if (cur_target != target_site->target)
+        {
+            cur_target = target_site->target;
+            target_quantity = mirbooking_broker_get_sequence_quantity (mirbooking,
+                                                                       MIRBOOKING_SEQUENCE (target_site->target));
+            target_silencing = mirbooking_broker_get_target_silencing (mirbooking,
+                                                                       target_site->target);
+        }
+
+        gfloat occupancy = 1 - mirbooking_broker_get_target_site_vacancy (mirbooking, target_site);
+
+        MirbookingRegion region;
+        gpointer cds_ptr = g_hash_table_lookup (cds_hash,
+                                                mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)));
+        if (cds_ptr != NULL)
+        {
+            guint16 cds[2];
+            two_guint16_from_gpointer (cds_ptr, cds);
+            region = mirbooking_region_from_target_site (target_site,
+                                                         cds[0],
+                                                         cds[1]);
+        }
+        else
+        {
+            region = MIRBOOKING_REGION_UNKNOWN;
+        }
+
+        // report individual occupants
+        GSList *occupants;
+        for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
+        {
+            MirbookingOccupant *occupant = occupants->data;
+            g_fprintf (output_f, MIRBOOKING_OUTPUT_FORMAT,
+                       mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
+                       COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
+                       target_quantity,
+                       target_silencing,
+                       target_site->position + 1, // 1-based
+                       mirbooking_region_to_string (region),
+                       occupancy,
+                       mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
+                       COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
+                       mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna)),
+                       occupant->score,
+                       occupant->quantity);
+        }
+    }
+}
+
+static void
+write_output_to_gff3 (MirbookingBroker *mirbooking, FILE *output_f)
+{
+    g_fprintf (output_f, "##gff-version 3\n");
+
+    GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
+
+    const MirbookingTargetSite *target_site;
+    for (target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
+         target_site < &g_array_index (target_sites, MirbookingTargetSite, target_sites->len);
+         target_site++)
+    {
+        gfloat occupancy = 1 - mirbooking_broker_get_target_site_vacancy (mirbooking, target_site);
+
+        // report individual occupants
+        GSList *occupants;
+        for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
+        {
+            MirbookingOccupant *occupant = occupants->data;
+            g_fprintf (output_f, "%s\tmirbooking\tmiRNA interaction\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%lu\t%lu\t+\t.\tID=%s;Position=%lu,Occupancy=%f;Score=%f\n",
+                       mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
+                       occupant->quantity,
+                       MAX (0, target_site->position + 1 - prime5_footprint),
+                       MIN (mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target_site->target)), target_site->position + 1 + prime3_footprint),
+                       mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
+                       target_site->position,
+                       occupancy,
+                       occupant->score);
+        }
+    }
+}
+
 int
 main (gint argc, gchar **argv)
 {
@@ -286,36 +434,36 @@ main (gint argc, gchar **argv)
     mirbooking_broker_set_5prime_footprint (mirbooking, prime5_footprint);
     mirbooking_broker_set_3prime_footprint (mirbooking, prime3_footprint);
 
-    if (score_table_file == NULL)
+    if (seed_scores_file == NULL)
     {
-        g_printerr ("The '--score-table' argument is required.\n");
+        g_printerr ("The '--seed-scores' argument is required.\n");
         return EXIT_FAILURE;
     }
 
     GBytes *score_map_bytes;
     gsize l = (1l << 2 * seed_length) * (1l << 2 * seed_length);
 
-    if (g_str_has_suffix (score_table_file, "gz"))
+    if (g_str_has_suffix (seed_scores_file, ".gz"))
     {
         g_autoptr (GZlibDecompressor) gzip_decompressor = g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP);
-        g_autoptr (GFile) f = g_file_new_for_path (score_table_file);
-        g_autoptr (GFileInputStream) score_table_file_in = g_file_read (f,
+        g_autoptr (GFile) f = g_file_new_for_path (seed_scores_file);
+        g_autoptr (GFileInputStream) seed_scores_file_in = g_file_read (f,
                                                                         NULL,
                                                                         &error);
 
-        if (score_table_file_in == NULL)
+        if (seed_scores_file_in == NULL)
         {
             g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
             return EXIT_FAILURE;
         }
 
-        g_autoptr (GInputStream) score_table_in = g_converter_input_stream_new (G_INPUT_STREAM (score_table_file_in),
+        g_autoptr (GInputStream) seed_scores_in = g_converter_input_stream_new (G_INPUT_STREAM (seed_scores_file_in),
                                                                                 G_CONVERTER (gzip_decompressor));
 
         gfloat *buffer = g_new (gfloat, l);
         gsize bytes_read;
         gboolean ret;
-        ret = g_input_stream_read_all (score_table_in,
+        ret = g_input_stream_read_all (seed_scores_in,
                                        buffer,
                                        l * sizeof (gfloat),
                                        &bytes_read,
@@ -334,7 +482,7 @@ main (gint argc, gchar **argv)
     }
     else
     {
-        g_autoptr (GMappedFile) score_map = g_mapped_file_new (score_table_file, FALSE, &error);
+        g_autoptr (GMappedFile) score_map = g_mapped_file_new (seed_scores_file, FALSE, &error);
 
         if (score_map == NULL)
         {
@@ -359,35 +507,8 @@ main (gint argc, gchar **argv)
     mirbooking_broker_set_score_table (mirbooking,
                                        MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
-    if (mirnas_file == NULL)
-    {
-        g_printerr ("The '--mirnas' argument is required.\n");
-        return EXIT_FAILURE;
-    }
-
-    if (targets_file == NULL)
-    {
-        g_printerr ("The '--targets' argument is required.\n");
-        return EXIT_FAILURE;
-    }
-
-
-    g_autoptr (FILE) mirnas_f = NULL;
-    g_autoptr (FILE) targets_f = NULL;
     g_autoptr (FILE) input_f = NULL;
     g_autoptr (FILE) output_f = NULL;
-
-    if ((mirnas_f = g_fopen (mirnas_file, "r")) == NULL)
-    {
-        g_printerr ("Could not open the miRNAs file '%s': %s.\n", mirnas_file, g_strerror (errno));
-        return EXIT_FAILURE;
-    }
-
-    if ((targets_f = g_fopen (targets_file, "r")) == NULL)
-    {
-        g_printerr ("Could not open the targets file '%s': %s.\n", targets_file, g_strerror (errno));
-        return EXIT_FAILURE;
-    }
 
     if ((input_f = input_file == NULL ? stdin : g_fopen (input_file, "r")) == NULL)
     {
@@ -407,38 +528,45 @@ main (gint argc, gchar **argv)
                                                                    g_free,
                                                                    g_object_unref);
 
-    // mapped sequences
-    g_autoptr (GMappedFile) mirnas_map = g_mapped_file_new_from_fd (fileno (mirnas_f),
-                                                                    FALSE,
-                                                                    &error);
-
-    if (mirnas_map == NULL)
+    // precondition all sequences
+    gchar **cur_sequences_file = NULL;
+    for (cur_sequences_file = sequences_files; *cur_sequences_file != NULL; cur_sequences_file++)
     {
-        g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-        return EXIT_FAILURE;
+        g_autoptr (FILE) seq_f = g_fopen (*cur_sequences_file, "r");
+
+        if (seq_f == NULL)
+        {
+            g_printerr ("Could not open the sequences file '%s': %s.\n", *cur_sequences_file, g_strerror (errno));
+            return EXIT_FAILURE;
+        }
+
+        g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (fileno (seq_f), FALSE, &error);
+
+        if (seq_map == NULL)
+        {
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
+        }
+
+        FastaFormat ff;
+        if (g_strrstr (*cur_sequences_file, "gencode"))
+        {
+            ff = FASTA_FORMAT_GENCODE;
+        }
+        else if (g_strrstr (*cur_sequences_file, "mature"))
+        {
+            ff = FASTA_FORMAT_MIRBASE;
+        }
+        else
+        {
+            ff = FASTA_FORMAT_REFSEQ;
+        }
+
+        read_sequences_from_fasta (seq_f,
+                                   seq_map,
+                                   ff,
+                                   sequences_hash);
     }
-
-    g_autoptr (GMappedFile) targets_map = g_mapped_file_new_from_fd (fileno (targets_f),
-                                                                     FALSE,
-                                                                     &error);
-
-    if (targets_map == NULL)
-    {
-        g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-        return EXIT_FAILURE;
-    }
-
-    // precondition mirnas
-    read_sequences_from_fasta (mirnas_f,
-                               mirnas_map,
-                               FASTA_FORMAT_MIRBASE,
-                               sequences_hash);
-
-    // precondition targets
-    read_sequences_from_fasta (targets_f,
-                               targets_map,
-                               g_str_has_prefix (targets_file, "gencode") ? FASTA_FORMAT_GENCODE : FASTA_FORMAT_REFSEQ,
-                               sequences_hash);
 
     g_autoptr (GHashTable) cds_hash = g_hash_table_new_full (g_str_hash,
                                                              g_str_equal,
@@ -502,6 +630,7 @@ main (gint argc, gchar **argv)
         if (sequence == NULL)
         {
             g_printerr ("Unknown sequence with accession '%s'.\n", accession);
+            continue;
             return EXIT_FAILURE;
         }
 
@@ -594,92 +723,19 @@ main (gint argc, gchar **argv)
     }
     while (TRUE);
 
-    g_fprintf (output_f, "target_accession\t"
-                         "target_name\t"
-                         "target_quantity\t"
-                         "target_silencing\t"
-                         "position\t"
-                         "region\t"
-                         "occupancy\t"
-                         "mirna_accession\t"
-                         "mirna_name\t"
-                         "mirna_quantity\t"
-                         "score\t"
-                         "quantity\n");
-
-    GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
-
-    gdouble target_silencing = 0;
-    gfloat target_quantity = 0;
-
-    const MirbookingTargetSite *target_site;
-    MirbookingTarget *cur_target = NULL;
-    for (target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
-         target_site < &g_array_index (target_sites, MirbookingTargetSite, target_sites->len);
-         target_site++)
+    switch (output_format)
     {
-        // recompute each time the target changes
-        if (cur_target != target_site->target)
-        {
-            cur_target = target_site->target;
-            target_quantity = mirbooking_broker_get_sequence_quantity (mirbooking,
-                                                                       MIRBOOKING_SEQUENCE (target_site->target));
-            target_silencing = mirbooking_broker_get_target_silencing (mirbooking,
-                                                                       target_site->target);
-        }
-
-        gfloat occupancy = 1 - mirbooking_broker_get_target_site_vacancy (mirbooking, target_site);
-
-        MirbookingRegion region;
-        gpointer cds_ptr = g_hash_table_lookup (cds_hash,
-                                                mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)));
-        if (cds_ptr != NULL)
-        {
-            guint16 cds[2];
-            two_guint16_from_gpointer (cds_ptr, cds);
-            region = mirbooking_region_from_target_site (target_site,
-                                                         cds[0],
-                                                         cds[1]);
-        }
-        else
-        {
-            region = MIRBOOKING_REGION_UNKNOWN;
-        }
-
-        // report individual occupants
-        GSList *occupants;
-        for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
-        {
-            gfloat score;
-
-            MirbookingOccupant *occupant = occupants->data;
-
-            g_autoptr (GError) error = NULL;
-            score = mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
-                                                          occupant->mirna,
-                                                          target_site->target,
-                                                          target_site->position,
-                                                          &error);
-            if (error != NULL)
-            {
-                g_printerr ("%s (%s, %d)\n", error->message, g_quark_to_string (error->domain), error->code);
-                return 1;
-            }
-
-            g_fprintf (output_f, MIRBOOKING_OUTPUT_FORMAT,
-                       mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
-                       COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
-                       target_quantity,
-                       target_silencing,
-                       target_site->position + 1, // 1-based
-                       mirbooking_region_to_string (region),
-                       occupancy,
-                       mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
-                       COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
-                       mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna)),
-                       score,
-                       occupant->quantity);
-        }
+        case MIRBOOKING_OUTPUT_FORMAT_TSV:
+            write_output_to_tsv (mirbooking,
+                                 cds_hash,
+                                 output_f);
+            break;
+        case MIRBOOKING_OUTPUT_FORMAT_GFF3:
+            write_output_to_gff3 (mirbooking,
+                                  output_f);
+            break;
+        default:
+            return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;
