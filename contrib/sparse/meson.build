@@ -53,6 +53,18 @@ if get_option('with_mkl_dss') or get_option('with_mkl_cluster')
     endif
 endif
 
+if get_option('with_cusolver')
+    cuda_root = get_option('cuda_root')
+    cudart_lib = meson.get_compiler('c').find_library('cudart', dirs: join_paths(cuda_root, 'lib64'))
+    cusparse_lib = meson.get_compiler('c').find_library('cusparse', dirs: join_paths(cuda_root, 'lib64'))
+    cusolver_lib = meson.get_compiler('c').find_library('cusolver', dirs: join_paths(cuda_root, 'lib64'))
+    cusolver_dep = declare_dependency(include_directories: include_directories(join_paths(cuda_root, 'include')),
+                                      dependencies: [cudart_lib, cusparse_lib, cusolver_lib])
+    sparse_solvers_compile_args += ['-DHAVE_CUSOLVER']
+    sparse_solvers_sources += 'sparse-cusolver.c'
+    sparse_solvers_deps += cusolver_dep
+endif
+
 sparse_lib = library('sparse', ['sparse.c'] + sparse_solvers_sources,
                      c_args: sparse_solvers_compile_args,
                      dependencies: sparse_solvers_deps,

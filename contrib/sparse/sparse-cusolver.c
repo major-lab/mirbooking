@@ -1,0 +1,94 @@
+#include "sparse.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <cusolverSp.h>
+#include <cuda_device_runtime_api.h>
+#include <cuda_runtime_api.h>
+#include <limits.h>
+
+void
+sparse_cusolver_init (SparseSolver *solver)
+{
+
+}
+
+void
+sparse_cusolver_clear (SparseSolver *solver)
+{
+
+}
+
+int
+sparse_cusolver_solve (SparseSolver *solver,
+                       SparseMatrix *A,
+                       void         *x,
+                       void         *b)
+{
+    cusolverSpHandle_t handle;
+    cusparseMatDescr_t descrA;
+    cusolverStatus_t status;
+    cudaError_t err;
+
+    assert (A->shape[0] < INT_MAX);
+    assert (A->s.csr.nnz < INT_MAX);
+
+    status = cusolverSpCreate (&handle);
+
+    if (status != CUSOLVER_STATUS_SUCCESS)
+    {
+        goto cleanup;
+    }
+
+    status = cusparseCreateMatDescr (&descrA);
+
+    if (status != CUSOLVER_STATUS_SUCCESS)
+    {
+        goto cleanup_handle;
+    }
+
+    int *rowptr = malloc ((A->shape[0]+1) * sizeof (int));
+    int *colind = malloc (A->s.csr.nnz * sizeof (int));
+
+    int i;
+    for (i = 0; i < A->shape[0] + 1; i++)
+    {
+        rowptr[i] = A->s.csr.rowptr[i];
+    }
+
+    for (i = 0; i < A->s.csr.nnz; i++)
+    {
+        colind[i] = A->s.csr.colind[i];
+    }
+
+    int singularity;
+    status = cusolverSpDcsrlsvluHost (handle,
+                                      A->shape[0],
+                                      A->s.csr.nnz,
+                                      descrA,
+                                      A->d.d,
+                                      rowptr,
+                                      colind,
+                                      b,
+                                      0,
+                                      1,
+                                      x,
+                                      &singularity);
+
+    free (rowptr);
+    free (colind);
+
+cleanup_handle:
+    cusolverSpDestroy (handle);
+
+cleanup:
+
+    if (status != CUSOLVER_STATUS_SUCCESS)
+    {
+        err = cudaGetLastError ();
+        fprintf (stderr, "%s\n", cudaGetErrorString (err));
+    }
+
+    return status == CUSOLVER_STATUS_SUCCESS;
+}

@@ -21,6 +21,7 @@ DECLARE_SOLVER(superlu_mt)
 DECLARE_SOLVER(umfpack)
 DECLARE_SOLVER(mkl_dss)
 DECLARE_SOLVER(mkl_cluster)
+DECLARE_SOLVER(cusolver)
 
 void
 sparse_matrix_init (SparseMatrix        *matrix,
@@ -190,6 +191,9 @@ sparse_solver_new (SparseSolverMethod method)
 #endif
 #if HAVE_MKL_CLUSTER
             PREPARE_SOLVER(MKL_CLUSTER,mkl_cluster);
+#endif
+#if HAVE_CUSOLVER
+            PREPARE_SOLVER(CUSOLVER,cusolver)
 #endif
         default:
             return NULL;
