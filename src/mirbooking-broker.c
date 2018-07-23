@@ -1039,12 +1039,17 @@ _mirbooking_broker_step (MirbookingBroker             *self,
     // if we're sufficiently close, we increase the footprint
     // FIXME: provide API for tuning this parameter
     if (norm                                                                  &&
-        *norm <= 1e4                                                          &&
-        self->priv->effective_prime5_footprint < self->priv->prime5_footprint &&
-        self->priv->effective_prime3_footprint < self->priv->prime3_footprint)
+        *norm <= 1e6                                                          &&
+        (self->priv->effective_prime5_footprint < self->priv->prime5_footprint ||
+        self->priv->effective_prime3_footprint < self->priv->prime3_footprint))
     {
-        self->priv->effective_prime5_footprint = self->priv->prime5_footprint;
-        self->priv->effective_prime3_footprint = self->priv->prime3_footprint;
+        self->priv->effective_prime5_footprint = MIN (self->priv->effective_prime5_footprint + 1, self->priv->prime5_footprint);
+
+        if (self->priv->effective_prime5_footprint >= self->priv->prime5_footprint)
+        {
+            self->priv->effective_prime3_footprint = MIN (self->priv->effective_prime3_footprint + 1, self->priv->prime3_footprint);
+        }
+
         g_debug ("Effective footprint is now [%lu, %lu]",
                  self->priv->effective_prime5_footprint,
                  self->priv->effective_prime3_footprint);
