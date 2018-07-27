@@ -1,6 +1,7 @@
 #include "sparse.h"
 #include "sparse-private.h"
 
+#include <assert.h>
 #include <mkl_dss.h>
 #include <stdio.h>
 
@@ -23,6 +24,16 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
     int ret = 0;
 
     MKL_INT create_opt = MKL_DSS_ZERO_BASED_INDEXING;
+
+    if (A->type == SPARSE_MATRIX_TYPE_FLOAT)
+    {
+        create_opt |= MKL_DSS_SINGLE_PRECISION;
+    }
+    else
+    {
+        assert (A->type == SPARSE_MATRIX_TYPE_DOUBLE);
+    }
+
     ret = dss_create (handle, create_opt);
 
     if (ret != MKL_DSS_SUCCESS)
@@ -43,6 +54,8 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
     {
         define_opt |= MKL_DSS_NON_SYMMETRIC;
     }
+
+    assert (sizeof (MKL_INT) == sizeof (size_t));
 
     ret = dss_define_structure (handle,
                                 define_opt,
@@ -74,7 +87,7 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
         factor_opt |= MKL_DSS_INDEFINITE;
     }
 
-    ret = dss_factor_real (handle, factor_opt, A->d.d);
+    ret = dss_factor_real (handle, factor_opt, A->data);
     if (ret != MKL_DSS_SUCCESS)
     {
         goto cleanup;

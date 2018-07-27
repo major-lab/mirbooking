@@ -63,18 +63,36 @@ sparse_cusolver_solve (SparseSolver *solver,
     }
 
     int singularity;
-    status = cusolverSpDcsrlsvluHost (handle,
-                                      A->shape[0],
-                                      A->s.csr.nnz,
-                                      descrA,
-                                      A->d.d,
-                                      rowptr,
-                                      colind,
-                                      b,
-                                      0,
-                                      1,
-                                      x,
-                                      &singularity);
+    if (A->type == SPARSE_MATRIX_TYPE_FLOAT)
+    {
+        status = cusolverSpScsrlsvluHost (handle,
+                                          A->shape[0],
+                                          A->s.csr.nnz,
+                                          descrA,
+                                          A->data,
+                                          rowptr,
+                                          colind,
+                                          b,
+                                          0,
+                                          1,
+                                          x,
+                                          &singularity);
+    }
+    else
+    {
+        status = cusolverSpDcsrlsvluHost (handle,
+                                          A->shape[0],
+                                          A->s.csr.nnz,
+                                          descrA,
+                                          A->data,
+                                          rowptr,
+                                          colind,
+                                          b,
+                                          0,
+                                          1,
+                                          x,
+                                          &singularity);
+    }
 
     free (rowptr);
     free (colind);

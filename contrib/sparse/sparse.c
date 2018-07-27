@@ -23,6 +23,20 @@ DECLARE_SOLVER(mkl_dss)
 DECLARE_SOLVER(mkl_cluster)
 DECLARE_SOLVER(cusolver)
 
+static size_t
+_size_for_type (SparseMatrixType type)
+{
+    switch (type)
+    {
+        case SPARSE_MATRIX_TYPE_FLOAT:
+            return sizeof (float);
+        case SPARSE_MATRIX_TYPE_DOUBLE:
+            return sizeof (double);
+        default:
+            assert (0);
+    }
+}
+
 void
 sparse_matrix_init (SparseMatrix        *matrix,
                     SparseMatrixStorage  storage,
@@ -40,8 +54,8 @@ sparse_matrix_init (SparseMatrix        *matrix,
     matrix->s.csr.colind = calloc (nnz, sizeof (size_t));
     matrix->s.csr.rowptr = calloc (shape[0] + 1, sizeof (size_t));
 
-    assert (matrix->type == SPARSE_MATRIX_TYPE_DOUBLE);
-    matrix->d.d          = calloc (nnz, sizeof (double));
+    /* storage */
+    matrix->data = calloc (nnz, _size_for_type (matrix->type));
 
     matrix->colperm = calloc (shape[1], sizeof (size_t));
     matrix->rowperm = calloc (shape[0], sizeof (size_t));;
@@ -51,13 +65,13 @@ void
 sparse_matrix_clear (SparseMatrix *matrix)
 {
     free (matrix->s.csr.colind);
-    free (matrix->d.d);
+    free (matrix->data);
     free (matrix->s.csr.rowptr);
     free (matrix->colperm);
     free (matrix->rowperm);
 }
 
-inline ssize_t
+static ssize_t
 _sparse_matrix_get_index (SparseMatrix *matrix, size_t i, size_t j)
 {
     ssize_t k = -1;
@@ -80,10 +94,10 @@ _sparse_matrix_get_index (SparseMatrix *matrix, size_t i, size_t j)
 }
 
 /**
- * sparse_matrix_get_value:
+ * sparse_matrix_get_float:
  */
-double
-sparse_matrix_get_value (SparseMatrix *matrix, size_t i, size_t j)
+float
+sparse_matrix_get_float (SparseMatrix *matrix, size_t i, size_t j)
 {
     ssize_t k = _sparse_matrix_get_index (matrix, i, j);
 
@@ -92,16 +106,28 @@ sparse_matrix_get_value (SparseMatrix *matrix, size_t i, size_t j)
         return 0;
     }
 
-    return matrix->d.d[k];
+    return ((float*)matrix->data)[k];
 }
 
 /**
- * sparse_matrix_set_value:
- *
- * Set a value at given (i, j) coordinate.
+ * sparse_matrix_get_double:
  */
-void
-sparse_matrix_set_value (SparseMatrix *matrix, size_t i, size_t j, double v)
+double
+sparse_matrix_get_double (SparseMatrix *matrix, size_t i, size_t j)
+{
+    ssize_t k = _sparse_matrix_get_index (matrix, i, j);
+
+    if (k == -1)
+    {
+        return 0;
+    }
+
+    return ((double*)matrix->data)[k];
+}
+
+
+ssize_t
+_sparse_matrix_reserve_index (SparseMatrix *matrix, size_t i, size_t j)
 {
     assert (matrix->s.csr.rowptr);
     assert (i < matrix->shape[0]);
@@ -147,13 +173,45 @@ sparse_matrix_set_value (SparseMatrix *matrix, size_t i, size_t j, double v)
         {
             // insertion
             memmove (&matrix->s.csr.colind[k + 1], &matrix->s.csr.colind[k], (matrix->s.csr.rowptr[i+1] - 1 - k) * sizeof (size_t));
-            memmove (&matrix->d.d[k + 1], &matrix->d.d[k], (matrix->s.csr.rowptr[i+1] - 1 - k) * sizeof (double));
+            memmove (matrix->data + (k + 1) * _size_for_type (matrix->type),
+                     matrix->data + k * _size_for_type (matrix->type),
+                     (matrix->s.csr.rowptr[i+1] - 1 - k) * _size_for_type (matrix->type));
         }
 
         matrix->s.csr.colind[k] = j;
     }
 
-    matrix->d.d[k] = v;
+    return k;
+}
+
+/**
+ * sparse_matrix_set_value:
+ *
+ * Set a value at given (i, j) coordinate.
+ */
+void
+sparse_matrix_set_float (SparseMatrix *matrix, size_t i, size_t j, float v)
+{
+    ssize_t k = _sparse_matrix_reserve_index (matrix, i, j);
+
+    assert (matrix->type == SPARSE_MATRIX_TYPE_FLOAT);
+
+    ((float*)matrix->data)[k] = v;
+}
+
+/**
+ * sparse_matrix_set_value:
+ *
+ * Set a value at given (i, j) coordinate.
+ */
+void
+sparse_matrix_set_double (SparseMatrix *matrix, size_t i, size_t j, double v)
+{
+    ssize_t k = _sparse_matrix_reserve_index (matrix, i, j);
+
+    assert (matrix->type == SPARSE_MATRIX_TYPE_DOUBLE);
+
+    ((double*)matrix->data)[k] = v;
 }
 
 /**
@@ -230,7 +288,7 @@ int
 sparse_solver_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
 {
     assert (A->shape[0] == A->shape[1]);
-    assert (A->type == SPARSE_MATRIX_TYPE_DOUBLE);
+
     return solver->solve (solver, A, x, b);
 }
 

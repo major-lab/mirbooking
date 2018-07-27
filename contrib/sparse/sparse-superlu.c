@@ -1,6 +1,8 @@
 #include "sparse.h"
 
 #include <SuperLU/slu_ddefs.h>
+#include <assert.h>
+#include <limits.h>
 
 void
 sparse_superlu_init (SparseSolver *solver)
@@ -41,6 +43,9 @@ sparse_superlu_solve (SparseSolver *solver,
         options.RowPerm = MY_PERMR;
     }
 
+    assert (A->shape[0] < INT_MAX);
+    assert (A->s.csr.nnz < INT_MAX);
+
     int *colind = malloc (A->s.csr.nnz * sizeof (int));
     int *rowptr = malloc ((A->shape[0] + 1) * sizeof (int));
     int *colperm = malloc (A->shape[1] * sizeof (int));
@@ -71,7 +76,7 @@ sparse_superlu_solve (SparseSolver *solver,
                             A->shape[0],
                             A->shape[1],
                             A->s.csr.nnz,
-                            A->d.d,
+                            A->data,
                             colind,
                             rowptr,
                             SLU_NR,

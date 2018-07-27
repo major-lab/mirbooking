@@ -9,14 +9,14 @@ main (void)
     size_t shape[2] = {2,2};
     sparse_matrix_init (&J, SPARSE_MATRIX_STORAGE_CSR, SPARSE_MATRIX_TYPE_DOUBLE, shape, 2);
 
-    sparse_matrix_set_value (&J, 0, 1, 1);
-    sparse_matrix_set_value (&J, 1, 0, 2);
+    sparse_matrix_set_double (&J, 0, 1, 1);
+    sparse_matrix_set_double (&J, 1, 0, 2);
 
-    assert (sparse_matrix_get_value (&J, 0, 0) == 0);
-    assert (sparse_matrix_get_value (&J, 1, 1) == 0);
+    assert (sparse_matrix_get_double (&J, 0, 0) == 0);
+    assert (sparse_matrix_get_double (&J, 1, 1) == 0);
 
-    assert (sparse_matrix_get_value (&J, 0, 1) == 1);
-    assert (sparse_matrix_get_value (&J, 1, 0) == 2);
+    assert (sparse_matrix_get_double (&J, 0, 1) == 1);
+    assert (sparse_matrix_get_double (&J, 1, 0) == 2);
 
     double x[2] = {0, 0};
     double b[2] = {1, 1};

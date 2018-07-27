@@ -36,11 +36,7 @@ typedef struct _SparseMatrix
             size_t *rowptr;
         } csr;
     } s;
-    union
-    {
-        float  *f;
-        double *d;
-    } d;
+    void *data;
     /* optimal row and col permutations */
     size_t *colperm;
     size_t *rowperm;
@@ -48,8 +44,15 @@ typedef struct _SparseMatrix
 
 void   sparse_matrix_init      (SparseMatrix *matrix, SparseMatrixStorage storage, SparseMatrixType type, size_t shape[2], size_t nnz);
 void   sparse_matrix_clear     (SparseMatrix *matrix);
-double sparse_matrix_get_value (SparseMatrix *matrix, size_t i, size_t j);
-void   sparse_matrix_set_value (SparseMatrix *matrix, size_t i, size_t j, double v);
+
+float sparse_matrix_get_float (SparseMatrix *matrix, size_t i, size_t j);
+void  sparse_matrix_set_float (SparseMatrix *matrix, size_t i, size_t j, float v);
+
+double sparse_matrix_get_double (SparseMatrix *matrix, size_t i, size_t j);
+void   sparse_matrix_set_double (SparseMatrix *matrix, size_t i, size_t j, double v);
+
+double sparse_matrix_get_double (SparseMatrix *matrix, size_t i, size_t j);
+void   sparse_matrix_set_double (SparseMatrix *matrix, size_t i, size_t j, double v);
 
 typedef enum _SparseSolverMethod
 {
