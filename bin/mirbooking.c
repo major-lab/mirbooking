@@ -27,20 +27,21 @@ typedef enum _MirbookingOutputFormat
     MIRBOOKING_OUTPUT_FORMAT_GFF3
 } MirbookingOutputFormat;
 
-static gchar     **sequences_files           = {NULL};
-static gchar      *cds_regions_file          = NULL;
-static gchar      *seed_scores_file          = NULL;
-static gchar      *accessibility_scores_file = NULL;
-static gchar      *input_file                = NULL;
-static gchar      *output_file               = NULL;
-static gboolean   output_format              = MIRBOOKING_OUTPUT_FORMAT_TSV;
-static gdouble    tolerance                  = MIRBOOKING_DEFAULT_TOLERANCE;
-static guint64    max_iterations             = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
-static gsize      seed_offset                = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
-static gsize      seed_length                = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
-static gsize      prime5_footprint           = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
-static gsize      prime3_footprint           = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
-static gboolean   verbose                    = FALSE;
+static gchar                        **sequences_files           = {NULL};
+static gchar                         *cds_regions_file          = NULL;
+static gchar                         *seed_scores_file          = NULL;
+static gchar                         *accessibility_scores_file = NULL;
+static gchar                         *input_file                = NULL;
+static gchar                         *output_file               = NULL;
+static gboolean                       output_format             = MIRBOOKING_OUTPUT_FORMAT_TSV;
+static MirbookingBrokerSparseSolver   sparse_solver             = MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER;
+static gdouble                        tolerance                 = MIRBOOKING_DEFAULT_TOLERANCE;
+static guint64                        max_iterations            = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
+static gsize                          seed_offset               = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
+static gsize                          seed_length               = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
+static gsize                          prime5_footprint          = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
+static gsize                          prime3_footprint          = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
+static gboolean                       verbose                   = FALSE;
 
 static gboolean
 set_output_format (const gchar   *key,
@@ -64,6 +65,30 @@ set_output_format (const gchar   *key,
     return TRUE;
 }
 
+static gboolean
+set_sparse_solver(const gchar   *key,
+                  const gchar   *value,
+                  gpointer       data,
+                  GError      **error)
+{
+    GEnumClass *sparse_solver_class = g_type_class_ref (MIRBOOKING_BROKER_SPARSE_SOLVER_ENUM);
+    GEnumValue *eval = g_enum_get_value_by_nick (sparse_solver_class,
+                                                 value);
+
+    if (eval == NULL)
+    {
+        g_set_error (error,
+                     G_OPTION_ERROR,
+                     G_OPTION_ERROR_BAD_VALUE,
+                     "No solver %s available.", value);
+        return FALSE;
+    }
+
+    sparse_solver = eval->value;
+
+    return TRUE;
+}
+
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
     {"sequences",            0, 0, G_OPTION_ARG_FILENAME_ARRAY, &sequences_files,           "Sequences FASTA file",                                                                             NULL},
@@ -73,6 +98,7 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"input",                0, 0, G_OPTION_ARG_FILENAME,       &input_file,                "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)",  "FILE"},
     {"output",               0, 0, G_OPTION_ARG_FILENAME,       &output_file,               "Output destination file (defaults to stdout)",                                                     "FILE"},
     {"output-format",        0, 0, G_OPTION_ARG_CALLBACK,       &set_output_format,         "Output format (i.e. 'tsv', 'gff3')",                                                               "tsv"},
+    {"sparse-solver",        0, 0, G_OPTION_ARG_CALLBACK,       &set_sparse_solver,         "Sparse solver implementation to use",                                                              G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER)},
     {"tolerance",            0, 0, G_OPTION_ARG_DOUBLE,         &tolerance,                 "Absolute tolerance for the system norm to declare convergence",                                    G_STRINGIFY (MIRBOOKING_DEFAULT_TOLERANCE)},
     {"max-iterations",       0, 0, G_OPTION_ARG_INT,            &max_iterations,            "Maximum number of iterations",                                                                     G_STRINGIFY (MIRBOOKING_DEFAULT_MAX_ITERATIONS)},
     {"seed-offset",          0, 0, G_OPTION_ARG_INT,            &seed_offset,               "MiRNA seed offset",                                                                                G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
@@ -433,6 +459,7 @@ main (gint argc, gchar **argv)
 
     mirbooking_broker_set_5prime_footprint (mirbooking, prime5_footprint);
     mirbooking_broker_set_3prime_footprint (mirbooking, prime3_footprint);
+    mirbooking_broker_set_sparse_solver (mirbooking, sparse_solver);
 
     if (seed_scores_file == NULL)
     {

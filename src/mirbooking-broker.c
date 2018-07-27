@@ -122,7 +122,8 @@ enum
     PROP_LAMBDA,
     PROP_5PRIME_FOOTPRINT,
     PROP_3PRIME_FOOTPRINT,
-    PROP_SCORE_TABLE
+    PROP_SCORE_TABLE,
+    PROP_SPARSE_SOLVER
 };
 
 static void
@@ -146,6 +147,9 @@ mirbooking_broker_set_property (GObject *object, guint property_id, const GValue
             break;
         case PROP_SCORE_TABLE:
             self->priv->score_table = g_value_dup_object (value);
+            break;
+        case PROP_SPARSE_SOLVER:
+            self->priv->solver = sparse_solver_new (g_value_get_enum (value));
             break;
         default:
             g_assert_not_reached ();
@@ -267,6 +271,8 @@ mirbooking_broker_class_init (MirbookingBrokerClass *klass)
                                      g_param_spec_uint ("prime3-footprint", "", "", 0, G_MAXUINT, MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_SCORE_TABLE,
                                      g_param_spec_object ("score-table", "", "", MIRBOOKING_TYPE_SCORE_TABLE, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class, PROP_SPARSE_SOLVER,
+                                     g_param_spec_enum ("sparse-solver", "", "", MIRBOOKING_BROKER_SPARSE_SOLVER_ENUM, MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
 }
 
 /**
@@ -306,6 +312,13 @@ mirbooking_broker_set_3prime_footprint (MirbookingBroker *self,
                                         gsize       footprint)
 {
     self->priv->prime3_footprint = footprint;
+}
+
+void
+mirbooking_broker_set_sparse_solver (MirbookingBroker *self,
+                                     MirbookingBrokerSparseSolver sparse_solver)
+{
+    self->priv->solver = sparse_solver_new (sparse_solver);
 }
 
 /**
@@ -701,8 +714,6 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
     self->priv->dSdt  = g_new0 (IntegratorState, k);
     self->priv->dESdt = g_new0 (IntegratorState, k);
     self->priv->dPdt  = g_new0 (IntegratorState, k);
-
-    self->priv->solver = sparse_solver_new (SPARSE_SOLVER_METHOD_SUPERLU);
 
     sparse_solver_set_verbose (self->priv->solver, TRUE);
 
