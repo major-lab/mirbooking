@@ -414,8 +414,8 @@ _mirbooking_broker_get_footprint_window (MirbookingBroker            *self,
     *from_target_site = target_site - MIN (window, target_site->position);
 
     // find the upper target site
-    _to_target_site = MIN (target_site + window + 1,
-                           &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len));
+    _to_target_site = MIN (target_site + window,
+                           &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len - 1));
 
     // we might overlap preceeding or following target sites
     while (_to_target_site->target != target_site->target)
