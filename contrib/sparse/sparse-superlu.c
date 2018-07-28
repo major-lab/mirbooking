@@ -2,11 +2,23 @@
 
 #include <SuperLU/slu_ddefs.h>
 
+void
+sparse_superlu_init (SparseSolver *solver)
+{
+
+}
+
+void
+sparse_superlu_clear (SparseSolver *solver)
+{
+
+}
+
 int
 sparse_superlu_solve (SparseSolver *solver,
                       SparseMatrix *A,
-                      double       *x,
-                      double       *b)
+                      void         *x,
+                      void         *b)
 {
     superlu_options_t options = {0};
     SuperMatrix AA, L, U, BB;
@@ -59,7 +71,7 @@ sparse_superlu_solve (SparseSolver *solver,
                             A->shape[0],
                             A->shape[1],
                             A->s.csr.nnz,
-                            A->data,
+                            A->d.d,
                             colind,
                             rowptr,
                             SLU_NR,

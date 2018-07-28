@@ -7,7 +7,7 @@ main (void)
 {
     SparseMatrix J;
     size_t shape[2] = {2,2};
-    sparse_matrix_init (&J, SPARSE_MATRIX_STORAGE_CSR, shape, 2);
+    sparse_matrix_init (&J, SPARSE_MATRIX_STORAGE_CSR, SPARSE_MATRIX_TYPE_DOUBLE, shape, 2);
 
     sparse_matrix_set_value (&J, 0, 1, 1);
     sparse_matrix_set_value (&J, 1, 0, 2);

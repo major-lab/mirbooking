@@ -8,11 +8,23 @@ dCreate_CompRow_Matrix(SuperMatrix *A, int_t m, int_t n, int_t nnz, double *nzva
                                   int_t *colind, int_t *rowptr,
                                   Stype_t stype, Dtype_t dtype, Mtype_t mtype);
 
+void
+sparse_superlu_mt_init (SparseSolver *solver)
+{
+
+}
+
+void
+sparse_superlu_mt_clear (SparseSolver *solver)
+{
+
+}
+
 int
 sparse_superlu_mt_solve (SparseSolver *solver,
-                  SparseMatrix *A,
-                  double       *x,
-                  double       *b)
+                         SparseMatrix *A,
+                         void         *x,
+                         void         *b)
 {
     SuperMatrix AA, L, U, BB;
     int_t info;
@@ -21,7 +33,7 @@ sparse_superlu_mt_solve (SparseSolver *solver,
                             A->shape[0],
                             A->shape[1],
                             A->s.csr.nnz,
-                            A->data,
+                            A->d.d,
                             A->s.csr.colind,
                             A->s.csr.rowptr,
                             SLU_NR,

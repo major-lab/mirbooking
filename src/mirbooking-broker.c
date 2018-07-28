@@ -704,11 +704,14 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
 
     self->priv->solver = sparse_solver_new (SPARSE_SOLVER_METHOD_SUPERLU);
 
+    sparse_solver_set_verbose (self->priv->solver, TRUE);
+
     self->priv->J = g_new0 (SparseMatrix, 1);
 
     size_t shape[2] = {k, k};
     sparse_matrix_init (self->priv->J,
                         SPARSE_MATRIX_STORAGE_CSR,
+                        SPARSE_MATRIX_TYPE_DOUBLE,
                         shape,
                         nnz);
     self->priv->ES_delta = g_new0 (gdouble, k);

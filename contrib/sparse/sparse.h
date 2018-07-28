@@ -8,6 +8,12 @@ typedef enum _SparseMatrixStorage
     SPARSE_MATRIX_STORAGE_CSR
 } SparseMatrixStorage;
 
+typedef enum _SparseMatrixType
+{
+    SPARSE_MATRIX_TYPE_FLOAT,
+    SPARSE_MATRIX_TYPE_DOUBLE
+} SparseMatrixType;
+
 typedef enum _SparseMatrixHint
 {
     SPARSE_MATRIX_HINT_SYMMETRIC         = 1 << 0, /* only the upper triangle is necessary */
@@ -17,6 +23,9 @@ typedef enum _SparseMatrixHint
 typedef struct _SparseMatrix
 {
     SparseMatrixStorage storage;
+    SparseMatrixType    type;
+    /* hints for solvers */
+    SparseMatrixHint hints;
     size_t shape[2];
     union
     {
@@ -27,15 +36,17 @@ typedef struct _SparseMatrix
             size_t *rowptr;
         } csr;
     } s;
-    double *data;
+    union
+    {
+        float  *f;
+        double *d;
+    } d;
     /* optimal row and col permutations */
     size_t *colperm;
     size_t *rowperm;
-    /* hints for solvers */
-    SparseMatrixHint hints;
 } SparseMatrix;
 
-void   sparse_matrix_init      (SparseMatrix *matrix, SparseMatrixStorage storage, size_t shape[2], size_t nnz);
+void   sparse_matrix_init      (SparseMatrix *matrix, SparseMatrixStorage storage, SparseMatrixType type, size_t shape[2], size_t nnz);
 void   sparse_matrix_clear     (SparseMatrix *matrix);
 double sparse_matrix_get_value (SparseMatrix *matrix, size_t i, size_t j);
 void   sparse_matrix_set_value (SparseMatrix *matrix, size_t i, size_t j, double v);
@@ -53,7 +64,7 @@ typedef struct _SparseSolver SparseSolver;
 
 SparseSolver * sparse_solver_new         (SparseSolverMethod solver_method);
 void           sparse_solver_set_verbose (SparseSolver *solver, int verbose);
-int            sparse_solver_solve       (SparseSolver *solver, SparseMatrix *A, double *x, double *b);
+int            sparse_solver_solve       (SparseSolver *solver, SparseMatrix *A, void *x, void *b);
 void           sparse_solver_free        (SparseSolver *solver);
 
 #endif /* __SPARSE_H__ */

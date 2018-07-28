@@ -55,14 +55,15 @@ endif
 
 sparse_lib = library('sparse', ['sparse.c'] + sparse_solvers_sources,
                      c_args: sparse_solvers_compile_args,
-                     dependencies: sparse_solvers_deps)
+                     dependencies: sparse_solvers_deps,
+                     install: true)
 sparse_dep = declare_dependency(include_directories: include_directories('.'),
                                 link_with: sparse_lib)
 
 test('sparse', executable('sparse-test', 'sparse-test.c',
                           dependencies: [sparse_dep]))
 
-if get_option('with_mkl') and get_option('with_mpi')
+if get_option('with_mkl_cluster') and get_option('with_mpi')
 test('sparse-mpi', executable('sparse-mpi-test', 'sparse-mpi-test.c',
      dependencies: [sparse_dep, mpi_dep]))
 endif

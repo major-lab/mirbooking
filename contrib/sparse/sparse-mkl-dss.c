@@ -4,8 +4,20 @@
 #include <mkl_dss.h>
 #include <stdio.h>
 
+void
+sparse_mkl_dss_init (SparseSolver *solver)
+{
+
+}
+
+void
+sparse_mkl_dss_clear (SparseSolver *solver)
+{
+
+}
+
 int
-sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, double *x, double *b)
+sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
 {
     _MKL_DSS_HANDLE_t handle;
     int ret = 0;
@@ -62,7 +74,7 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, double *x, double *
         factor_opt |= MKL_DSS_INDEFINITE;
     }
 
-    ret = dss_factor_real (handle, factor_opt, A->data);
+    ret = dss_factor_real (handle, factor_opt, A->d.d);
     if (ret != MKL_DSS_SUCCESS)
     {
         goto cleanup;
