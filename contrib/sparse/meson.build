@@ -23,21 +23,7 @@ if get_option('with_umfpack')
     sparse_solvers_deps += umfpack_dep
 endif
 
-if get_option('with_mkl_dss') or get_option('with_mkl_cluster')
-    mkl_root = get_option('mkl_root')
-    mkl_arch = get_option('mkl_arch')
-    mkl_libdir = join_paths(mkl_root, 'lib', mkl_arch)
-    mkl_ilp64 = meson.get_compiler('c').find_library('mkl_intel_ilp64', dirs: mkl_libdir)
-    mkl_core = meson.get_compiler('c').find_library('mkl_core', dirs: mkl_libdir)
-    mkl_gnu_thread = meson.get_compiler('c').find_library('mkl_gnu_thread', dirs: mkl_libdir)
-    mkl_gomp = meson.get_compiler('c').find_library('gomp')
-    mkl_pthread = meson.get_compiler('c').find_library('pthread')
-    mkl_m = meson.get_compiler('c').find_library('m')
-    mkl_dl = meson.get_compiler('c').find_library('dl')
-    mkl_dep = declare_dependency(compile_args: ['-DMKL_ILP64', '-m64', '-I@0@'.format(join_paths(mkl_root, 'include'))],
-                                 link_args: ['-Wl,--no-as-needed'],
-                                 dependencies: [mkl_ilp64, mkl_gnu_thread, mkl_core, mkl_gomp, mkl_pthread, mkl_m, mkl_dl])
-
+if get_option('with_mkl')
     if get_option('with_mkl_dss')
         sparse_solvers_compile_args += ['-DHAVE_MKL_DSS']
         sparse_solvers_sources += 'sparse-mkl-dss.c'
