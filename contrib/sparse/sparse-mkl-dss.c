@@ -3,6 +3,18 @@
 
 #include <assert.h>
 #include <mkl_dss.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define memcpy_loop(to, from, n) \
+{                                \
+    int i;                       \
+    for (i = 0; i < (n); i++)    \
+    {                            \
+        (to)[i] = (from)[i];     \
+                                 \
+    }                            \
+}
 
 void
 sparse_mkl_dss_init (SparseSolver *solver)
@@ -21,6 +33,11 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
 {
     _MKL_DSS_HANDLE_t handle;
     int ret = 0;
+
+    if (A->shape[0] == 0 || A->shape[1] == 0)
+    {
+        return 1;
+    }
 
     MKL_INT create_opt = MKL_DSS_ZERO_BASED_INDEXING;
 
@@ -45,6 +62,10 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
     MKL_INT n = A->shape[1];
     MKL_INT nnz = A->s.csr.nnz;
 
+    assert (m == A->shape[0]);
+    assert (n == A->shape[1]);
+    assert (nnz == A->s.csr.nnz);
+
     if (A->hints & SPARSE_MATRIX_HINT_SYMMETRIC)
     {
         define_opt |= MKL_DSS_SYMMETRIC;
@@ -54,22 +75,37 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
         define_opt |= MKL_DSS_NON_SYMMETRIC;
     }
 
-    assert (sizeof (MKL_INT) == sizeof (size_t));
+    MKL_INT *rowptr, *colind, *rowperm;
+    if (sizeof (MKL_INT) == sizeof (size_t))
+    {
+        rowptr  = (MKL_INT*) A->s.csr.rowptr;
+        colind  = (MKL_INT*) A->s.csr.colind;
+        rowperm = (MKL_INT*) A->rowperm;
+    }
+    else
+    {
+        rowptr  = malloc ((A->shape[0] + 1) * sizeof (MKL_INT));
+        colind  = malloc (A->s.csr.nnz * sizeof (MKL_INT));
+        rowperm = malloc (A->shape[0] * sizeof (MKL_INT));
+        memcpy_loop (rowptr, A->s.csr.rowptr, A->shape[0] + 1);
+        memcpy_loop (colind, A->s.csr.colind, A->s.csr.nnz);
+        memcpy_loop (rowperm, A->rowperm, A->shape[0]);
+    }
 
     ret = dss_define_structure (handle,
                                 define_opt,
-                                (MKL_INT*) A->s.csr.rowptr,
+                                rowptr,
                                 m,
                                 n,
-                                (MKL_INT*) A->s.csr.colind,
+                                colind,
                                 nnz);
     if (ret != MKL_DSS_SUCCESS)
     {
         goto cleanup;
     }
 
-    MKL_INT reorder_opt = (A->shape[0] && A->rowperm[0] != A->rowperm[A->shape[0] - 1]) ? MKL_DSS_MY_ORDER : MKL_DSS_GET_ORDER;
-    ret = dss_reorder (handle, reorder_opt, (MKL_INT*) A->rowperm);
+    MKL_INT reorder_opt = (rowperm[0] != rowperm[A->shape[0] - 1]) ? MKL_DSS_MY_ORDER : MKL_DSS_GET_ORDER;
+    ret = dss_reorder (handle, reorder_opt, rowperm);
     if (ret != MKL_DSS_SUCCESS)
     {
         goto cleanup;
@@ -120,6 +156,12 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
 
     MKL_INT delete_opt = 0;
 cleanup:
+    if (sizeof (MKL_INT) != sizeof (size_t))
+    {
+        free (rowptr);
+        free (colind);
+        free (rowperm);
+    }
     dss_delete (handle, delete_opt);
 
     return ret == MKL_DSS_SUCCESS;

@@ -143,7 +143,6 @@ sparse_matrix_get_double (SparseMatrix *matrix, size_t i, size_t j)
     return ((double*)matrix->data)[k];
 }
 
-
 ssize_t
 _sparse_matrix_reserve_index (SparseMatrix *matrix, size_t i, size_t j)
 {

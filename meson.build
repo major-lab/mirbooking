@@ -16,14 +16,20 @@ if get_option('with_mkl')
     mkl_root = get_option('mkl_root')
     mkl_arch = get_option('mkl_arch')
     mkl_libdir = join_paths(mkl_root, 'lib', mkl_arch)
-    mkl_ilp64 = meson.get_compiler('c').find_library('mkl_intel_ilp64', dirs: mkl_libdir)
+    if get_option('with_mkl_ilp64')
+        mkl_ilp64 = declare_dependency(compile_args: '-m64',
+                                       dependencies: meson.get_compiler('c').find_library('mkl_intel_ilp64', dirs: mkl_libdir))
+    else
+        mkl_ilp64 = meson.get_compiler('c').find_library('mkl_intel_lp64', dirs: mkl_libdir)
+        warning('MKL 64-bit interface is required for solving large systems.')
+    endif
     mkl_core = meson.get_compiler('c').find_library('mkl_core', dirs: mkl_libdir)
     mkl_gnu_thread = meson.get_compiler('c').find_library('mkl_gnu_thread', dirs: mkl_libdir)
     mkl_gomp = meson.get_compiler('c').find_library('gomp')
     mkl_pthread = meson.get_compiler('c').find_library('pthread')
     mkl_m = meson.get_compiler('c').find_library('m')
     mkl_dl = meson.get_compiler('c').find_library('dl')
-    mkl_dep = declare_dependency(compile_args: ['-DMKL_ILP64', '-m64', '-I@0@'.format(join_paths(mkl_root, 'include'))],
+    mkl_dep = declare_dependency(compile_args: '-I@0@'.format(join_paths(mkl_root, 'include')),
                                  link_args: ['-Wl,--no-as-needed'],
                                  dependencies: [mkl_ilp64, mkl_gnu_thread, mkl_core, mkl_gomp, mkl_pthread, mkl_m, mkl_dl])
 else

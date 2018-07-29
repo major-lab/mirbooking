@@ -33,7 +33,11 @@ if get_option('with_mkl')
     if get_option('with_mkl_cluster')
         sparse_solvers_compile_args += ['-DHAVE_MKL_CLUSTER']
         sparse_solvers_sources += 'sparse-mkl-cluster.c'
-        mkl_blacs_openmpi_ilp64 = meson.get_compiler('c').find_library('mkl_blacs_openmpi_ilp64', dirs: mkl_libdir)
+        if get_option('with_mkl_ilp64')
+            mkl_blacs_openmpi_ilp64 = meson.get_compiler('c').find_library('mkl_blacs_openmpi_ilp64', dirs: mkl_libdir)
+        else
+            mkl_blacs_openmpi_ilp64 = meson.get_compiler('c').find_library('mkl_blacs_openmpi_lp64', dirs: mkl_libdir)
+        endif
         sparse_solvers_deps += mkl_blacs_openmpi_ilp64
         sparse_solvers_deps += mpi_dep
     endif
