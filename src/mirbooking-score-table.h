@@ -47,7 +47,7 @@ gdouble * mirbooking_score_table_compute_scores (MirbookingScoreTable  *self,
                                                 MirbookingMirna       *mirna,
                                                 MirbookingTarget      *target,
                                                 gsize                **positions,
-                                                gsize                 *num_positions,
+                                                gsize                 *positions_len,
                                                 GError               **error);
 
 gdouble mirbooking_score_table_compute_enzymatic_score (MirbookingScoreTable *self,

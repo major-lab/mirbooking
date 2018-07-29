@@ -10,10 +10,56 @@ mirbooking_score_table_init (MirbookingScoreTable *self)
 
 }
 
+static gdouble *
+default_compute_scores (MirbookingScoreTable *self,
+                        MirbookingMirna       *mirna,
+                        MirbookingTarget      *target,
+                        gsize                **positions,
+                        gsize                 *positions_len,
+                        GError               **error)
+{
+    gdouble *_scores   = g_new (gdouble, mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)));
+    gsize *_positions = g_new (gsize, mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)));
+
+    gint i;
+    gint j = 0;
+    for (i = 0; i < mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)); i++)
+    {
+        gdouble score = mirbooking_score_table_compute_score (self, mirna, target, i, error);
+
+        g_return_val_if_fail (error != NULL, NULL);
+
+        if (score < INFINITY)
+        {
+            _scores[j]    = score;
+            _positions[j] = i;
+            ++j;
+        }
+    }
+
+    *positions = _positions;
+    *positions_len = j;
+
+    return _scores;
+}
+
+static gdouble
+default_compute_enzymatic_score (MirbookingScoreTable *score_table,
+                                 MirbookingMirna      *mirna,
+                                 MirbookingTarget     *target,
+                                 gsize                 position,
+                                 GError              **error)
+{
+    // Reference: https://www.uniprot.org/uniprot/Q9UKV8
+    // return 1.1;
+    return mirbooking_score_table_compute_score (score_table, mirna, target, position, error);
+}
+
 void
 mirbooking_score_table_class_init (MirbookingScoreTableClass *klass)
 {
-
+    klass->compute_scores          = default_compute_scores;
+    klass->compute_enzymatic_score = default_compute_enzymatic_score;
 }
 
 /**
@@ -56,15 +102,19 @@ mirbooking_score_table_compute_score (MirbookingScoreTable *self,
 
 /**
  * mirbooking_score_table_compute_scores:
- * @param: (unowned) positions
- * @param: (unowned) positions_len
+ * @mirna:
+ * @target:
+ * @positions: (array length=positions_len) (out): A vector if positions where
+ * a score exists
+ * @positions_len: (out): Length of @positions
  *
  * Compute scores for all positions where the #mirna might be encoutered on the
  * #target. This is much more efficient than traversing all the positions of a
  * target.
  *
- * Returns: A #gdouble vector of #positions_len entries where corresponding
- * position on the target is given by the #positions out array.
+ * Returns: (array length=positions_len) (transfer full): A #gfloat vector of
+ * #positions_len entries where corresponding position on the target is given
+ * by the #positions out array.
  */
 gdouble *
 mirbooking_score_table_compute_scores (MirbookingScoreTable  *self,

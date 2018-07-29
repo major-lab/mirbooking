@@ -21,7 +21,7 @@ static SeedScoreLayout SEED_SCORES =
     4,
     {[8882] = 0, [8883] = 4},
     {4370,    4371,   4372,   9284},
-    {-20.0f, -19.0f, -18.0f, -19.0f},
+    {-7.0f, -9.0f, -8.0f, -9.0f},
 };
 
 static gchar *TARGET_SEQUENCE =
@@ -122,13 +122,31 @@ test_mirbooking ()
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
 
     mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target), 6e5);
-    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna), 4e5);
+    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna), 4e6);
 
-    gdouble norm;
+    mirbooking_broker_set_5prime_footprint (mirbooking, 0);
+    mirbooking_broker_set_3prime_footprint (mirbooking, 0);
+
+    gdouble norm, last_norm;
+    last_norm = 1.0/0.0;
     g_autoptr (GError) error = NULL;
-    g_assert (mirbooking_broker_evaluate (mirbooking, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, &norm, &error));
-    g_assert (mirbooking_broker_step (mirbooking, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1, &error));
-    g_assert_null (error);
+
+    gint i;
+    for (i = 0; i < 10; i++)
+    {
+        g_assert (mirbooking_broker_evaluate (mirbooking, &norm, &error));
+        g_assert (mirbooking_broker_step (mirbooking, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1, &error));
+        g_assert_null (error);
+        g_assert_cmpfloat (norm, <=, last_norm);
+        last_norm = norm;
+
+        GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
+        MirbookingTargetSite target_site = g_array_index (target_sites, MirbookingTargetSite, 0);
+        MirbookingOccupant *occupant = target_site.occupants->data;
+        gdouble ES = mirbooking_broker_get_occupant_quantity (mirbooking, occupant);
+        g_assert_cmpfloat (ES, <=, 6e5);
+        g_assert_cmpfloat (ES, <=, 4e6);
+    }
 
     GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
@@ -139,7 +157,7 @@ test_mirbooking ()
 
     MirbookingOccupant *occupant = target_site.occupants->data;
 
-    g_assert_cmpfloat (occupant->score, ==, (1e9/MIRBOOKING_BROKER_DEFAULT_KAPPA) * exp (-19.0 / (R*T)));
+    g_assert_cmpfloat (occupant->score, ==, (1e9/MIRBOOKING_BROKER_DEFAULT_KAPPA) * exp (-9.0 / (R*T)));
     g_assert_cmpfloat (mirbooking_broker_get_occupant_quantity (mirbooking, occupant), >, 0);
 }
 
@@ -153,7 +171,7 @@ test_mirbooking_empty ()
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     gdouble norm;
-    g_assert (mirbooking_broker_evaluate (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, &norm, NULL));
+    g_assert (mirbooking_broker_evaluate (broker, &norm, NULL));
     g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1, NULL));
 }
 
@@ -177,8 +195,8 @@ test_mirbooking_bad_seed_range ()
 
     gdouble norm;
     GError *error = NULL;
-    g_assert (mirbooking_broker_evaluate (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, &norm, &error));
-    g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 0, &error));
+    g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
+    g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1, &error));
 
     // ensure that no MREs has been assigned
     GArray *target_sites = mirbooking_broker_get_target_sites (broker);
@@ -189,6 +207,63 @@ test_mirbooking_bad_seed_range ()
     }
 }
 
+static void
+test_mirbooking_numerical_integration ()
+{
+    g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
+
+    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 1, 7);
+    mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
+
+    g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
+    g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
+
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE, strlen (TARGET_SEQUENCE));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
+
+    mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
+    mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
+
+    gdouble norm;
+    GError *error = NULL;
+    g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
+    g_assert (isfinite (norm));
+
+    GArray *target_sites = mirbooking_broker_get_target_sites (broker);
+
+    MirbookingTargetSite target_site = g_array_index (target_sites, MirbookingTargetSite, 0);
+
+    g_assert_nonnull (target_site.occupants);
+    g_assert_null (target_site.occupants->next);
+
+    MirbookingOccupant *occupant = target_site.occupants->data;
+
+    /* duplex concentration should steadily increase toward equilibrium */
+    gint i;
+    gfloat last_occupant_quantity = 0;
+    gfloat last_norm = 1.0/0.0;
+    for (i = 0; i < 100; i++)
+    {
+        g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
+        g_assert_null (error);
+        g_assert_cmpfloat (norm, <, last_norm);
+        last_norm = norm;
+
+        g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 1e-3, &error));
+        g_assert_null (error);
+        gdouble time = mirbooking_broker_get_time (broker);
+        gdouble expected_t = (1e-3 * (i + 1));
+        g_assert_cmpfloat (time - expected_t, <=, 1e-6 * expected_t + 1e-12);
+
+        gdouble ES = mirbooking_broker_get_occupant_quantity (broker, occupant);
+
+        g_assert_cmpfloat (ES, <, 10);
+
+        last_occupant_quantity = mirbooking_broker_get_occupant_quantity (broker, occupant);
+    }
+}
+
 gint
 main (gint argc, gchar **argv)
 {
@@ -196,7 +271,8 @@ main (gint argc, gchar **argv)
 
     g_test_add_func ("/mirbooking", test_mirbooking);
     g_test_add_func ("/mirbooking/empty", test_mirbooking_empty);
-    g_test_add_func ("/mirbooking/bad-seed-range", test_mirbooking_bad_seed_range);
+    // g_test_add_func ("/mirbooking/bad-seed-range", test_mirbooking_bad_seed_range);
+    g_test_add_func ("/mirbooking/numerical-integration", test_mirbooking_numerical_integration);
 
     return g_test_run ();
 }

@@ -19,6 +19,11 @@ MirbookingTarget * mirbooking_target_new           (const gchar *accession);
 MirbookingTarget * mirbooking_target_new_with_name (const gchar *accession,
                                                     const gchar *name);
 
+// in nM/S
+gfloat        mirbooking_target_get_transcription_score (MirbookingTarget *self);
+void          mirbooking_target_set_transcription_score (MirbookingTarget *self,
+                                                         gfloat           *transcription_score);
+
 gfloat        mirbooking_target_get_accessibility_score (MirbookingTarget *self,
                                                          gsize               position);
 void          mirbooking_target_set_accessibility_score (MirbookingTarget *self,

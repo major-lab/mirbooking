@@ -35,7 +35,7 @@ mirbooking_default_score_table_constructed (GObject *object)
 
     g_return_if_fail (self->priv->seed_scores_bytes != NULL);
 
-    const gsize *d = g_bytes_get_data (self->priv->seed_scores_bytes, NULL);
+    gsize *d = (gsize*) g_bytes_get_data (self->priv->seed_scores_bytes, NULL);
 
     g_return_if_fail (d != NULL);
 
@@ -175,17 +175,6 @@ compute_scores (MirbookingScoreTable  *score_table,
     return _seed_scores;
 }
 
-static gdouble
-compute_enzymatic_score (MirbookingScoreTable *score_table,
-                         MirbookingMirna      *mirna,
-                         MirbookingTarget     *target,
-                         gsize                 position,
-                         GError              **error)
-{
-    // This will result into kcat = 0
-    return pow (compute_score (score_table, mirna, target, position, error), 2.0);
-}
-
 enum
 {
     PROP_SEED_SCORES = 1,
@@ -242,7 +231,6 @@ mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *kla
 
     klass->parent_class.compute_score           = compute_score;
     klass->parent_class.compute_scores          = compute_scores;
-    klass->parent_class.compute_enzymatic_score = compute_enzymatic_score;
 
     g_object_class_install_property (object_class,
                                      PROP_SEED_SCORES,

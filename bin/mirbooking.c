@@ -18,7 +18,7 @@
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
-#define MIRBOOKING_DEFAULT_TOLERANCE      1e-7
+#define MIRBOOKING_DEFAULT_TOLERANCE      1e-8
 #define MIRBOOKING_DEFAULT_MAX_ITERATIONS 100
 
 typedef enum _MirbookingOutputFormat
@@ -672,7 +672,6 @@ main (gint argc, gchar **argv)
         iteration_begin = g_get_monotonic_time ();
 
         if (!mirbooking_broker_evaluate (mirbooking,
-                                         MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE,
                                          &norm,
                                          &error))
         {

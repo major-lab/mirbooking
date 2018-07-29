@@ -42,6 +42,7 @@ pb_compute_pmf (PoissonBinomial *pb)
     for (n = 0; n < N; n++)
     {
         pb->pmf[n] /= N;
+        pb->pmf[n] = fmax (pb->pmf[n], 0);
     }
 
     fftw_destroy_plan (plan);

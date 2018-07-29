@@ -14,15 +14,22 @@ Implementation of the miRBooking algorithm and metrics in C
 ## Usage
 
 ```bash
-mirbooking --mirnas mature.fa
-           --targets GCF_000001405.37_GRCh38.p11_rna.fna
-           --score-table scores|scores.gz
+mirbooking --sequences mature.fa
+           --sequences GCF_000001405.37_GRCh38.p11_rna.fna
            [--cds-regions cds-regions.tsv]
-           [--tolerance 1e-8]
+           --seed-scores scores-7mer-1mismatch[.gz]
+           --accessibility-scores accessessibility-scores[.gz]
+           [--input stdin]
+           [--output stdout]
+           [--output-format tsv|gff3]
+           [--sparse-solver superlu]
+           [--tolerance 1e-7]
+           [--max-iterations 100]
+           [--seed-offset 1]
+           [--seed-length 7]
            [--5prime-footprint 26]
            [--3prime-footprint 19]
-           [--input input.tsv]
-           [--output output.tsv]
+           [--verbose]
 ```
 
 To obtain detailed usage and options, launch `mirbooking --help`.

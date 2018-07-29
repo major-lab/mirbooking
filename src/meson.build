@@ -2,7 +2,6 @@ mirbooking_headers = [
     'mirbooking.h',
     'mirbooking-error.h',
     'mirbooking-broker.h',
-    'mirbooking-broker-integrator.h',
     'mirbooking-broker-sparse-solver.h',
     'mirbooking-mirna.h',
     'mirbooking-occupant.h',
@@ -17,7 +16,6 @@ install_headers(mirbooking_headers, subdir: 'mirbooking-1.0')
 
 mirbooking_sources = [
     'mirbooking-broker.c',
-    'mirbooking-broker-integrator.c',
     'mirbooking-broker-sparse-solver.c',
     'mirbooking-error.c',
     'mirbooking-mirna.c',
@@ -28,7 +26,7 @@ mirbooking_sources = [
     'mirbooking-target.c']
 
 mirbooking_lib = library('mirbooking-1.0', mirbooking_sources,
-                         dependencies: [glib_dep, gobject_dep, gio_dep, m_dep, pb_dep, openmp_dep, mpi_dep, sparse_dep],
+                         dependencies: [glib_dep, gobject_dep, gio_dep, m_dep, pb_dep, openmp_dep, mpi_dep, odeint_dep, sparse_dep],
                          install: true)
 
 mirbooking_dep = declare_dependency(include_directories: include_directories('.'),

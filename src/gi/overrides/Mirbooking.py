@@ -4,6 +4,11 @@ from ..module import get_introspection_module
 Mirbooking = get_introspection_module('Mirbooking')
 
 @override
+class Sequence(Mirbooking.Sequence):
+    def get_subsequence(self, subsequence_offset, subsequence_len):
+        return Mirbooking.Sequence.get_subsequence(self, subsequence_offset, subsequence_len)[:subsequence_len]
+
+@override
 class Broker(Mirbooking.Broker):
     def get_target_sites_as_dataframe(self):
         import pandas as pd
