@@ -86,26 +86,26 @@ sparse_matrix_reserve_range (SparseMatrix *matrix, size_t i, size_t *colind, siz
     memcpy (matrix->s.csr.colind + matrix->s.csr.rowptr[i], colind, n * sizeof (size_t));
 }
 
+static int
+cmp_size_t (const void *a, const void *b)
+{
+    return *(const size_t*)a - *(const size_t*)b;
+}
+
 static ssize_t
 _sparse_matrix_get_index (SparseMatrix *matrix, size_t i, size_t j)
 {
-    ssize_t k = -1;
+    size_t *k = NULL;
 
     assert (i < matrix->shape[0]);
     assert (j < matrix->shape[1]);
 
-    // FIXME: use bsearch
-    size_t z;
-    for (z = matrix->s.csr.rowptr[i]; z < matrix->s.csr.rowptr[i+1]; z++)
-    {
-        if (matrix->s.csr.colind[z] == j)
-        {
-            k = z;
-            break;
-        }
-    }
+    k = bsearch (&j, matrix->s.csr.colind + matrix->s.csr.rowptr[i],
+                 matrix->s.csr.rowptr[i+1] - matrix->s.csr.rowptr[i],
+                 sizeof (size_t),
+                 cmp_size_t);
 
-    return k;
+    return k ? (k - matrix->s.csr.colind) : -1;
 }
 
 /**
