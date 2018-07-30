@@ -71,6 +71,21 @@ sparse_matrix_clear (SparseMatrix *matrix)
     free (matrix->rowperm);
 }
 
+/**
+ * sparse_matrix_reserve_range:
+ *
+ * Pre-allocate a range of non-zero entries along a row.
+ */
+void
+sparse_matrix_reserve_range (SparseMatrix *matrix, size_t i, size_t *colind, size_t n)
+{
+    assert ((i == matrix->shape[0] - 1) || matrix->s.csr.rowptr[i+1] == 0);
+    assert (matrix->s.csr.rowptr[i] + n <= matrix->s.csr.nnz);
+
+    matrix->s.csr.rowptr[i + 1] = matrix->s.csr.rowptr[i] + n;
+    memcpy (matrix->s.csr.colind + matrix->s.csr.rowptr[i], colind, n * sizeof (size_t));
+}
+
 static ssize_t
 _sparse_matrix_get_index (SparseMatrix *matrix, size_t i, size_t j)
 {

@@ -511,6 +511,12 @@ typedef enum _MirbookingBrokerIterMode
     MIRBOOKING_BROKER_ITER_MODE_UPDATE,
 } MirbookingBrokerIterMode;
 
+static gint
+cmp_gsize (const gsize *a, const gsize *b)
+{
+    return *a - *b;
+}
+
 static gboolean
 _mirbooking_broker_prepare_step (MirbookingBroker *self)
 {
@@ -738,7 +744,8 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
 
     // initialize the sparse slots beforehand because it is not thread-safe and
     // we want to keep the in order for fast access
-    // FIXME: this is slow..?
+    // TODO: find a way to remove the ordered clause
+    #pragma omp parallel for collapse(2) ordered
     for (i = 0; i < self->priv->targets->len; i++)
     {
         for (j = 0; j < self->priv->mirnas->len; j++)
@@ -756,6 +763,9 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                 MirbookingTargetSite *target_site = &target_sites[seed_scores->positions[p]];
                 MirbookingOccupant *occupant = g_ptr_array_index (seed_scores->occupants, p);
 
+                gsize colind[self->priv->J->shape[0]];
+                gsize row_nnz = 0;
+
                 // substitute target
                 gint z;
                 for (z = 0; z < self->priv->targets->len; z++)
@@ -763,16 +773,14 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                     MirbookingTargetSitesScores *alternative_seed_scores = &g_array_index (self->priv->target_sites_scores,
                                                                                            MirbookingTargetSitesScores,
                                                                                            z * self->priv->mirnas->len + j);
+
                     gint w;
                     for (w = 0; w < alternative_seed_scores->occupants->len; w++)
                     {
                         MirbookingOccupant *other_occupant = g_ptr_array_index (alternative_seed_scores->occupants,
                                                                                 w);
 
-                        sparse_matrix_set_double (self->priv->J,
-                                                  _mirbooking_broker_get_occupant_index (self, occupant),
-                                                  _mirbooking_broker_get_occupant_index (self, other_occupant),
-                                                  0);
+                        colind[row_nnz++] = _mirbooking_broker_get_occupant_index (self, other_occupant);
                     }
                 }
 
@@ -794,13 +802,19 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                         MirbookingOccupant *other_occupant = occupant_list->data;
                         if (other_occupant->mirna != g_ptr_array_index (self->priv->mirnas, j))
                         {
-                            sparse_matrix_set_double (self->priv->J,
-                                                  _mirbooking_broker_get_occupant_index (self, occupant),
-                                                  _mirbooking_broker_get_occupant_index (self, other_occupant),
-                                                     0);
+                            colind[row_nnz++] = _mirbooking_broker_get_occupant_index (self, other_occupant);
                         }
                     }
                 }
+
+                // sort colind
+                qsort (colind, row_nnz, sizeof (gsize), cmp_gsize);
+
+                #pragma omp ordered
+                sparse_matrix_reserve_range (self->priv->J,
+                                             _mirbooking_broker_get_occupant_index (self, occupant),
+                                             colind,
+                                             row_nnz);
             }
         }
     }

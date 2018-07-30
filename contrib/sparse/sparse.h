@@ -45,6 +45,8 @@ typedef struct _SparseMatrix
 void   sparse_matrix_init      (SparseMatrix *matrix, SparseMatrixStorage storage, SparseMatrixType type, size_t shape[2], size_t nnz);
 void   sparse_matrix_clear     (SparseMatrix *matrix);
 
+void sparse_matrix_reserve_range (SparseMatrix *matrix, size_t i, size_t *colind, size_t n);
+
 float sparse_matrix_get_float (SparseMatrix *matrix, size_t i, size_t j);
 void  sparse_matrix_set_float (SparseMatrix *matrix, size_t i, size_t j, float v);
 
