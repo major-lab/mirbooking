@@ -68,6 +68,7 @@ endif
 
 subdir('contrib/poisson-binomial')
 subdir('contrib/sparse')
+subdir('contrib/odeint')
 subdir('src')
 subdir('bin')
 subdir('data')
