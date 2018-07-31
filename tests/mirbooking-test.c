@@ -107,28 +107,20 @@ test_mirbooking ()
     gdouble norm;
     g_autoptr (GError) error = NULL;
     g_assert (mirbooking_broker_evaluate (mirbooking, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, &norm, &error));
-    g_assert (mirbooking_broker_step (mirbooking, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 0, &error));
+    g_assert (mirbooking_broker_step (mirbooking, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1, &error));
     g_assert_null (error);
 
     GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
-    guint total_occupancy = 0;
-    gint i;
-    for (i = 0; i < target_sites->len; i++)
-    {
-        guint site_occupancy = 0;
-        GSList *occupants_list = NULL;
-        for (occupants_list = g_array_index (target_sites, MirbookingTargetSite, i).occupants; occupants_list != NULL; occupants_list = occupants_list->next)
-        {
-            MirbookingOccupant *occupant = occupants_list->data;
-            site_occupancy += occupant->quantity;
-        }
+    MirbookingTargetSite target_site = g_array_index (target_sites, MirbookingTargetSite, 0);
 
-        total_occupancy += site_occupancy;
-    }
+    g_assert_nonnull (target_site.occupants);
+    g_assert_null (target_site.occupants->next);
 
-    g_print ("%d\n", total_occupancy);
-    g_assert_cmpint (total_occupancy, ==, 10);
+    MirbookingOccupant *occupant = target_site.occupants->data;
+
+    g_assert_cmpfloat (occupant->score, ==, -19.0);
+    g_assert_cmpfloat (mirbooking_broker_get_occupant_quantity (mirbooking, occupant), >, 0);
 }
 
 static void
@@ -142,7 +134,7 @@ test_mirbooking_empty ()
 
     gdouble norm;
     g_assert (mirbooking_broker_evaluate (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, &norm, NULL));
-    g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 0, NULL));
+    g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1, NULL));
 }
 
 static void

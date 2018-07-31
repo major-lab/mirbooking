@@ -188,9 +188,8 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
 static void
 mirbooking_occupant_init (MirbookingOccupant* self, MirbookingMirna *mirna, gfloat score)
 {
-    self->mirna    = g_object_ref (mirna);
-    self->quantity = 0;
-    self->score    = score;
+    self->mirna = g_object_ref (mirna);
+    self->score = score;
 }
 
 
@@ -204,6 +203,12 @@ static size_t
 _mirbooking_broker_get_occupant_index (MirbookingBroker *self, MirbookingOccupant *occupant)
 {
     return occupant - self->priv->occupants;
+}
+
+gdouble
+mirbooking_broker_get_occupant_quantity (MirbookingBroker *self, MirbookingOccupant *occupant)
+{
+    return self->priv->ES[_mirbooking_broker_get_occupant_index (self, occupant)];
 }
 
 static void
@@ -892,12 +897,10 @@ _mirbooking_broker_step (MirbookingBroker             *self,
 
                     // compute the vacancy
                     self->priv->S[k] = self->priv->S0[i] * _mirbooking_broker_get_target_site_vacancy (self,
-                                                                                                                 target_site,
-                                                                                                                 prime5_footprint,
-                                                                                                                 prime3_footprint,
-                                                                                                                 self->priv->S0[i]);
-
-                    self->priv->ES[k] = occupant->quantity;
+                                                                                                       target_site,
+                                                                                                       prime5_footprint,
+                                                                                                       prime3_footprint,
+                                                                                                       self->priv->S0[i]);
 
                     // Here we apply a Michaelis-Menten kinetics
                     gdouble E  = self->priv->E[j];
@@ -1007,7 +1010,7 @@ _mirbooking_broker_step (MirbookingBroker             *self,
                     target_site->quantity -= PREDICT (self->priv->dSdt[k]);
 
                     // d[ES]/dt
-                    occupant->quantity += PREDICT (self->priv->dESdt[k]);
+                    self->priv->ES[k] += PREDICT (self->priv->dESdt[k]);
 
                     // d[P]/dt
                     #pragma omp atomic update
@@ -1026,7 +1029,7 @@ _mirbooking_broker_step (MirbookingBroker             *self,
                         target_site->quantity -= CORRECT (self->priv->dSdt[k]);
 
                         // d[ES]/dt
-                        occupant->quantity += CORRECT (self->priv->dESdt[k]);
+                        self->priv->ES[k] += CORRECT (self->priv->dESdt[k]);
 
                         // d[P]/dt
                         #pragma omp atomic update
@@ -1043,7 +1046,7 @@ _mirbooking_broker_step (MirbookingBroker             *self,
                         target_site->quantity +=  step_size * self->priv->ES_delta[k];
 
                         // d[ES]/dt
-                        occupant->quantity += step_size * self->priv->ES_delta[k];
+                        self->priv->ES[k] += step_size * self->priv->ES_delta[k];
                     }
                     else
                     {

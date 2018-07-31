@@ -393,7 +393,7 @@ write_output_to_tsv (MirbookingBroker *mirbooking,
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
                        mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna)),
                        occupant->score,
-                       occupant->quantity);
+                       mirbooking_broker_get_occupant_quantity (mirbooking, occupant));
         }
     }
 }
@@ -419,7 +419,7 @@ write_output_to_gff3 (MirbookingBroker *mirbooking, FILE *output_f)
             MirbookingOccupant *occupant = occupants->data;
             g_fprintf (output_f, "%s\tmirbooking\tmiRNA interaction\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%lu\t%lu\t+\t.\tID=%s;Position=%lu,Occupancy=%f;Score=%f\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
-                       occupant->quantity,
+                       mirbooking_broker_get_occupant_quantity (mirbooking, occupant),
                        MAX (0, target_site->position + 1 - prime5_footprint),
                        MIN (mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target_site->target)), target_site->position + 1 + prime3_footprint),
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),

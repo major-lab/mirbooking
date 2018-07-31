@@ -73,6 +73,9 @@ gdouble                mirbooking_broker_get_target_site_vacancy (MirbookingBrok
 gdouble                mirbooking_broker_get_target_silencing    (MirbookingBroker *self,
                                                                   MirbookingTarget *target);
 
+gdouble mirbooking_broker_get_occupant_quantity (MirbookingBroker   *self,
+                                                 MirbookingOccupant *occupant);
+
 G_END_DECLS
 
 #endif /* __MIRBOOKING_BROKER_H__ */
