@@ -387,6 +387,7 @@ mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSeque
 {
     g_return_if_fail (MIRBOOKING_IS_MIRNA (sequence) || MIRBOOKING_IS_TARGET (sequence));
     g_return_if_fail (self->priv->target_sites == NULL || g_hash_table_contains (self->priv->quantification, sequence));
+    g_return_if_fail (quantity > 0);
 
     if (g_hash_table_insert (self->priv->quantification,
                              sequence,
