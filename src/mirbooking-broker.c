@@ -75,18 +75,19 @@ typedef struct
     MirbookingOccupant *occupants;
 
     /* state of the system */
-    gdouble *E0; // number of mirnas
+    gdouble *E0; // len(mirnas)
     gdouble *E;  // len(E0)
-    gdouble *S0; // number of targets (sites are identical w.r.t. to initial concentration)
-    gdouble *S;  // number of sites among targets (not aligned) thus much bigger than len(S0)
-    gdouble *ES; // len(E) * len(S)
-    gdouble *P;  // len(ES)
+    gdouble *S0; // len(targets)
+    gdouble *S;  // len(target_sites)
+    gdouble *ES; // len(occupants)
+    gdouble *ES_per_target_site; // len(target_sites)
+    gdouble *P;  // len(S)
 
     /* state of the integrator */
-    IntegratorState *dEdt;  // like E
-    IntegratorState *dSdt;  // like S
-    IntegratorState *dESdt; // len(E) * len(S)
-    IntegratorState *dPdt;
+    IntegratorState *dEdt;  // len(E)
+    IntegratorState *dSdt;  // len(S)
+    IntegratorState *dESdt; // len(ES)
+    IntegratorState *dPdt;  // len(P)
 
     /* steady-state solver */
     SparseSolver *solver;
@@ -211,6 +212,12 @@ mirbooking_broker_get_occupant_quantity (MirbookingBroker *self, MirbookingOccup
     return self->priv->ES[_mirbooking_broker_get_occupant_index (self, occupant)];
 }
 
+static size_t
+_mirbooking_broker_get_target_site_index (MirbookingBroker *self, const MirbookingTargetSite *target_site)
+{
+    return target_site - (MirbookingTargetSite*) self->priv->target_sites->data;
+}
+
 static void
 mirbooking_target_site_clear (MirbookingTargetSite *self)
 {
@@ -247,6 +254,7 @@ mirbooking_broker_finalize (GObject *object)
         g_free (self->priv->S0);
         g_free (self->priv->S);
         g_free (self->priv->ES);
+        g_free (self->priv->ES_per_target_site);
         g_free (self->priv->P);
 
         g_free (self->priv->dEdt);
@@ -474,7 +482,7 @@ _mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
     const MirbookingTargetSite *nearby_target_site;
     for (nearby_target_site = from_target_site; nearby_target_site <= to_target_site; nearby_target_site++)
     {
-        vacancy *= 1 - (nearby_target_site->quantity / S0);
+        vacancy *= 1 - (self->priv->ES_per_target_site[_mirbooking_broker_get_target_site_index (self, nearby_target_site)] / S0);
     }
 
     return vacancy;
@@ -578,7 +586,6 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
             target_site.target    = g_object_ref (target);
             target_site.position  = position;
             target_site.occupants = NULL;
-            target_site.quantity  = 0;
             g_array_append_val (self->priv->target_sites, target_site);
         }
     }
@@ -586,13 +593,22 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
     // memoize in a array-friendly way the target sites
     self->priv->target_sites_by_target_index = g_ptr_array_new ();
     self->priv->S0 = g_new (gdouble, self->priv->targets->len);
+    self->priv->S = g_new (gdouble, self->priv->target_sites->len);
     for (i = 0; i < self->priv->targets->len; i++)
     {
+        MirbookingTarget *target = g_ptr_array_index (self->priv->targets, i);
         gdouble q = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification,
-                                                               g_ptr_array_index (self->priv->targets, i)));
+                                                               target));
+        MirbookingTargetSite *target_site = g_hash_table_lookup (self->priv->target_sites_by_target, target);
         g_ptr_array_add (self->priv->target_sites_by_target_index,
-                         g_hash_table_lookup (self->priv->target_sites_by_target, g_ptr_array_index (self->priv->targets, i)));
+                         target_site);
         self->priv->S0[i] = q;
+
+        while (target_site->target == target)
+        {
+            self->priv->S[_mirbooking_broker_get_target_site_index (self, target_site)] = q;
+            target_site++;
+        }
     }
 
     // memoize unassigned quantities
@@ -726,7 +742,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
     g_debug ("nnz: %lu, sparsity: %f%%", nnz,  100.0f - 100.0f * (gdouble) nnz / (gdouble) (k*k));
 
     // allocate memory for the integrator and the solver
-    self->priv->S  = g_new0 (gdouble, k);
+    self->priv->ES_per_target_site = g_new0 (gdouble, self->priv->target_sites->len);
     self->priv->ES = g_new0 (gdouble, k);
     self->priv->P  = g_new0 (gdouble, k);
 
@@ -895,16 +911,13 @@ _mirbooking_broker_step (MirbookingBroker             *self,
                     // compute the dissociation constant
                     gdouble Kd = duplex_Kd / self->priv->kappa; // nM -> FPKM
 
-                    // compute the vacancy
-                    self->priv->S[k] = self->priv->S0[i] * _mirbooking_broker_get_target_site_vacancy (self,
-                                                                                                       target_site,
-                                                                                                       prime5_footprint,
-                                                                                                       prime3_footprint,
-                                                                                                       self->priv->S0[i]);
-
                     // Here we apply a Michaelis-Menten kinetics
                     gdouble E  = self->priv->E[j];
-                    gdouble S  = self->priv->S[k];
+                    gdouble S  = self->priv->S0[i] * _mirbooking_broker_get_target_site_vacancy (self,
+                                                                                                 target_site,
+                                                                                                 prime5_footprint,
+                                                                                                 prime3_footprint,
+                                                                                                 self->priv->S0[i]);
                     gdouble ES = self->priv->ES[k];
                     gdouble P  = self->priv->P[k];
 
@@ -949,7 +962,7 @@ _mirbooking_broker_step (MirbookingBroker             *self,
 
                                 gdouble dEdES = -1; // always
                                 gboolean ofp = ABS (seed_scores->positions[p] - alternative_seed_scores->positions[w]) <= (prime3_footprint + prime5_footprint);
-                                gdouble dSdES = (z == i && ofp) ? -S / (self->priv->S0[i] - target_site->quantity) : 0;
+                                gdouble dSdES = (z == i && ofp) ? -S / (self->priv->S0[i] - self->priv->ES_per_target_site[_mirbooking_broker_get_target_site_index (self, target_site)]) : 0;
 
 				gsize other_k = _mirbooking_broker_get_occupant_index (self, other_occupant);
 
@@ -978,7 +991,7 @@ _mirbooking_broker_step (MirbookingBroker             *self,
 
                                 gdouble dEdES = occupant->mirna == other_occupant->mirna ? -1 : 0;
 
-                                gdouble dSdES = -S / (self->priv->S0[i] - ts->quantity);
+                                gdouble dSdES = -S / (self->priv->S0[i] - self->priv->ES_per_target_site[_mirbooking_broker_get_target_site_index (self, ts)]);
 
 				gsize other_k = _mirbooking_broker_get_occupant_index (self, other_occupant);
 
@@ -1007,7 +1020,11 @@ _mirbooking_broker_step (MirbookingBroker             *self,
 
                     // d[S]/dt
                     #pragma omp atomic update
-                    target_site->quantity -= PREDICT (self->priv->dSdt[k]);
+                    self->priv->S[_mirbooking_broker_get_target_site_index (self, target_site)] += PREDICT (self->priv->dSdt[k]);
+
+                    // TODO: remove
+                    #pragma omp atomic update
+                    self->priv->ES_per_target_site[_mirbooking_broker_get_target_site_index (self, target_site)] +=  PREDICT (self->priv->dESdt[k]);
 
                     // d[ES]/dt
                     self->priv->ES[k] += PREDICT (self->priv->dESdt[k]);
@@ -1026,10 +1043,13 @@ _mirbooking_broker_step (MirbookingBroker             *self,
 
                         // d[S]/dt
                         #pragma omp atomic update
-                        target_site->quantity -= CORRECT (self->priv->dSdt[k]);
+                        self->priv->S[_mirbooking_broker_get_target_site_index (self, target_site)] += CORRECT (self->priv->dSdt[k]);
 
                         // d[ES]/dt
                         self->priv->ES[k] += CORRECT (self->priv->dESdt[k]);
+
+                        #pragma omp atomic update
+                        self->priv->ES_per_target_site[_mirbooking_broker_get_target_site_index (self, target_site)] +=  PREDICT (self->priv->dESdt[k]);
 
                         // d[P]/dt
                         #pragma omp atomic update
@@ -1043,10 +1063,13 @@ _mirbooking_broker_step (MirbookingBroker             *self,
 
                         // d[S]/dt
                         #pragma omp atomic update
-                        target_site->quantity +=  step_size * self->priv->ES_delta[k];
+                        self->priv->S[_mirbooking_broker_get_target_site_index (self, target_site)] -= step_size * self->priv->ES_delta[k];
 
                         // d[ES]/dt
                         self->priv->ES[k] += step_size * self->priv->ES_delta[k];
+
+                        #pragma omp atomic update
+                        self->priv->ES_per_target_site[_mirbooking_broker_get_target_site_index (self, target_site)] += step_size * self->priv->ES_delta[k];
                     }
                     else
                     {
@@ -1273,9 +1296,9 @@ mirbooking_broker_get_target_silencing (MirbookingBroker *self, MirbookingTarget
     while (target_site < &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len) &&
            target_site->target == target)
     {
-        if (target_site->quantity > 0)
+        if (self->priv->ES_per_target_site[_mirbooking_broker_get_target_site_index (self, target_site)] > 0)
         {
-            gdouble proba = target_site->quantity / target_quantity;
+            gdouble proba = self->priv->ES_per_target_site[_mirbooking_broker_get_target_site_index (self, target_site)] / target_quantity;
             g_array_append_val (probability_by_position, proba);
         }
 
