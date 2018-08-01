@@ -64,6 +64,9 @@ typedef struct
 
     GHashTable                 *quantification; // #MirbookingSequence -> #gfloat (initial quantity)
 
+    /* whether or not the system has been initialized */
+    gsize init;
+
     /* all the target sites, stored contiguously */
     GArray     *target_sites;
     GHashTable *target_sites_by_target;
@@ -386,7 +389,7 @@ void
 mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSequence *sequence, gfloat quantity)
 {
     g_return_if_fail (MIRBOOKING_IS_MIRNA (sequence) || MIRBOOKING_IS_TARGET (sequence));
-    g_return_if_fail (self->priv->target_sites == NULL || g_hash_table_contains (self->priv->quantification, sequence));
+    g_return_if_fail (self->priv->init == 0 || g_hash_table_contains (self->priv->quantification, sequence));
     g_return_if_fail (quantity > 0);
 
     if (g_hash_table_insert (self->priv->quantification,
@@ -1138,12 +1141,11 @@ mirbooking_broker_evaluate (MirbookingBroker          *self,
                             gdouble                   *norm,
                             GError                   **error)
 {
-    static gsize init;
-    if (g_once_init_enter (&init))
+    if (g_once_init_enter (&self->priv->init))
     {
         g_return_val_if_fail (_mirbooking_broker_prepare_step (self),
                               FALSE);
-        g_once_init_leave (&init, 1);
+        g_once_init_leave (&self->priv->init, 1);
     }
 
     // initial step with criterion evalation
