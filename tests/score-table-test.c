@@ -55,15 +55,43 @@ test_score_table_compute_seed_score ()
 static void
 test_score_table_compute_seed_scores ()
 {
+}
 
+static void
+test_score_table_mcff ()
+{
+    g_autoptr (MirbookingMcffScoreTable) score_table = mirbooking_mcff_score_table_new ();
+    g_assert_nonnull (score_table);
+
+    g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM");
+    g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT");
+
+    gchar *target_seq = "GCACACAGAGCAGCATAAAGCCCAGTTGCTTTGGGAAGTGTTTGGGACCAGATGGATTGT";
+    gchar *mirna_seq = "UGAGGUAGUAGGUUGUAUAGUU";
+
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), target_seq, strlen (target_seq));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), mirna_seq, strlen (mirna_seq));
+
+    // test for a seed
+    g_autoptr (GError) error = NULL;
+    gfloat site_score = mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
+                                                              mirna,     // GAGGUAG =>
+                                                              target, 1, // CACACAG =>
+                                                              &error);
+
+    g_assert_null (error);
+    g_assert_cmpfloat (site_score, ==, -7.09f);
 }
 
 int main (int argc, gchar **argv)
 {
     g_test_init (&argc, &argv, NULL);
 
+    SCORE_TABLE[8882][9284] = gfloat_to_be (-19.0);
+
     g_test_add_func ("/score-table/compute-seed-score", test_score_table_compute_seed_score);
     g_test_add_func ("/score-table/compute-seed-scores", test_score_table_compute_seed_scores);
+    g_test_add_func ("/score-table/mcff", test_score_table_mcff);
 
     return g_test_run ();
 }

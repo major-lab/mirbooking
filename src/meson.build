@@ -7,6 +7,7 @@ mirbooking_headers = [
     'mirbooking-mirna.h',
     'mirbooking-occupant.h',
     'mirbooking-precomputed-score-table.h',
+    'mirbooking-mcff-score-table.h',
     'mirbooking-score-table.h',
     'mirbooking-sequence.h',
     'mirbooking-target.h',
@@ -21,6 +22,7 @@ mirbooking_sources = [
     'mirbooking-error.c',
     'mirbooking-mirna.c',
     'mirbooking-precomputed-score-table.c',
+    'mirbooking-mcff-score-table.c',
     'mirbooking-score-table.c',
     'mirbooking-sequence.c',
     'mirbooking-target.c']
