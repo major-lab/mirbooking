@@ -315,8 +315,6 @@ mirbooking_region_to_string (MirbookingRegion region)
     }
 }
 
-#define MIRBOOKING_OUTPUT_FLOAT_FORMAT "%6f"
-#define MIRBOOKING_OUTPUT_FORMAT "%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%lu\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%s\t%s\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\n"
 #define COALESCE(x,d) (x == NULL ? (d) : (x))
 
 static void
@@ -381,7 +379,7 @@ write_output_to_tsv (MirbookingBroker *mirbooking,
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
         {
             MirbookingOccupant *occupant = occupants->data;
-            g_fprintf (output_f, MIRBOOKING_OUTPUT_FORMAT,
+            g_fprintf (output_f, "%s\t%s\t%e\t%.2f\t%lu\t%s\t%.2f\t%s\t%s\t%e\t%.2f\t%e\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        target_quantity,
@@ -405,27 +403,26 @@ write_output_to_gff3 (MirbookingBroker *mirbooking, FILE *output_f)
 
     GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
+    gint i = 1;
+
     const MirbookingTargetSite *target_site;
     for (target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
          target_site < &g_array_index (target_sites, MirbookingTargetSite, target_sites->len);
          target_site++)
     {
-        gfloat occupancy = 1 - mirbooking_broker_get_target_site_vacancy (mirbooking, target_site);
-
         // report individual occupants
         GSList *occupants;
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
         {
             MirbookingOccupant *occupant = occupants->data;
-            g_fprintf (output_f, "%s\tmirbooking\tmiRNA interaction\t" MIRBOOKING_OUTPUT_FLOAT_FORMAT "\t%lu\t%lu\t+\t.\tID=%s;Position=%lu,Occupancy=%f;Score=%f\n",
+            g_fprintf (output_f, "%s\tmiRBooking\tmiRNA\t%lu\t%lu\t%e\t.\t.\tID=%d;Name=%s;Alias=%s\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
-                       mirbooking_broker_get_occupant_quantity (mirbooking, occupant),
-                       MAX (0, target_site->position + 1 - prime5_footprint),
+                       (gsize) MAX (1, (gssize) target_site->position + 1 - (gssize) prime5_footprint),
                        MIN (mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target_site->target)), target_site->position + 1 + prime3_footprint),
-                       mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
-                       target_site->position,
-                       occupancy,
-                       occupant->score);
+                       mirbooking_broker_get_occupant_quantity (mirbooking, occupant),
+                       i++,
+                       mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)),
+                       mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)));
         }
     }
 }
