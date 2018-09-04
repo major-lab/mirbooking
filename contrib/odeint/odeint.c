@@ -178,11 +178,12 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
     double *y  = self->transient_y;
     double *ye = self->transient_ye;
 
-    while ((*self->t - t0) < w)
+    while (self->rtol * fabs (w - (*self->t - t0)) >= self->atol)
     {
-        /* ensure we always land exactly on the step size */
-        // on edge, ensure we take at least a self->atol step
-        h = fmin (h, fmax (w - (*self->t - t0), self->atol));
+        // ensure we always land exactly on the upper integration bound
+        // if we went too far, the step size will be negative and still point
+        // toward the integration bound
+        h = fmin (h, w - (*self->t - t0));
 
         int step;
         for (step = 0; step < self->integrator_meta->steps; step++)
