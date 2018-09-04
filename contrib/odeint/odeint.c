@@ -270,6 +270,8 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
 
 void odeint_integrator_free (OdeIntIntegrator *self)
 {
+    free (self->transient_y);
+    free (self->transient_ye);
     free (self->F);
     free (self);
 }
