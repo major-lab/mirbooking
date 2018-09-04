@@ -172,7 +172,10 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
                              double            w)
 {
     double t0 = *self->t;
-    double h  = 1e-6;
+    // reference: Watts, “Starting Step Size for an ODE Solver.”
+    // TODO: We can use an estimate of the second-order derivatives to scale
+    // the step size
+    double h  = sqrt (2.0) * pow (self->atol, 1.0 / (self->integrator_meta->order + 1));
 
     /* transient state for the multi-step method */
     double *y  = self->transient_y;
