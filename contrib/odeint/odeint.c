@@ -191,14 +191,12 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             /* restore state at the beginning of the step */
             memcpy (y, self->y, self->n * sizeof (double));
 
-            int prev_step;
-            #pragma omp parallel for collapse(2)
+            int i, prev_step;
             for (prev_step = 0; prev_step < step; prev_step++)
             {
-                int i;
+                #pragma omp parallel for
                 for (i = 0; i < self->n; i++)
                 {
-                    #pragma omp atomic
                     y[i] += h * self->integrator_meta->a[(step * step + step)/2 + prev_step] * self->F[prev_step * self->n + i];
                 }
             }
@@ -214,38 +212,35 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         // if (!self->integrator_meta->last_step_is_update)
         {
             memcpy (y, self->y, self->n * sizeof (double));
-            #pragma omp parallel for collapse(2)
+            int i, step;
             for (step = 0; step < self->integrator_meta->steps; step++)
             {
-                int i;
+                #pragma omp parallel for
                 for (i = 0; i < self->n; i++)
                 {
-                    #pragma omp atomic
                     y[i] += h * self->integrator_meta->b[step] * self->F[step * self->n + i];
                 }
             }
         }
 
         // error estimate
-        memcpy (ye, self->y, self->n * sizeof (double));
-        #pragma omp parallel for collapse(2)
-        for (step = 0; step < self->integrator_meta->steps; step++)
-        {
-            int i;
-            for (i = 0; i < self->n; i++)
-            {
-                #pragma omp atomic
-                ye[i] += h * self->integrator_meta->e[step] * self->F[step * self->n + i];
-            }
-        }
-
-        func (*self->t, ye, self->F + (self->integrator_meta->steps * self->n), user_data);
-
-        // error estimate
         if (self->integrator_meta->error_estimate)
         {
+            // error estimate
+            memcpy (ye, self->y, self->n * sizeof (double));
+            int i, step;
+            for (step = 0; step < self->integrator_meta->steps; step++)
+            {
+                #pragma omp parallel for
+                for (i = 0; i < self->n; i++)
+                {
+                    ye[i] += h * self->integrator_meta->e[step] * self->F[step * self->n + i];
+                }
+            }
+
+            func (*self->t, ye, self->F + (self->integrator_meta->steps * self->n), user_data);
+
             double error = 0;
-            int i;
             #pragma omp parallel for reduction(max:error)
             for (i = 0; i < self->n; i++)
             {
