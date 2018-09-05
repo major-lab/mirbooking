@@ -140,8 +140,7 @@ compute_scores (MirbookingScoreTable  *score_table,
     {
         gfloat score = _compute_seed_score (data, data_len, i, j, seed_len) + mirbooking_target_get_accessibility_score (target, p);
 
-        /* only propose spontaneous reactions */
-        if (score < 0)
+        if (score < INFINITY)
         {
             _positions[k]   = p;
             _seed_scores[k] = score;
