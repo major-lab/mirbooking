@@ -143,7 +143,7 @@ odeint_integrator_new (OdeIntMethod  method,
     ret->t = t0;
     ret->y = y0;
     ret->n = n;
-    ret->F = calloc ((ret->integrator_meta->steps + 1) * n, sizeof (double));
+    ret->F = calloc (ret->integrator_meta->steps * n, sizeof (double));
 
     /* transient states for multi-step methods */
     ret->transient_y = malloc ( n * sizeof (double) );
@@ -229,7 +229,6 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         // error estimate
         if (self->integrator_meta->error_estimate)
         {
-            // error estimate
             memcpy (ye, self->y, self->n * sizeof (double));
             int i, step;
             for (step = 0; step < self->integrator_meta->steps; step++)
@@ -240,8 +239,6 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
                     ye[i] += h * self->integrator_meta->e[step] * self->F[step * self->n + i];
                 }
             }
-
-            func (*self->t, ye, self->F + (self->integrator_meta->steps * self->n), user_data);
 
             double error = 0;
             #pragma omp parallel for reduction(max:error)
