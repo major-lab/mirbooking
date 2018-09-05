@@ -57,7 +57,6 @@ const OdeIntMeta INTEGRATOR_META[] =
         {0.0,     1.0},
         {1.0},
         {1.0/2.0, 1.0/2.0}, 2},
-    // FIXME: this method yield very unaccurate results
     {"heuns-euler", 2, 0, 1,
         {0.0,     1.0},
         {1.0},
@@ -211,7 +210,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         // final update
         // For some methods, the last step (stored in y) is the same as the
         // update
-        // FIXME: reusing the last step is broken?
+        // FIXME: reusing the last step is broken? (see #24)
         // if (!self->integrator_meta->last_step_is_update)
         {
             memcpy (y, self->y, self->n * sizeof (double));
