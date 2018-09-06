@@ -116,6 +116,7 @@ struct _OdeIntIntegrator
     double *transient_y;
     double *transient_ye;
     double *F; // dy/dt
+    double  h;
 };
 
 /**
@@ -151,6 +152,17 @@ odeint_integrator_new (OdeIntMethod  method,
     ret->rtol = rtol;
     ret->atol = atol;
 
+    // Estimate initial step size using order and tolerance information
+    //
+    // reference:
+    // H. A. Watts, “Starting Step Size for an ODE Solver,” Journal of
+    // Computational and Applied Mathematics 9, no. 2 (June 1, 1983): 177–91,
+    // https://doi.org/10.1016/0377-0427(83)90040-7.
+    //
+    // TODO: We can use an estimate of the second-order derivatives to scale
+    // the step size
+    ret->h = sqrt (2.0) * pow (ret->atol, 1.0 / (ret->integrator_meta->order + 1));
+
     assert (ret->F != NULL);
 
     return ret;
@@ -171,16 +183,14 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
                              double            w)
 {
     double t0 = *self->t;
-    // reference: Watts, “Starting Step Size for an ODE Solver.”
-    // TODO: We can use an estimate of the second-order derivatives to scale
-    // the step size
-    double h  = sqrt (2.0) * pow (self->atol, 1.0 / (self->integrator_meta->order + 1));
 
     /* transient state for the multi-step method */
     double *y  = self->transient_y;
     double *ye = self->transient_ye;
 
-    while (self->rtol * fabs (w - (*self->t - t0)) >= self->atol)
+    double h = self->h;
+
+    while (fabs (w - (*self->t - t0)) >= self->atol)
     {
         // ensure we always land exactly on the upper integration bound
         // if we went too far, the step size will be negative and still point
@@ -237,20 +247,36 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             }
 
             double error = 0;
-            #pragma omp parallel for reduction(max:error)
+            double ye_norm = 0;
+            #pragma omp parallel for reduction(+:error) reduction(+:ye_norm)
             for (i = 0; i < self->n; i++)
             {
-                error = fmax (error, fabs (y[i] - ye[i]));
+                error   += pow (y[i] - ye[i], 2);
+                ye_norm += pow (ye[i], 2);
             }
+            ye_norm = sqrt (ye_norm);
+            error = sqrt (error);
 
-            if (self->rtol * error <= self->atol)
+            double tol = self->rtol * ye_norm + self->atol;
+
+            if (error <= tol)
             {
                 *self->t += h;
                 memcpy (self->y, y, self->n * sizeof (double));
             }
 
-            // adjust step size
-            h *= fmin (fmax (0.84 * pow (self->atol / (self->rtol * error), 1.0 / self->integrator_meta->order), 0.1), 4.0);
+            // compute optimal step size
+            double optimal_h = h * pow (tol / error, 1.0 / self->integrator_meta->order);
+
+            // in case h get smaller than self->h (i.e. around upper
+            // integration bound) we don't update the step size such that
+            // subsequent integration can resume with an optimal step size.
+            if (h == self->h)
+            {
+                self->h = optimal_h;
+            }
+
+            h = optimal_h;
         }
         else
         {
