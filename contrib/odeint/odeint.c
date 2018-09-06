@@ -183,6 +183,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
                              double            w)
 {
     double t0 = *self->t;
+    double t;
 
     /* transient state for the multi-step method */
     double *y  = self->transient_y;
@@ -190,42 +191,50 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
 
     double h = self->h;
 
+    double error_, ye_norm_;
+
+    #pragma omp parallel
     while (fabs (w - (*self->t - t0)) >= self->atol)
     {
+        t = *self->t;
+
         // ensure we always land exactly on the upper integration bound
         // if we went too far, the step size will be negative and still point
         // toward the integration bound
-        h = fmin (h, w - (*self->t - t0));
+        h = fmin (h, w - (t - t0));
 
         int step;
         for (step = 0; step < self->integrator_meta->steps; step++)
         {
             /* restore state at the beginning of the step */
-            memcpy (y, self->y, self->n * sizeof (double));
-
             int i, prev_step;
-            for (prev_step = 0; prev_step < step; prev_step++)
+            #pragma omp for
+            for (i = 0; i < self->n; i++)
             {
-                #pragma omp parallel for
-                for (i = 0; i < self->n; i++)
+                y[i] = self->y[i];
+
+                for (prev_step = 0; prev_step < step; prev_step++)
                 {
                     y[i] += h * self->integrator_meta->a[(step * step - step)/2 + prev_step] * self->F[prev_step * self->n + i];
                 }
             }
 
             /* update from previous steps */
-            func (*self->t + h * self->integrator_meta->c[step], y, self->F + (step * self->n), user_data);
+            #pragma omp single
+            func (t + h * self->integrator_meta->c[step], y, self->F + (step * self->n), user_data);
         }
 
         // final update
         if (!self->integrator_meta->last_step_is_update)
         {
-            memcpy (y, self->y, self->n * sizeof (double));
-            int i, step;
-            for (step = 0; step < self->integrator_meta->steps; step++)
+            int i;
+            #pragma omp for
+            for (i = 0; i < self->n; i++)
             {
-                #pragma omp parallel for
-                for (i = 0; i < self->n; i++)
+                y[i] = self->y[i];
+
+                int step;
+                for (step = 0; step < self->integrator_meta->steps; step++)
                 {
                     y[i] += h * self->integrator_meta->b[step] * self->F[step * self->n + i];
                 }
@@ -235,34 +244,44 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         // error estimate
         if (self->integrator_meta->error_estimate)
         {
-            memcpy (ye, self->y, self->n * sizeof (double));
-            int i, step;
-            for (step = 0; step < self->integrator_meta->steps; step++)
+            error_   = 0;
+            ye_norm_ = 0;
+
+            int i;
+            #pragma omp for reduction(+:error_) reduction(+:ye_norm_)
+            for (i = 0; i < self->n; i++)
             {
-                #pragma omp parallel for
-                for (i = 0; i < self->n; i++)
+                ye[i] = self->y[i];
+
+                int step;
+                for (step = 0; step < self->integrator_meta->steps; step++)
                 {
                     ye[i] += h * self->integrator_meta->e[step] * self->F[step * self->n + i];
                 }
+
+#ifdef HAVE_OPENMP
+                error_   = pow (y[i] - ye[i], 2);
+                ye_norm_ = pow (ye[i], 2);
+#else
+                error_   += pow (y[i] - ye[i], 2);
+                ye_norm_ += pow (ye[i], 2);
+#endif
             }
 
-            double error = 0;
-            double ye_norm = 0;
-            #pragma omp parallel for reduction(+:error) reduction(+:ye_norm)
-            for (i = 0; i < self->n; i++)
-            {
-                error   += pow (y[i] - ye[i], 2);
-                ye_norm += pow (ye[i], 2);
-            }
-            ye_norm = sqrt (ye_norm);
-            error = sqrt (error);
+            double ye_norm = sqrt (ye_norm_);
+            double error = sqrt (error_);
 
             double tol = self->rtol * ye_norm + self->atol;
 
             if (error <= tol)
             {
-                *self->t += h;
-                memcpy (self->y, y, self->n * sizeof (double));
+                *self->t = t + h;
+                int i;
+                #pragma omp for
+                for (i = 0; i < self->n; i++)
+                {
+                    self->y[i] = y[i];
+                }
             }
 
             // compute optimal step size
@@ -280,8 +299,13 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         }
         else
         {
-            *self->t += h;
-            memcpy (self->y, y, self->n * sizeof (double));
+            *self->t = t + h;
+            int i;
+            #pragma omp for
+            for (i = 0; i < self->n; i++)
+            {
+                self->y[i] = y[i];
+            }
         }
     }
 }
