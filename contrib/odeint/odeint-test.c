@@ -7,7 +7,7 @@
  * dES/dt = kf[E][S] - kr[ES]
  */
 static void
-f (double t, double *y, double *F, void *user_data)
+f (double t, const double *y, double *F, void *user_data)
 {
     F[0] = - y[0] * y[1] + y[2];
     F[1] = - y[0] * y[1] + y[2];

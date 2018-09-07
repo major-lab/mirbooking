@@ -22,7 +22,7 @@ typedef struct _OdeIntIntegrator OdeIntIntegrator;
  * @y: The state of the ODE
  * @F: dy/dt
  */
-typedef void (*OdeIntFunc) (double t, double *y, double *F, void *user_data);
+typedef void (*OdeIntFunc) (double t, const double *y, double *F, void *user_data);
 
 OdeIntIntegrator * odeint_integrator_new       (OdeIntMethod method, double *t0, double *y0, size_t n, double rtol, double atol);
 void               odeint_integrator_integrate (OdeIntIntegrator *self, OdeIntFunc func, void* user_data, double w);
