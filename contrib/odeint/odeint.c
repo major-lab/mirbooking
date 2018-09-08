@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <float.h>
 
 /* TODO:
  * - implicit methods
@@ -143,7 +144,8 @@ odeint_integrator_new (OdeIntMethod  method,
     ret->t = t0;
     ret->y = y0;
     ret->n = n;
-    ret->F = calloc (ret->integrator_meta->steps * n, sizeof (double));
+    /* we need at least 2 steps for the initial step size estimate  */
+    ret->F = calloc ((ret->integrator_meta->steps + 1) * n, sizeof (double));
 
     /* transient states for multi-step methods */
     ret->transient_y = malloc ( n * sizeof (double) );
@@ -152,16 +154,7 @@ odeint_integrator_new (OdeIntMethod  method,
     ret->rtol = rtol;
     ret->atol = atol;
 
-    // Estimate initial step size using order and tolerance information
-    //
-    // reference:
-    // H. A. Watts, “Starting Step Size for an ODE Solver,” Journal of
-    // Computational and Applied Mathematics 9, no. 2 (June 1, 1983): 177–91,
-    // https://doi.org/10.1016/0377-0427(83)90040-7.
-    //
-    // TODO: We can use an estimate of the second-order derivatives to scale
-    // the step size
-    ret->h = sqrt (2.0) * pow (ret->atol, 1.0 / (ret->integrator_meta->order + 1));
+    ret->h = 0;
 
     assert (ret->F != NULL);
 
@@ -188,6 +181,42 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
     /* transient state for the multi-step method */
     double *y  = self->transient_y;
     double *ye = self->transient_ye;
+
+    // Estimate initial step size using order, local curvature and tolerance
+    // information
+    //
+    // reference:
+    // H. A. Watts, “Starting Step Size for an ODE Solver,” Journal of
+    // Computational and Applied Mathematics 9, no. 2 (June 1, 1983): 177–91,
+    // https://doi.org/10.1016/0377-0427(83)90040-7.
+    if (self->h == 0)
+    {
+        double epsilon = sqrt (DBL_EPSILON);
+
+        func (t0, self->y, self->F, user_data);
+
+        /* simple Euler step */
+        int i;
+        #pragma omp parallel for
+        for (i = 0; i < self->n; i++)
+        {
+            y[i] = self->y[i] + (epsilon * self->F[i]);
+        }
+
+        func (t0 + epsilon, y, self->F + self->n, user_data);
+
+        double y_norm = 0;
+
+        #pragma omp parallel for reduction(+:y_norm)
+        for (i = 0; i < self->n; i++)
+        {
+            y_norm += pow ((self->F[self->n + i] - self->F[i]) / epsilon, 2);
+        }
+
+        y_norm = sqrt (y_norm);
+
+        self->h = sqrt (2.0) * pow (self->atol, 1.0 / (self->integrator_meta->order + 1)) / sqrt (y_norm);
+    }
 
     double h = self->h;
 
