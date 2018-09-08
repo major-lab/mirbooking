@@ -31,14 +31,16 @@ main (void)
                                                               ODEINT_INTEGRATOR_DEFAULT_ATOL);
 
         int i;
-        for (i = 1; i < 100; i++)
+        for (i = 1; i < 10; i++)
         {
             odeint_integrator_integrate (integrator,
                                          f,
                                          NULL,
                                          1e-2);
             assert (t - (i * 1e-2) < ODEINT_INTEGRATOR_DEFAULT_ATOL);
+            printf ("%f %f %f\n", y[0], y[1], y[2]);
         }
+        printf ("\n");
 
         // at equilibrium, we have [E][S]/[ES] == kr/kf
         assert (fabs(y[0] * y[1] -  y[2]) < 1e-10);
