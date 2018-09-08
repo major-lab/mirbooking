@@ -255,9 +255,6 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         // error estimate
         if (self->integrator_meta->error_estimate)
         {
-            error_   = 0;
-            ye_norm_ = 0;
-
             int i;
             #pragma omp for
             for (i = 0; i < self->n; i++)
@@ -269,23 +266,21 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             for (step = 0; step < self->integrator_meta->steps; step++)
             {
                 int i;
-                #pragma omp for reduction(+:error_) reduction(+:ye_norm_)
+                #pragma omp for
                 for (i = 0; i < self->n; i++)
                 {
                     ye[i] += h * self->integrator_meta->e[step] * self->F[step * self->n + i];
                 }
             }
 
-            #pragma omp for
+            error_ = 0;
+            ye_norm_ = 0;
+
+            #pragma omp for reduction(+:error_) reduction(+:ye_norm_)
             for (i = 0; i < self->n; i++)
             {
-#ifdef HAVE_OPENMP
-                error_   = pow (y[i] - ye[i], 2);
-                ye_norm_ = pow (ye[i], 2);
-#else
                 error_   += pow (y[i] - ye[i], 2);
                 ye_norm_ += pow (ye[i], 2);
-#endif
             }
 
             double ye_norm = sqrt (ye_norm_);
