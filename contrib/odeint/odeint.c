@@ -207,13 +207,19 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         for (step = 0; step < self->integrator_meta->steps; step++)
         {
             /* restore state at the beginning of the step */
-            int i, prev_step;
+            int i;
             #pragma omp for
             for (i = 0; i < self->n; i++)
             {
                 y[i] = self->y[i];
+            }
 
-                for (prev_step = 0; prev_step < step; prev_step++)
+            int prev_step;
+            for (prev_step = 0; prev_step < step; prev_step++)
+            {
+                int i;
+                #pragma omp for
+                for (i = 0; i < self->n; i++)
                 {
                     y[i] += h * self->integrator_meta->a[(step * step - step)/2 + prev_step] * self->F[prev_step * self->n + i];
                 }
@@ -232,9 +238,14 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             for (i = 0; i < self->n; i++)
             {
                 y[i] = self->y[i];
+            }
 
-                int step;
-                for (step = 0; step < self->integrator_meta->steps; step++)
+            int step;
+            for (step = 0; step < self->integrator_meta->steps; step++)
+            {
+                int i;
+                #pragma omp for
+                for (i = 0; i < self->n; i++)
                 {
                     y[i] += h * self->integrator_meta->b[step] * self->F[step * self->n + i];
                 }
@@ -248,17 +259,26 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             ye_norm_ = 0;
 
             int i;
-            #pragma omp for reduction(+:error_) reduction(+:ye_norm_)
+            #pragma omp for
             for (i = 0; i < self->n; i++)
             {
                 ye[i] = self->y[i];
+            }
 
-                int step;
-                for (step = 0; step < self->integrator_meta->steps; step++)
+            int step;
+            for (step = 0; step < self->integrator_meta->steps; step++)
+            {
+                int i;
+                #pragma omp for reduction(+:error_) reduction(+:ye_norm_)
+                for (i = 0; i < self->n; i++)
                 {
                     ye[i] += h * self->integrator_meta->e[step] * self->F[step * self->n + i];
                 }
+            }
 
+            #pragma omp for
+            for (i = 0; i < self->n; i++)
+            {
 #ifdef HAVE_OPENMP
                 error_   = pow (y[i] - ye[i], 2);
                 ye_norm_ = pow (ye[i], 2);
