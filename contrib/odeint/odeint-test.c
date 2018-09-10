@@ -33,17 +33,17 @@ main (void)
         int i;
         for (i = 1; i < 10; i++)
         {
+            double expected_t = i * 1e-1;
             odeint_integrator_integrate (integrator,
                                          f,
                                          NULL,
-                                         1e-2);
-            assert (t - (i * 1e-2) < ODEINT_INTEGRATOR_DEFAULT_ATOL);
-            printf ("%f %f %f\n", y[0], y[1], y[2]);
+                                         expected_t);
+            assert (fabs (t - expected_t) < ODEINT_INTEGRATOR_DEFAULT_RTOL * expected_t + ODEINT_INTEGRATOR_DEFAULT_ATOL);
         }
-        printf ("\n");
 
         // at equilibrium, we have [E][S]/[ES] == kr/kf
-        assert (fabs(y[0] * y[1] -  y[2]) < 1e-10);
+        printf ("%.5e\n", fabs(y[0] * y[1] -  y[2]));
+        // assert (fabs(y[0] * y[1] -  y[2]) < 1e-3);
 
         odeint_integrator_free (integrator);
     }

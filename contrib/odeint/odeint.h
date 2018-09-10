@@ -25,5 +25,5 @@ typedef struct _OdeIntIntegrator OdeIntIntegrator;
 typedef void (*OdeIntFunc) (double t, const double *y, double *F, void *user_data);
 
 OdeIntIntegrator * odeint_integrator_new       (OdeIntMethod method, double *t0, double *y0, size_t n, double rtol, double atol);
-void               odeint_integrator_integrate (OdeIntIntegrator *self, OdeIntFunc func, void* user_data, double w);
+void               odeint_integrator_integrate (OdeIntIntegrator *self, OdeIntFunc func, void* user_data, double tw);
 void               odeint_integrator_free      (OdeIntIntegrator *self);

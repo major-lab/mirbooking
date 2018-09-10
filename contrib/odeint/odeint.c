@@ -165,15 +165,16 @@ odeint_integrator_new (OdeIntMethod  method,
  * odeint_integrator_integrate:
  * @func: The function to integrate
  * @user_data:
- * @w: The domain width for which the integration is performed
+ * @tw: The upper integration bound, which may also be smaller than the current
+ * time.
  *
- * Integrate dy/dt = @func(t, y) over [t, t + @w].
+ * Integrate dy/dt = @func(t, y) over [t, @tw] or [@tw, t] if @tw < t.
  */
 void
 odeint_integrator_integrate (OdeIntIntegrator *self,
                              OdeIntFunc        func,
                              void             *user_data,
-                             double            w)
+                             double            tw)
 {
     double t0 = *self->t;
     double t;
@@ -223,14 +224,14 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
     double error_, ye_norm_;
 
     #pragma omp parallel
-    while (fabs (w - (*self->t - t0)) >= self->atol)
+    while (fabs (tw - *self->t) >= self->rtol * tw + self->atol)
     {
         t = *self->t;
 
         // ensure we always land exactly on the upper integration bound
         // if we went too far, the step size will be negative and still point
         // toward the integration bound
-        h = fmin (h, w - (t - t0));
+        h = fmin (h, tw - t);
 
         int step;
         for (step = 0; step < self->integrator_meta->steps; step++)
