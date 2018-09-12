@@ -751,8 +751,6 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
     self->priv->dESdt = g_new0 (IntegratorState, k);
     self->priv->dPdt  = g_new0 (IntegratorState, k);
 
-    sparse_solver_set_verbose (self->priv->solver, TRUE);
-
     self->priv->J = g_new0 (SparseMatrix, 1);
 
     size_t shape[2] = {k, k};
@@ -1130,7 +1128,6 @@ _mirbooking_broker_step (MirbookingBroker             *self,
     if (step_mode == MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE &&
         iter_mode == MIRBOOKING_BROKER_ITER_MODE_EVALUATE)
     {
-        guint64 solve_begin = g_get_monotonic_time ();
         gboolean ret;
         ret = sparse_solver_solve (self->priv->solver,
                                    self->priv->J,
@@ -1146,7 +1143,8 @@ _mirbooking_broker_step (MirbookingBroker             *self,
             return FALSE;
         }
 
-        g_debug ("Solved in %lums", 1000 * (g_get_monotonic_time () - solve_begin) / G_USEC_PER_SEC);
+        SparseSolverStatistics stats = sparse_solver_get_statistics (self->priv->solver);
+        g_debug ("reorder-time: %fs factor-time: %fs solve-time: %fs flops: %f", stats.reorder_time, stats.factor_time, stats.solve_time, stats.flops);
     }
 
     return TRUE;

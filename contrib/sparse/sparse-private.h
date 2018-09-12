@@ -14,6 +14,7 @@ struct _SparseSolver
     void (*clear) (SparseSolver *solver);
     /* solver-specific private storage */
     void *storage;
+    SparseSolverStatistics statistics;
 };
 
 #endif /* __SPARSE_PRIVATE_H__ */

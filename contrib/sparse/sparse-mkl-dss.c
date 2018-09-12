@@ -3,7 +3,6 @@
 
 #include <assert.h>
 #include <mkl_dss.h>
-#include <stdio.h>
 
 void
 sparse_mkl_dss_init (SparseSolver *solver)
@@ -102,24 +101,22 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
         goto cleanup;
     }
 
-    if (solver->verbose)
+    MKL_INT statistics_opt = 0;
+    double ret_values[7];
+    ret = dss_statistics (handle,
+                          statistics_opt,
+                          "ReorderTime,FactorTime,SolveTime,Flops",
+                          ret_values);
+
+    if (ret != MKL_DSS_SUCCESS)
     {
-        MKL_INT statistics_opt = 0;
-        double ret_values[7];
-        ret = dss_statistics (handle,
-                              statistics_opt,
-                              "ReorderTime,FactorTime,SolveTime,Flops,Peakmem,Factormem,Solvemem",
-                              ret_values);
-
-        if (ret != MKL_DSS_SUCCESS)
-        {
-            goto cleanup;
-        }
-
-        fprintf (stderr, "MKL-DSS: reorder-time: %f factor-time: %f solve-time: %f flops: %f peak-mem: %fkB factor-mem: %fkB solve-mem: %fkB\n",
-                 ret_values[0], ret_values[1], ret_values[2], ret_values[3],
-                 ret_values[4], ret_values[5], ret_values[6]);
+        goto cleanup;
     }
+
+    solver->statistics.reorder_time = ret_values[0];
+    solver->statistics.factor_time  = ret_values[1];
+    solver->statistics.solve_time   = ret_values[2];
+    solver->statistics.flops        = ret_values[3];
 
     MKL_INT delete_opt = 0;
 cleanup:

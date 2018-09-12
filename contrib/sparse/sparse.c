@@ -307,6 +307,13 @@ sparse_solver_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
     return solver->solve (solver, A, x, b);
 }
 
+SparseSolverStatistics
+sparse_solver_get_statistics (SparseSolver *solver)
+{
+    return solver->statistics;
+}
+
+
 /**
  * sparse_solver_free:
  */

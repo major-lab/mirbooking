@@ -56,6 +56,8 @@ void   sparse_matrix_set_double (SparseMatrix *matrix, size_t i, size_t j, doubl
 double sparse_matrix_get_double (SparseMatrix *matrix, size_t i, size_t j);
 void   sparse_matrix_set_double (SparseMatrix *matrix, size_t i, size_t j, double v);
 
+typedef struct _SparseSolver SparseSolver;
+
 typedef enum _SparseSolverMethod
 {
     SPARSE_SOLVER_METHOD_SUPERLU,
@@ -66,11 +68,17 @@ typedef enum _SparseSolverMethod
     SPARSE_SOLVER_METHOD_CUSOLVER
 } SparseSolverMethod;
 
-typedef struct _SparseSolver SparseSolver;
+typedef struct _SparseSolverStatistics
+{
+    double reorder_time;
+    double factor_time;
+    double solve_time;
+    double flops;
+} SparseSolverStatistics;
 
-SparseSolver * sparse_solver_new         (SparseSolverMethod solver_method);
-void           sparse_solver_set_verbose (SparseSolver *solver, int verbose);
-int            sparse_solver_solve       (SparseSolver *solver, SparseMatrix *A, void *x, void *b);
-void           sparse_solver_free        (SparseSolver *solver);
+SparseSolver *         sparse_solver_new            (SparseSolverMethod solver_method);
+int                    sparse_solver_solve          (SparseSolver *solver, SparseMatrix *A, void *x, void *b);
+SparseSolverStatistics sparse_solver_get_statistics (SparseSolver *solver);
+void                   sparse_solver_free           (SparseSolver *solver);
 
 #endif /* __SPARSE_H__ */
