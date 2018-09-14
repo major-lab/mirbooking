@@ -2,6 +2,9 @@
 
 #include <math.h>
 
+#define R 1.987203611e-3
+#define T 310.15
+
 typedef struct
 {
     GBytes  *score_table_bytes;
@@ -64,7 +67,14 @@ _compute_seed_score (const gfloat *data,
     return ret.f;
 }
 
-static gfloat
+static gdouble
+_compute_Kd (gfloat deltaG)
+{
+    return 1e9 * exp (deltaG / (R * T));
+}
+
+
+static gdouble
 compute_score (MirbookingScoreTable *score_table,
                MirbookingMirna      *mirna,
                MirbookingTarget     *target,
@@ -100,10 +110,11 @@ compute_score (MirbookingScoreTable *score_table,
     gsize  data_len;
     const gfloat *data = g_bytes_get_data (self->priv->score_table_bytes, &data_len);
 
-    return _compute_seed_score (data, data_len, i, j, seed_len) + mirbooking_target_get_accessibility_score (target, position);
+    return _compute_Kd (_compute_seed_score (data, data_len, i, j, seed_len) + mirbooking_target_get_accessibility_score (target, position));
+
 }
 
-static gfloat *
+static gdouble *
 compute_scores (MirbookingScoreTable  *score_table,
                 MirbookingMirna       *mirna,
                 MirbookingTarget      *target,
@@ -133,17 +144,17 @@ compute_scores (MirbookingScoreTable  *score_table,
     gsize total_positions_len = seq_len - seed_len + 1;
 
     gsize  *_positions   = g_malloc (total_positions_len * sizeof (gsize));
-    gfloat *_seed_scores = g_malloc (total_positions_len * sizeof (gfloat));
+    gdouble *_seed_scores = g_malloc (total_positions_len * sizeof (gdouble));
 
     gsize p;
     for (p = 0; p < total_positions_len; p++)
     {
-        gfloat score = _compute_seed_score (data, data_len, i, j, seed_len) + mirbooking_target_get_accessibility_score (target, p);
+        gdouble score = _compute_seed_score (data, data_len, i, j, seed_len) + mirbooking_target_get_accessibility_score (target, p);
 
         if (score < INFINITY)
         {
             _positions[k]   = p;
-            _seed_scores[k] = score;
+            _seed_scores[k] = _compute_Kd (score);
             ++k;
         }
 
@@ -162,6 +173,17 @@ compute_scores (MirbookingScoreTable  *score_table,
     *positions_len = k;
 
     return _seed_scores;
+}
+
+static gdouble
+compute_enzymatic_score (MirbookingScoreTable *score_table,
+                         MirbookingMirna      *mirna,
+                         MirbookingTarget     *target,
+                         gsize                 position,
+                         GError              **error)
+{
+    // This will result into kcat = 0
+    return pow (compute_score (score_table, mirna, target, position, error), 2.0);
 }
 
 enum
@@ -217,8 +239,9 @@ mirbooking_precomputed_score_table_class_init (MirbookingPrecomputedScoreTableCl
     object_class->set_property = mirbooking_precomputed_score_table_set_property;
     object_class->finalize     = mirbooking_precomputed_score_table_finalize;
 
-    klass->parent_class.compute_score  = compute_score;
-    klass->parent_class.compute_scores = compute_scores;
+    klass->parent_class.compute_score           = compute_score;
+    klass->parent_class.compute_scores          = compute_scores;
+    klass->parent_class.compute_enzymatic_score = compute_enzymatic_score;
 
     g_object_class_install_property (object_class,
                                      PROP_SCORE_TABLE,

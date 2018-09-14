@@ -11,9 +11,6 @@
 #include <sparse.h>
 #include <stdio.h>
 
-#define R 1.987203611e-3
-#define T 310.15
-
 typedef struct _IntegratorMeta
 {
     const gchar *name;
@@ -36,7 +33,7 @@ const IntegratorMeta INTEGRATOR_META[] =
 
 typedef struct _MirbookingTargetSitesScores
 {
-    gfloat    *seed_scores;
+    gdouble   *seed_scores;
     gsize     *positions;
     gsize      positions_len;
     GPtrArray *occupants;
@@ -187,10 +184,11 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
 }
 
 static void
-mirbooking_occupant_init (MirbookingOccupant* self, MirbookingMirna *mirna, gfloat score)
+mirbooking_occupant_init (MirbookingOccupant* self, MirbookingMirna *mirna, gdouble score, gdouble enzymatic_score)
 {
     self->mirna = g_object_ref (mirna);
     self->score = score;
+    self->enzymatic_score = enzymatic_score;
 }
 
 
@@ -675,7 +673,12 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
             {
                 MirbookingTargetSite *target_site = &target_sites[seed_scores->positions[p]];
                 MirbookingOccupant *occupant = &self->priv->occupants[k++];
-                mirbooking_occupant_init (occupant, mirna, seed_scores->seed_scores[p]);
+                gdouble enzymatic_score = mirbooking_score_table_compute_enzymatic_score (self->priv->score_table,
+                                                                                          mirna,
+                                                                                          target_site->target,
+                                                                                          seed_scores->positions[p],
+                                                                                          NULL);
+                mirbooking_occupant_init (occupant, mirna, seed_scores->seed_scores[p] / self->priv->kappa, enzymatic_score / self->priv->kappa);
                 target_site->occupants = g_slist_prepend (target_site->occupants, occupant);
                 g_ptr_array_add (seed_scores->occupants, occupant);
             }
@@ -900,14 +903,13 @@ _mirbooking_broker_step (MirbookingBroker             *self,
 
                 if (iter_mode == MIRBOOKING_BROKER_ITER_MODE_EVALUATE)
                 {
-                    gfloat score = occupant->score;
-
                     // The dissociation constant is derived from the duplex's Gibbs
                     // free energy
-                    gdouble duplex_Kd = 1e9 * exp (score / (R*T)); // nM
-
-                    // compute the dissociation constant
-                    gdouble Kd = duplex_Kd / self->priv->kappa; // nM -> FPKM
+                    // We convert it to nanomolar and then using kappa, to the
+                    // concentration units which are typically FPKM from
+                    // high-throughput sequencing
+                    gdouble Kd = occupant->score;
+                    gdouble Km = occupant->enzymatic_score;
 
                     // Here we apply a Michaelis-Menten kinetics
                     gdouble E  = self->priv->E[j];
@@ -919,11 +921,9 @@ _mirbooking_broker_step (MirbookingBroker             *self,
                     gdouble ES = self->priv->ES[k];
                     gdouble P  = self->priv->P[k];
 
-                    const gdouble kf = self->priv->lambda / Kd;
-                    const gdouble kr = self->priv->lambda * Kd;
-
-                    // TODO: we need to implement a catalytic model
-                    const gdouble kcat = self->priv->lambda * 0;
+                    const gdouble kf   = self->priv->lambda / Kd;
+                    const gdouble kr   = self->priv->lambda * Kd;
+                    const gdouble kcat = 0; // TODO: Km * kf - kr;
 
                     // dE/dt
                     gdouble dEdt  = -kf * E * S + kr * ES + kcat * ES;

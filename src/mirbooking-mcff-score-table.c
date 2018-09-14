@@ -3,6 +3,9 @@
 #include <math.h>
 #include <stdio.h>
 
+#define R 1.987203611e-3
+#define T 310.15
+
 struct _MirbookingMcffScoreTable
 {
     MirbookingScoreTable parent_instance;
@@ -10,7 +13,7 @@ struct _MirbookingMcffScoreTable
 
 G_DEFINE_TYPE (MirbookingMcffScoreTable, mirbooking_mcff_score_table, MIRBOOKING_TYPE_SCORE_TABLE);
 
-static gfloat
+static gdouble
 compute_score (MirbookingScoreTable *score_table,
                MirbookingMirna      *mirna,
                MirbookingTarget     *target,
@@ -42,10 +45,10 @@ compute_score (MirbookingScoreTable *score_table,
         return INFINITY;
     }
 
-    gfloat ret;
-    sscanf (standard_output, "%f", &ret);
+    gfloat mfe;
+    sscanf (standard_output, "%f", &mfe);
 
-    return ret;
+    return 1e9 * exp (mfe / (R * T));
 }
 
 static void

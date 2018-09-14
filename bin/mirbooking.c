@@ -379,7 +379,7 @@ write_output_to_tsv (MirbookingBroker *mirbooking,
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
         {
             MirbookingOccupant *occupant = occupants->data;
-            g_fprintf (output_f, "%s\t%s\t%e\t%.2f\t%lu\t%s\t%.2f\t%s\t%s\t%e\t%.2f\t%e\n",
+            g_fprintf (output_f, "%s\t%s\t%e\t%.2f\t%lu\t%s\t%.2f\t%s\t%s\t%e\t%e\t%e\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        target_quantity,

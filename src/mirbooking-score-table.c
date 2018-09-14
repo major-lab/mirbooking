@@ -28,10 +28,13 @@ mirbooking_score_table_class_init (MirbookingScoreTableClass *klass)
  * substring of a fixed length and evaluating the score table at its
  * corresponding index.
  *
- * Returns: The corresponding score as a #gfloat or %0.0f and %error will be
+ * The score correspond to the dissociation constant (Kd) expressed in
+ * nanomolars units (nM).
+ *
+ * Returns: The corresponding score as a #gdouble or %0.0f and %error will be
  * set, unless the score was really zero.
  */
-gfloat
+gdouble
 mirbooking_score_table_compute_score (MirbookingScoreTable *self,
                                       MirbookingMirna      *mirna,
                                       MirbookingTarget     *target,
@@ -60,10 +63,10 @@ mirbooking_score_table_compute_score (MirbookingScoreTable *self,
  * #target. This is much more efficient than traversing all the positions of a
  * target.
  *
- * Returns: A #gfloat vector of #positions_len entries where corresponding
+ * Returns: A #gdouble vector of #positions_len entries where corresponding
  * position on the target is given by the #positions out array.
  */
-gfloat *
+gdouble *
 mirbooking_score_table_compute_scores (MirbookingScoreTable  *self,
                                        MirbookingMirna       *mirna,
                                        MirbookingTarget      *target,
@@ -83,4 +86,30 @@ mirbooking_score_table_compute_scores (MirbookingScoreTable  *self,
                                   positions,
                                   positions_len,
                                   error);
+}
+
+/**
+ * mirbooking_score_table_compute_enzymatic_score:
+ *
+ * Compute an enzymatic score, which corresponds to the catalytic efficiency
+ * (Km) expressed in nanomolar unit (nM).
+ */
+gdouble
+mirbooking_score_table_compute_enzymatic_score (MirbookingScoreTable *self,
+                                                MirbookingMirna      *mirna,
+                                                MirbookingTarget     *target,
+                                                gsize                 position,
+                                                GError              **error)
+{
+    g_return_val_if_fail (self != NULL, 0.0f);
+    g_return_val_if_fail (mirna != NULL, 0.0f);
+    g_return_val_if_fail (target != NULL, 0.0f);
+
+    MirbookingScoreTableClass *klass = MIRBOOKING_SCORE_TABLE_GET_CLASS (self);
+
+    return klass->compute_enzymatic_score (self,
+                                           mirna,
+                                           target,
+                                           position,
+                                           error);
 }

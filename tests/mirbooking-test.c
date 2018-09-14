@@ -2,6 +2,9 @@
 #include <mirbooking.h>
 #include <string.h>
 
+#define R 1.987203611e-3
+#define T 310.15
+
 static gfloat SCORE_TABLE[16384][16384];
 
 static gchar *TARGET_SEQUENCE =
@@ -119,7 +122,7 @@ test_mirbooking ()
 
     MirbookingOccupant *occupant = target_site.occupants->data;
 
-    g_assert_cmpfloat (occupant->score, ==, -19.0);
+    g_assert_cmpfloat (occupant->score, ==, (1e9/MIRBOOKING_BROKER_DEFAULT_KAPPA) * exp (-19.0 / (R*T)));
     g_assert_cmpfloat (mirbooking_broker_get_occupant_quantity (mirbooking, occupant), >, 0);
 }
 

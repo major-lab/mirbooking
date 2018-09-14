@@ -4,6 +4,9 @@
 #include <string.h>
 #include <math.h>
 
+#define R 1.987203611e-3
+#define T 310.15
+
 static gfloat SCORE_TABLE[16384][16384];
 
 static gfloat
@@ -43,12 +46,12 @@ test_score_table_compute_seed_score ()
 
     // test for a seed
     g_autoptr (GError) error = NULL;
-    gfloat site_score = mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
-                                                              mirna,     // GAGGUAG =>
-                                                              target, 1, // CACACAG =>
-                                                              &error);
+    gdouble site_score = mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
+                                                               mirna,     // GAGGUAG =>
+                                                               target, 1, // CACACAG =>
+                                                               &error);
 
-    g_assert_cmpfloat (site_score, ==, -20.0);
+    g_assert_cmpfloat (site_score, ==, 1e9 * exp (-20.0f / (R * T)));
     g_assert_null (error);
 }
 
@@ -74,13 +77,13 @@ test_score_table_mcff ()
 
     // test for a seed
     g_autoptr (GError) error = NULL;
-    gfloat site_score = mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
-                                                              mirna,     // GAGGUAG =>
-                                                              target, 1, // CACACAG =>
-                                                              &error);
+    gdouble site_score = mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
+                                                               mirna,     // GAGGUAG =>
+                                                               target, 1, // CACACAG =>
+                                                               &error);
 
     g_assert_null (error);
-    g_assert_cmpfloat (site_score, ==, -7.09f);
+    g_assert_cmpfloat (site_score, ==, 1e9 * exp (-7.09f / (R * T)));
 }
 
 int main (int argc, gchar **argv)

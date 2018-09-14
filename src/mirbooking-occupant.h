@@ -10,7 +10,8 @@ G_BEGIN_DECLS
 typedef struct _MirbookingOccupant
 {
     MirbookingMirna *mirna;
-    gfloat           score; /* cumulative of all Gibbs free energy scores */
+    gdouble          score;
+    gdouble          enzymatic_score;
 } MirbookingOccupant;
 
 G_END_DECLS
