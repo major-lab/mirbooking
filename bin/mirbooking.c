@@ -37,8 +37,8 @@ static gboolean                       output_format             = MIRBOOKING_OUT
 static MirbookingBrokerSparseSolver   sparse_solver             = MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER;
 static gdouble                        tolerance                 = MIRBOOKING_DEFAULT_TOLERANCE;
 static guint64                        max_iterations            = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
-static gsize                          seed_offset               = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET;
-static gsize                          seed_length               = MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH;
+static gsize                          seed_offset               = MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SEED_OFFSET;
+static gsize                          seed_length               = MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SEED_LENGTH;
 static gsize                          prime5_footprint          = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
 static gsize                          prime3_footprint          = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
 static gboolean                       verbose                   = FALSE;
@@ -101,8 +101,8 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"sparse-solver",        0, 0, G_OPTION_ARG_CALLBACK,       &set_sparse_solver,         "Sparse solver implementation to use",                                                              G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER)},
     {"tolerance",            0, 0, G_OPTION_ARG_DOUBLE,         &tolerance,                 "Absolute tolerance for the system norm to declare convergence",                                    G_STRINGIFY (MIRBOOKING_DEFAULT_TOLERANCE)},
     {"max-iterations",       0, 0, G_OPTION_ARG_INT,            &max_iterations,            "Maximum number of iterations",                                                                     G_STRINGIFY (MIRBOOKING_DEFAULT_MAX_ITERATIONS)},
-    {"seed-offset",          0, 0, G_OPTION_ARG_INT,            &seed_offset,               "MiRNA seed offset",                                                                                G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
-    {"seed-length",          0, 0, G_OPTION_ARG_INT,            &seed_length,               "MiRNA seed length",                                                                                G_STRINGIFY (MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
+    {"seed-offset",          0, 0, G_OPTION_ARG_INT,            &seed_offset,               "MiRNA seed offset",                                                                                G_STRINGIFY (MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SEED_OFFSET)},
+    {"seed-length",          0, 0, G_OPTION_ARG_INT,            &seed_length,               "MiRNA seed length",                                                                                G_STRINGIFY (MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SEED_LENGTH)},
     {"5prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime5_footprint,          "Footprint in the MRE's 5' direction",                                                              G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
     {"3prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime3_footprint,          "Footprint in the MRE's 3' direction",                                                              G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
     {"verbose",              0, 0, G_OPTION_ARG_NONE,           &verbose,                   "Turn on verbose output",                                                                           NULL},
@@ -464,70 +464,30 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    GBytes *score_map_bytes;
-    gsize l = (1l << 2 * seed_length) * (1l << 2 * seed_length);
+    g_autoptr (GMappedFile) seed_scores_map = g_mapped_file_new (seed_scores_file, FALSE, &error);
 
-    if (g_str_has_suffix (seed_scores_file, ".gz"))
+    if (seed_scores_map == NULL)
     {
-        g_autoptr (GZlibDecompressor) gzip_decompressor = g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP);
-        g_autoptr (GFile) f = g_file_new_for_path (seed_scores_file);
-        g_autoptr (GFileInputStream) seed_scores_file_in = g_file_read (f,
-                                                                        NULL,
-                                                                        &error);
-
-        if (seed_scores_file_in == NULL)
-        {
-            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-            return EXIT_FAILURE;
-        }
-
-        g_autoptr (GInputStream) seed_scores_in = g_converter_input_stream_new (G_INPUT_STREAM (seed_scores_file_in),
-                                                                                G_CONVERTER (gzip_decompressor));
-
-        gfloat *buffer = g_new (gfloat, l);
-        gsize bytes_read;
-        gboolean ret;
-        ret = g_input_stream_read_all (seed_scores_in,
-                                       buffer,
-                                       l * sizeof (gfloat),
-                                       &bytes_read,
-                                       NULL,
-                                       &error);
-
-        if (!ret)
-        {
-            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-            g_free (buffer);
-            return EXIT_FAILURE;
-        }
-
-        score_map_bytes = g_bytes_new_take (buffer,
-                                            bytes_read);
-    }
-    else
-    {
-        g_autoptr (GMappedFile) score_map = g_mapped_file_new (seed_scores_file, FALSE, &error);
-
-        if (score_map == NULL)
-        {
-            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-            return EXIT_FAILURE;
-        }
-
-        score_map_bytes = g_mapped_file_get_bytes (score_map);
-    }
-
-    if (g_bytes_get_size (score_map_bytes) != l * sizeof (gfloat))
-    {
-        g_printerr ("The specified '--seed-length' parameter would require a %luB score table, but %luB were provided.\n",
-                    l * sizeof (gfloat),
-                    g_bytes_get_size (score_map_bytes));
+        g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
         return EXIT_FAILURE;
     }
 
-    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (score_map_bytes,
-                                                                                                                 seed_offset,
-                                                                                                                 seed_length);
+    g_autoptr (GBytes) seed_scores_map_bytes = g_mapped_file_get_bytes (seed_scores_map);
+
+    gsize seed_scores_map_bytes_len;
+    gsize n = *(const gsize*) g_bytes_get_data (seed_scores_map_bytes,
+                                                &seed_scores_map_bytes_len);
+
+    // we require at least 'n' and 'nnz'
+    if (seed_scores_map_bytes_len < 2 || (1l << 2 * seed_length) != n)
+    {
+        g_printerr ("The specified '--seed-length' parameter is not compatible with the provided score table.\n");
+        return EXIT_FAILURE;
+    }
+
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (seed_scores_map_bytes,
+                                                                                                         seed_offset,
+                                                                                                         seed_length);
     mirbooking_broker_set_score_table (mirbooking,
                                        MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 

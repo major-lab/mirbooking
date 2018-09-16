@@ -4,7 +4,7 @@
 #include "mirbooking-broker.h"
 #include "mirbooking-mirna.h"
 #include "mirbooking-occupant.h"
-#include "mirbooking-precomputed-score-table.h"
+#include "mirbooking-default-score-table.h"
 #include "mirbooking-mcff-score-table.h"
 #include "mirbooking-score-table.h"
 #include "mirbooking-sequence.h"

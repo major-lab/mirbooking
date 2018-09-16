@@ -7,25 +7,29 @@
 #define R 1.987203611e-3
 #define T 310.15
 
-static gfloat SCORE_TABLE[16384][16384];
-
-static gfloat
-gfloat_to_be (gfloat f)
+typedef struct __attribute__ ((packed)) _SparseMatrixMem
 {
-    union {
-        gint32 i;
-        gfloat f;
-    } val;
-    val.f = f;
-    val.i = GINT32_TO_BE (val.i);
-    return val.f;
-}
+    gsize  n;
+    gsize  nnz;
+    gsize  rowptr[16384 + 1];
+    gsize  colind[4];
+    gfloat data[4];
+} SeedScoreLayout;
+
+static SeedScoreLayout SEED_SCORES =
+{
+    16384,
+    4,
+    {[8882] = 0, [8883] = 4},
+    {4370,    4371,   4372,   9284},
+    {-20.0f, -19.0f, -18.0f, -19.0f},
+};
 
 static void
 test_score_table_compute_seed_score ()
 {
-    g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
-    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table, 1, 7);
+    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 1, 7);
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT");
@@ -38,11 +42,6 @@ test_score_table_compute_seed_score ()
 
     g_assert_cmpmem (mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), 1, 7), 7, "CACACAG", 7);
     g_assert_cmpmem (mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), 1, 7), 7, "GAGGUAG", 7);
-
-    // 3-state Botlzmann
-    SCORE_TABLE[8882][4370] = gfloat_to_be (-20.0);
-    SCORE_TABLE[8882][4371] = gfloat_to_be (-19.0);
-    SCORE_TABLE[8882][4372] = gfloat_to_be (-18.0);
 
     // test for a seed
     g_autoptr (GError) error = NULL;
@@ -58,6 +57,37 @@ test_score_table_compute_seed_score ()
 static void
 test_score_table_compute_seed_scores ()
 {
+    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 1, 7);
+
+    g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM");
+    g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT");
+
+    gchar *target_seq = "GCACACAGAGCAGCATAAAGCCCAGTTGCTTTGGGAAGTGTTTGGGACCAGATGGATTGT";
+    gchar *mirna_seq = "UGAGGUAGUAGGUUGUAUAGUU";
+
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), target_seq, strlen (target_seq));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), mirna_seq, strlen (mirna_seq));
+
+    g_assert_cmpmem (mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), 1, 7), 7, "CACACAG", 7);
+    g_assert_cmpmem (mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), 1, 7), 7, "GAGGUAG", 7);
+
+    // test for a seed
+    g_autoptr (GError) error = NULL;
+    gsize *positions;
+    gsize  positions_len;
+    gdouble *site_scores = mirbooking_score_table_compute_scores (MIRBOOKING_SCORE_TABLE (score_table),
+                                                                  mirna,     // GAGGUAG =>
+                                                                  target, &positions, // CACACAG =>
+                                                                  &positions_len,
+                                                                  &error);
+
+    g_assert_nonnull (site_scores);
+    g_assert_nonnull (positions);
+    g_assert_cmpint (positions_len, ==, 2);
+    g_assert_cmpfloat (site_scores[0], ==, 1e9 * exp (-19.0f / (R * T)));
+    g_assert_cmpfloat (site_scores[1], ==, 1e9 * exp (-20.0f / (R * T)));
+    g_assert_null (error);
 }
 
 static void
@@ -89,8 +119,6 @@ test_score_table_mcff ()
 int main (int argc, gchar **argv)
 {
     g_test_init (&argc, &argv, NULL);
-
-    SCORE_TABLE[8882][9284] = gfloat_to_be (-19.0);
 
     g_test_add_func ("/score-table/compute-seed-score", test_score_table_compute_seed_score);
     g_test_add_func ("/score-table/compute-seed-scores", test_score_table_compute_seed_scores);

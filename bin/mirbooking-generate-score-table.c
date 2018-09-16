@@ -5,22 +5,23 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <string.h>
+
+#include <sparse.h>
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
-static gchar  *mcff           = "mcff";
-static gsize   seed_length    = 7;
-static gint    max_mismatches = 1;
-static gchar  *output         = NULL;
+static gchar  *mcff   = "mcff";
+static gchar  *mask   = NULL;
+static gchar  *output = NULL;
 
 static gchar *nt = "ACGT";
 
 static const GOptionEntry MIRBOOKING_GENERATE_SCORE_TABLE_OPTIONS[] =
 {
-    {"mcff",           0, 0, G_OPTION_ARG_FILENAME,     &mcff,           NULL, "mcff"},
-    {"seed-length",    0, 0, G_OPTION_ARG_INT,          &seed_length,    NULL, "7"},
-    {"max-mismatches", 0, 0, G_OPTION_ARG_INT,          &max_mismatches, NULL, "1"},
-    {"output",         0, 0, G_OPTION_ARG_FILENAME,     &output,         NULL, "FILE"},
+    {"mcff",   0, 0, G_OPTION_ARG_FILENAME, &mcff,   NULL, "mcff"},
+    {"mask",   0, 0, G_OPTION_ARG_STRING,   &mask,   NULL, "......x"},
+    {"output", 0, 0, G_OPTION_ARG_FILENAME, &output, NULL, "FILE"},
     {NULL}
 };
 
@@ -42,19 +43,13 @@ rc (gchar c)
     }
 }
 
-static gfloat
-gfloat_to_be (gfloat f)
+/**
+ * Compute the fourth integer power efficiently using bit-shift.
+ */
+static gsize
+pow4 (gsize k)
 {
-    union
-    {
-        gfloat f;
-        gint i;
-    } ret;
-
-    ret.f = f;
-    ret.i = GINT_TO_BE (ret.i);
-
-    return ret.f;
+    return 1l << 2 * k;
 }
 
 gint
@@ -74,15 +69,11 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    if (seed_length < 1 || seed_length >= 16)
-    {
-        g_printerr ("The '--seed-length' argument must be between 1 and 15.\n");
-        return EXIT_FAILURE;
-    }
+    gsize seed_length = strlen (mask);
 
-    if (max_mismatches < 0 || max_mismatches > seed_length)
+    if (seed_length < 2 || seed_length >= 16)
     {
-        g_printerr ("The '--max-mismatches' argument must be between 0 and the seed length.\n");
+        g_printerr ("The mask must be formed of at least 2 nucleotides.\n");
         return EXIT_FAILURE;
     }
 
@@ -92,39 +83,81 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    gsize l = 1l << 2 * seed_length;
+    gsize n   = pow4 (seed_length);
+    gsize nnz = 1;
+    gint z;
+    for (z = 0; z < seed_length; z++)
+    {
+        switch (mask[z])
+        {
+            case '.':
+                nnz *= 4;
+                break;
+            case 'x':
+                nnz *= 16;
+                break;
+            default:
+                g_printerr ("Unknown symbol '%c' in mask at position %d.", mask[z], z);
+                return EXIT_FAILURE;
+        }
+    }
+
+    g_debug ("n: %lu nnz %lu\n", n, nnz);
+
+    gsize file_len = sizeof (gsize) + sizeof (gsize) + (n + 1) * sizeof (gsize) + + nnz * sizeof (gsize) + nnz * sizeof (gfloat);
 
     g_autoptr (FILE) f = fopen (output, "w+");
 
-    ftruncate (fileno (f), l * l * sizeof (gfloat));
+    ftruncate (fileno (f), file_len);
 
-    // big-endian floats
-    gfloat *table = mmap (NULL,
-                          l * l * sizeof (gfloat),
-                          PROT_WRITE,
-                          MAP_SHARED,
-                          fileno (f),
-                          0);
+    gsize *table = mmap (NULL,
+                         file_len,
+                         PROT_WRITE,
+                         MAP_SHARED,
+                         fileno (f),
+                         0);
 
     if (table == MAP_FAILED)
     {
-        g_printerr ("Failed to map %luB of memory.\n", l*l*sizeof(gfloat));
+        g_printerr ("Failed to map %luB of memory.\n", file_len);
         return EXIT_FAILURE;
     }
 
-    gsize i,j;
-
-    gsize completed = 0;
-
     g_return_val_if_fail (seed_length < 16, EXIT_FAILURE);
 
-    #pragma omp parallel for collapse(2) schedule(static)
-    for (i = 0; i < l; i++)
-    {
-        for (j = 0; j < l; j++)
-        {
-            gsize k = i * l + j;
+    SparseMatrix sm;
+    sm.storage        = SPARSE_MATRIX_STORAGE_CSR;
+    sm.type           = SPARSE_MATRIX_TYPE_FLOAT;
+    sm.shape[0]       = n;
+    sm.shape[1]       = n;
+    sm.s.csr.nnz      = nnz;
+    sm.s.csr.rowptr   = table + 2;
+    sm.s.csr.colind   = table + 2 + n + 1;
+    sm.default_data.f = INFINITY;
+    sm.data           = (gfloat*) (table + 2 + n + 1 + nnz);
 
+    table[0] = n;
+    table[1] = nnz;
+
+    gsize i;
+
+    // all rows are equally-sized
+    // note that this initialization step cannot be performed in parallel
+    // because rowptr are attributed in a order-dependent manner
+    #pragma omp parallel for
+    for (i = 0; i <= n; i++)
+    {
+        sm.s.csr.rowptr[i] = i * (nnz / n);
+    }
+
+    gsize completed = 0;
+    #pragma omp parallel for
+    for (i = 0; i < n; i++)
+    {
+        gsize j;
+        gsize k = 0;
+        for (j = 0; j < n; j++)
+        {
             gchar mir_seed[16];
             gchar mre_seed[16];
 
@@ -138,17 +171,20 @@ main (gint argc, gchar **argv)
             mir_seed[seed_length] = '\0';
             mre_seed[seed_length] = '\0';
 
-            // reverse-complement hamming distance
+            // reverse-complement hamming distance for the seed for paired
+            // positions
             gint distance = 0;
             for (z = 0; z < seed_length; z++)
             {
-                distance += mir_seed[z] != rc(mre_seed[seed_length - z - 1]);
+                if (mask[z] == '.')
+                {
+                    distance += mir_seed[z] != rc(mre_seed[seed_length - z - 1]);
+                }
             }
 
-            gfloat mfe;
-
-            if (distance <= max_mismatches)
+            if (distance == 0)
             {
+                gfloat mfe;
                 gchar *mcff_argv[] = {mcff, "-seq", mre_seed, "-zzd", mir_seed, NULL};
                 gchar *standard_output;
                 gchar *standard_error;
@@ -180,26 +216,25 @@ main (gint argc, gchar **argv)
                     g_printerr ("%s", standard_error);
                     exit (EXIT_FAILURE);
                 }
-            }
-            else
-            {
-                mfe = INFINITY;
-            }
 
-            table[k] = gfloat_to_be (mfe);
+                sm.s.csr.colind[sm.s.csr.rowptr[i] + k]     = j;
+                ((gfloat*)sm.data) [sm.s.csr.rowptr[i] + k] = mfe;
+
+                ++k;
+            }
 
             #pragma omp atomic
             ++completed;
 
             #pragma omp critical
-            if (completed % l == 0)
+            if (completed % n == 0)
             {
-                g_print ("Completed %f%% (%lu/%lu)\n", 100.0 * (gdouble) completed / (gdouble) (l * l), completed, l * l);
+                g_print ("Completed %f%% (%lu/%lu)\n", 100.0 * (gdouble) completed / (gdouble) (n * n), completed, n * n);
             }
         }
     }
 
-    munmap (table, l * l * sizeof (gfloat));
+    munmap (table, file_len);
 
     return EXIT_SUCCESS;
 }

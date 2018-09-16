@@ -1,11 +1,28 @@
 #include <glib.h>
 #include <mirbooking.h>
 #include <string.h>
+#include <math.h>
 
 #define R 1.987203611e-3
 #define T 310.15
 
-static gfloat SCORE_TABLE[16384][16384];
+typedef struct __attribute__ ((packed)) _SparseMatrixMem
+{
+    gsize  n;
+    gsize  nnz;
+    gsize  rowptr[16384 + 1];
+    gsize  colind[4];
+    gfloat data[4];
+} SeedScoreLayout;
+
+static SeedScoreLayout SEED_SCORES =
+{
+    16384,
+    4,
+    {[8882] = 0, [8883] = 4},
+    {4370,    4371,   4372,   9284},
+    {-20.0f, -19.0f, -18.0f, -19.0f},
+};
 
 static gchar *TARGET_SEQUENCE =
     "GCACACAGAGCAGCATAAAGCCCAGTTGCTTTGGGAAGTGTTTGGGACCAGATGGATTGT"
@@ -94,8 +111,8 @@ test_mirbooking ()
 {
     g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new ();
 
-    g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
-    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table, 1, 7);
+    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 1, 7);
     mirbooking_broker_set_score_table (mirbooking, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
@@ -131,8 +148,8 @@ test_mirbooking_empty ()
 {
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
-    g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
-    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table, 1, 7);
+    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 1, 7);
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     gdouble norm;
@@ -145,8 +162,8 @@ test_mirbooking_bad_seed_range ()
 {
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
-    g_autoptr (GBytes) precomputed_table = g_bytes_new_static (SCORE_TABLE, sizeof (SCORE_TABLE));
-    g_autoptr (MirbookingPrecomputedScoreTable) score_table = mirbooking_precomputed_score_table_new_from_bytes (precomputed_table, 18, 7);
+    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 18, 7);
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");

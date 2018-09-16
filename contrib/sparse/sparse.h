@@ -36,6 +36,11 @@ typedef struct _SparseMatrix
             size_t *rowptr;
         } csr;
     } s;
+    union
+    {
+        float f;
+        double d;
+    } default_data;
     void *data;
     /* optimal row and col permutations */
     size_t *colperm;

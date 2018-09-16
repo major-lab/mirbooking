@@ -54,11 +54,14 @@ sparse_matrix_init (SparseMatrix        *matrix,
     matrix->s.csr.colind = calloc (nnz, sizeof (size_t));
     matrix->s.csr.rowptr = calloc (shape[0] + 1, sizeof (size_t));
 
+    /* default is zero */
+    memset (&matrix->default_data, sizeof (matrix->default_data), 0);
+
     /* storage */
     matrix->data = calloc (nnz, _size_for_type (matrix->type));
 
     matrix->colperm = calloc (shape[1], sizeof (size_t));
-    matrix->rowperm = calloc (shape[0], sizeof (size_t));;
+    matrix->rowperm = calloc (shape[0], sizeof (size_t));
 }
 
 void
@@ -118,7 +121,7 @@ sparse_matrix_get_float (SparseMatrix *matrix, size_t i, size_t j)
 
     if (k == -1)
     {
-        return 0;
+        return matrix->default_data.f;
     }
 
     return ((float*)matrix->data)[k];
@@ -134,7 +137,7 @@ sparse_matrix_get_double (SparseMatrix *matrix, size_t i, size_t j)
 
     if (k == -1)
     {
-        return 0;
+        return matrix->default_data.d;
     }
 
     return ((double*)matrix->data)[k];

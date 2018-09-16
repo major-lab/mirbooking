@@ -1,78 +1,84 @@
-#include "mirbooking-precomputed-score-table.h"
+#include "mirbooking-default-score-table.h"
 
 #include <math.h>
+#include <sparse.h>
 
 #define R 1.987203611e-3
 #define T 310.15
 
 typedef struct
 {
-    GBytes  *score_table_bytes;
-    gsize    seed_offset;
-    gsize    seed_length;
-} MirbookingPrecomputedScoreTablePrivate;
+    GBytes       *seed_scores_bytes;
+    SparseMatrix  seed_scores; /* view over @seed_scores_bytes */
+    gsize         seed_offset;
+    gsize         seed_length;
+} MirbookingDefaultScoreTablePrivate;
 
-struct _MirbookingPrecomputedScoreTable
+struct _MirbookingDefaultScoreTable
 {
     MirbookingScoreTable parent_instance;
-    MirbookingPrecomputedScoreTablePrivate *priv;
+    MirbookingDefaultScoreTablePrivate *priv;
 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (MirbookingPrecomputedScoreTable, mirbooking_precomputed_score_table, MIRBOOKING_TYPE_SCORE_TABLE)
+G_DEFINE_TYPE_WITH_PRIVATE (MirbookingDefaultScoreTable, mirbooking_default_score_table, MIRBOOKING_TYPE_SCORE_TABLE)
 
 static void
-mirbooking_precomputed_score_table_init (MirbookingPrecomputedScoreTable *self)
+mirbooking_default_score_table_init (MirbookingDefaultScoreTable *self)
 {
-    self->priv = g_new0 (MirbookingPrecomputedScoreTablePrivate, 1);
+    self->priv = g_new0 (MirbookingDefaultScoreTablePrivate, 1);
 }
 
 static void
-mirbooking_precomputed_score_table_finalize (GObject *object)
+mirbooking_default_score_table_constructed (GObject *object)
 {
-    MirbookingPrecomputedScoreTable *self = MIRBOOKING_PRECOMPUTED_SCORE_TABLE (object);
+    MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (object);
 
-    if (self->priv->score_table_bytes != NULL)
+    g_return_if_fail (self->priv->seed_scores_bytes != NULL);
+
+    const gsize *d = g_bytes_get_data (self->priv->seed_scores_bytes, NULL);
+
+    g_return_if_fail (d != NULL);
+
+    SparseMatrix *sm = &self->priv->seed_scores;
+
+    gsize n       = *d;
+    gsize nnz     = *(d + 1);
+    gsize* rowptr = d + 2;
+    gsize* colind = rowptr + n + 1;
+    gfloat* data  = (gfloat*) (colind + nnz);
+
+    /* initialize the sparse matrix */
+    sm->storage        = SPARSE_MATRIX_STORAGE_CSR;
+    sm->type           = SPARSE_MATRIX_TYPE_FLOAT;
+    sm->shape[0]       = n;
+    sm->shape[1]       = n;
+    sm->s.csr.nnz      = nnz;
+    sm->s.csr.colind   = colind;
+    sm->s.csr.rowptr   = rowptr;
+    sm->default_data.f = INFINITY;
+    sm->data           = data;
+}
+
+static void
+mirbooking_default_score_table_finalize (GObject *object)
+{
+    MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (object);
+
+    if (self->priv->seed_scores_bytes != NULL)
     {
-        g_bytes_unref (self->priv->score_table_bytes);
+        g_bytes_unref (self->priv->seed_scores_bytes);
     }
 
     g_free (self->priv);
 
-    G_OBJECT_CLASS (mirbooking_precomputed_score_table_parent_class)->finalize (object);
-}
-
-/**
- * Estimate the seed duplex free energy using a pre-computed table.
- */
-static gfloat
-_compute_seed_score (const gfloat *data,
-                     gsize         data_len,
-                     gsize         i,
-                     gsize         j,
-                     gsize         seed_len)
-{
-    union
-    {
-        gint32 i;
-        gfloat f;
-    } ret;
-
-    gsize k = i * (1l << 2 * seed_len) + j;
-
-    g_return_val_if_fail (k * sizeof (gfloat) < data_len, INFINITY);
-
-    ret.f = data[k];
-    ret.i = GINT32_FROM_BE (ret.i);
-
-    return ret.f;
+    G_OBJECT_CLASS (mirbooking_default_score_table_parent_class)->finalize (object);
 }
 
 static gdouble
-_compute_Kd (gfloat deltaG)
+_compute_Kd (gdouble deltaG)
 {
     return 1e9 * exp (deltaG / (R * T));
 }
-
 
 static gdouble
 compute_score (MirbookingScoreTable *score_table,
@@ -81,7 +87,7 @@ compute_score (MirbookingScoreTable *score_table,
                gsize                 position,
                GError              **error)
 {
-    MirbookingPrecomputedScoreTable *self = MIRBOOKING_PRECOMPUTED_SCORE_TABLE (score_table);
+    MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
 
     gsize seed_offset = self->priv->seed_offset;
     gsize seed_len    = self->priv->seed_length;
@@ -107,10 +113,7 @@ compute_score (MirbookingScoreTable *score_table,
         return INFINITY;
     }
 
-    gsize  data_len;
-    const gfloat *data = g_bytes_get_data (self->priv->score_table_bytes, &data_len);
-
-    return _compute_Kd (_compute_seed_score (data, data_len, i, j, seed_len) + mirbooking_target_get_accessibility_score (target, position));
+    return _compute_Kd (sparse_matrix_get_float (&self->priv->seed_scores, i, j) + mirbooking_target_get_accessibility_score (target, position));
 
 }
 
@@ -122,15 +125,12 @@ compute_scores (MirbookingScoreTable  *score_table,
                 gsize                 *positions_len,
                 GError               **error)
 {
-    MirbookingPrecomputedScoreTable *self = MIRBOOKING_PRECOMPUTED_SCORE_TABLE (score_table);
+    MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
 
     gsize k = 0;
 
     gsize seed_offset = self->priv->seed_offset;
     gsize seed_len    = self->priv->seed_length;
-
-    gsize  data_len;
-    const gfloat *data = g_bytes_get_data (self->priv->score_table_bytes, &data_len);
 
     gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
 
@@ -149,7 +149,7 @@ compute_scores (MirbookingScoreTable  *score_table,
     gsize p;
     for (p = 0; p < total_positions_len; p++)
     {
-        gdouble score = _compute_seed_score (data, data_len, i, j, seed_len) + mirbooking_target_get_accessibility_score (target, p);
+        gdouble score = sparse_matrix_get_float (&self->priv->seed_scores, i, j) + mirbooking_target_get_accessibility_score (target, p);
 
         if (score < INFINITY)
         {
@@ -188,18 +188,18 @@ compute_enzymatic_score (MirbookingScoreTable *score_table,
 
 enum
 {
-    PROP_SCORE_TABLE = 1,
+    PROP_SEED_SCORES = 1,
     PROP_SEED_OFFSET,
     PROP_SEED_LENGTH
 };
 
 static void
-mirbooking_precomputed_score_table_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+mirbooking_default_score_table_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
 {
     switch (property_id)
     {
-        case PROP_SCORE_TABLE:
-            g_value_set_boxed (value, MIRBOOKING_PRECOMPUTED_SCORE_TABLE (object)->priv->score_table_bytes);
+        case PROP_SEED_SCORES:
+            g_value_set_boxed (value, MIRBOOKING_DEFAULT_SCORE_TABLE (object)->priv->seed_scores_bytes);
             break;
         default:
                 g_assert_not_reached ();
@@ -207,17 +207,17 @@ mirbooking_precomputed_score_table_get_property (GObject *object, guint property
 }
 
 static void
-mirbooking_precomputed_score_table_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+mirbooking_default_score_table_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
-    MirbookingPrecomputedScoreTable *self = MIRBOOKING_PRECOMPUTED_SCORE_TABLE (object);
+    MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (object);
 
-    GBytes *precomputed_table;
+    GBytes *score_table;
 
     switch (property_id)
     {
-        case PROP_SCORE_TABLE:
-            precomputed_table = g_value_get_boxed (value);
-            self->priv->score_table_bytes = g_bytes_ref (precomputed_table);
+        case PROP_SEED_SCORES:
+            score_table = g_value_get_boxed (value);
+            self->priv->seed_scores_bytes = g_bytes_ref (score_table);
             break;
         case PROP_SEED_OFFSET:
             self->priv->seed_offset = g_value_get_uint (value);
@@ -226,71 +226,76 @@ mirbooking_precomputed_score_table_set_property (GObject *object, guint property
             self->priv->seed_length = g_value_get_uint (value);
             break;
         default:
-                g_assert_not_reached ();
+            g_assert_not_reached ();
     }
 }
 
 static void
-mirbooking_precomputed_score_table_class_init (MirbookingPrecomputedScoreTableClass *klass)
+mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->get_property = mirbooking_precomputed_score_table_get_property;
-    object_class->set_property = mirbooking_precomputed_score_table_set_property;
-    object_class->finalize     = mirbooking_precomputed_score_table_finalize;
+    object_class->constructed  = mirbooking_default_score_table_constructed;
+    object_class->get_property = mirbooking_default_score_table_get_property;
+    object_class->set_property = mirbooking_default_score_table_set_property;
+    object_class->finalize     = mirbooking_default_score_table_finalize;
 
     klass->parent_class.compute_score           = compute_score;
     klass->parent_class.compute_scores          = compute_scores;
     klass->parent_class.compute_enzymatic_score = compute_enzymatic_score;
 
     g_object_class_install_property (object_class,
-                                     PROP_SCORE_TABLE,
-                                     g_param_spec_boxed ("score-table", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+                                     PROP_SEED_SCORES,
+                                     g_param_spec_boxed ("seed-scores", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_SEED_OFFSET,
-                                     g_param_spec_uint ("seed-offset", "", "", 0, G_MAXUINT, MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_OFFSET, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+                                     g_param_spec_uint ("seed-offset", "", "", 0, G_MAXUINT, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SEED_OFFSET, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_SEED_LENGTH,
-                                     g_param_spec_uint ("seed-length", "", "", 1, G_MAXUINT, MIRBOOKING_PRECOMPUTED_SCORE_TABLE_DEFAULT_SEED_LENGTH, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+                                     g_param_spec_uint ("seed-length", "", "", 1, G_MAXUINT, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SEED_LENGTH, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
 }
 
 /**
- * mirbooking_precomputed_score_table_new:
+ * mirbooking_default_score_table_new:
  * Returns: (transfer full)
  */
-MirbookingPrecomputedScoreTable *
-mirbooking_precomputed_score_table_new (gfloat *data, gsize seed_offset, gsize seed_len)
+MirbookingDefaultScoreTable *
+mirbooking_default_score_table_new (gfloat *data, gsize seed_offset, gsize seed_len)
 {
-    return g_object_new (MIRBOOKING_TYPE_PRECOMPUTED_SCORE_TABLE,
-                         "score-table", g_bytes_new_take (data, (1l << 2 * seed_len) * (1l << 2 * seed_len) * sizeof (gfloat)),
+    g_return_val_if_fail (data != NULL, NULL);
+
+    return g_object_new (MIRBOOKING_TYPE_DEFAULT_SCORE_TABLE,
+                         "seed-scores", g_bytes_new_take (data, 0),
                          "seed-offset", seed_offset,
                          "seed-length", seed_len,
                          NULL);
 }
 
 /**
- * mirbooking_precomputed_score_table_new_from_bytes:
+ * mirbooking_default_score_table_new_from_bytes:
  *
  * Returns: (transfer full)
  */
-MirbookingPrecomputedScoreTable *
-mirbooking_precomputed_score_table_new_from_bytes (GBytes *precomputed_table, gsize seed_offset, gsize seed_len)
+MirbookingDefaultScoreTable *
+mirbooking_default_score_table_new_from_bytes (GBytes *seed_scores, gsize seed_offset, gsize seed_len)
 {
-    return g_object_new (MIRBOOKING_TYPE_PRECOMPUTED_SCORE_TABLE,
-                         "score-table", precomputed_table,
+    g_return_val_if_fail (g_bytes_get_data (seed_scores, NULL) != NULL, NULL);
+
+    return g_object_new (MIRBOOKING_TYPE_DEFAULT_SCORE_TABLE,
+                         "seed-scores", seed_scores,
                          "seed-offset", seed_offset,
                          "seed-length", seed_len,
                          NULL);
 }
 
 /**
- * mirbooking_precomputed_score_table_new_from_stream:
+ * mirbooking_default_score_table_new_from_stream:
  *
- * Returns: (transfer full): A #MirbookingPrecomputedScoreTable or %NULL if any
+ * Returns: (transfer full): A #MirbookingDefaultScoreTable or %NULL if any
  * stream-related operation failed and @error will be set.
  */
-MirbookingPrecomputedScoreTable *
-mirbooking_precomputed_score_table_new_from_stream (GInputStream *stream, gsize seed_offset, gsize seed_len, GError **error)
+MirbookingDefaultScoreTable *
+mirbooking_default_score_table_new_from_stream (GInputStream *stream, gsize seed_offset, gsize seed_len, GError **error)
 {
     g_autoptr (GMemoryOutputStream) out = G_MEMORY_OUTPUT_STREAM (g_memory_output_stream_new_resizable ());
 
@@ -300,8 +305,8 @@ mirbooking_precomputed_score_table_new_from_stream (GInputStream *stream, gsize 
                                 NULL,
                                 error))
     {
-        return g_object_new (MIRBOOKING_TYPE_PRECOMPUTED_SCORE_TABLE,
-                             "score-table", g_memory_output_stream_steal_as_bytes (out),
+        return g_object_new (MIRBOOKING_TYPE_DEFAULT_SCORE_TABLE,
+                             "seed-scores", g_memory_output_stream_steal_as_bytes (out),
                              "seed-offset", seed_offset,
                              "seed-length", seed_len,
                              NULL);
