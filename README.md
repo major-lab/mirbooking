@@ -101,10 +101,10 @@ procedure:
 
  1. Obtain spike-ins concentration from Thermofisher and convert attomoles/µL
     to nM
- 2. Take ~2% of that total concentration since this is the mixture
- 3. Compute the total FPKM for the spike-ins for both replicate
- 4. Divide the concentration in nM by the mean FPKM from both replicates to
-    obtain $\kappa$
+ 2. Take ~2% of the concentrations of the mixture #1 for both replicates
+ 3. Compute nM/FPKM ratios for each spike-in
+ 4. Compute the geometric mean of the ratios to obtain the final $\kappa$ by
+    pooling all replicates.
 
 [^hela-s3-encode]: https://www.encodeproject.org/reference-epigenomes/ENCSR068MRQ/
 [^spike-ins-thermofisher]: https://www.thermofisher.com/order/catalog/product/4456740
