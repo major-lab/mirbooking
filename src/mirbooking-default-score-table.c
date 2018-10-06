@@ -6,6 +6,19 @@
 #define R 1.987203611e-3
 #define T 310.15
 
+/*
+ * For the duplex: CUCCAUC&GAUGGAG, ViennaRNA reports a free energy of -9.30.
+ * Linang et al. measured a dissociation constant for a mouse Ago2 protein
+ * carrying a guide miRNA with only the seed pairing of 210±60pM, which
+ * correspond to a free energy of -13.73 kcal/mol. We imputate the -4.43
+ * kcal/mol to the Ago2 contribution to duplex stabilization.
+ *
+ * Reference: Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into
+ * Domains with Distinct Functions and RNA-Binding Properties,” Cell 151, no. 5
+ * (November 21, 2012): 1055–67, https://doi.org/10.1016/j.cell.2012.10.036.
+ * */
+#define AGO2_SCORE -5.72
+
 typedef struct
 {
     GBytes       *seed_scores_bytes;
@@ -113,7 +126,7 @@ compute_score (MirbookingScoreTable *score_table,
         return INFINITY;
     }
 
-    return _compute_Kd (sparse_matrix_get_float (&self->priv->seed_scores, i, j) + mirbooking_target_get_accessibility_score (target, position));
+    return _compute_Kd (sparse_matrix_get_float (&self->priv->seed_scores, i, j) + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE);
 
 }
 
@@ -149,7 +162,7 @@ compute_scores (MirbookingScoreTable  *score_table,
     gsize p;
     for (p = 0; p < total_positions_len; p++)
     {
-        gdouble score = sparse_matrix_get_float (&self->priv->seed_scores, i, j) + mirbooking_target_get_accessibility_score (target, p);
+        gdouble score = sparse_matrix_get_float (&self->priv->seed_scores, i, j) + mirbooking_target_get_accessibility_score (target, p) + AGO2_SCORE;
 
         if (score < INFINITY)
         {
