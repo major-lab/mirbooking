@@ -87,9 +87,11 @@ mirbooking_score_table_compute_score (MirbookingScoreTable *self,
                                       gsize                 position,
                                       GError              **error)
 {
-    g_return_val_if_fail (self != NULL, 0.0f);
-    g_return_val_if_fail (mirna != NULL, 0.0f);
-    g_return_val_if_fail (target != NULL, 0.0f);
+    g_return_val_if_fail (self != NULL, INFINITY);
+    g_return_val_if_fail (mirna != NULL, INFINITY);
+    g_return_val_if_fail (target != NULL, INFINITY);
+    g_return_val_if_fail (position >= 0, INFINITY);
+    g_return_val_if_fail (position < mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)), INFINITY);
 
     MirbookingScoreTableClass *klass = MIRBOOKING_SCORE_TABLE_GET_CLASS (self);
 

@@ -114,16 +114,13 @@ class MirbookingScoreTableTestCase(unittest.TestCase):
             self.assertEqual(s, score_table.compute_score(mirna, target, positions[i]))
 
 class MirbookingBrokerTestCase(unittest.TestCase):
-    pass
-
-def t():
     def test_run(self):
         mirbooking = Mirbooking.Broker(score_table=SimpleScoreTable())
         mirbooking.set_sequence_quantity(target, 5.0)
         mirbooking.set_sequence_quantity(mirna, 5.0)
         norm = 0
-        mirbooking.evaluate(0, norm)
-        mirbooking.step(0, norm)
+        mirbooking.evaluate(norm)
+        mirbooking.step(Mirbooking.BROKER_STEP_MODE_SOLVE_STEADY_STATE, norm)
         for target_site in mirbooking.get_target_sites():
             for occupant in target_site.occupants:
                 print('Target {} receives {} miRNA {} at position {}.'.format(target_site.target.get_accession(), occupant.quantity, occupant.mirna.get_accession(), target_site.position))

@@ -216,6 +216,9 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
 
         y_norm = sqrt (y_norm);
 
+        assert (isfinite (y_norm));
+        assert (y_norm > 0);
+
         self->h = sqrt (2.0) * pow (self->atol, 1.0 / (self->integrator_meta->order + 1)) / sqrt (y_norm);
     }
 
@@ -315,6 +318,9 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
 
             double ye_norm = sqrt (ye_norm_);
             double error = sqrt (error_);
+
+            assert (isfinite (ye_norm));
+            assert (isfinite (error));
 
             double tol = self->rtol * ye_norm + self->atol;
 
