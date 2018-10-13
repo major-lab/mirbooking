@@ -23,7 +23,8 @@ MirbookingDefaultScoreTable * mirbooking_default_score_table_new             (gf
                                                                               gsize   seed_len);
 MirbookingDefaultScoreTable * mirbooking_default_score_table_new_from_bytes  (GBytes *bytes,
                                                                               gsize   seed_offset,
-                                                                              gsize   seed_len);
+                                                                              gsize   seed_len,
+                                                                              GBytes *supp_bytes);
 MirbookingDefaultScoreTable * mirbooking_default_score_table_new_from_stream (GInputStream  *stream,
                                                                               gsize          seed_offset,
                                                                               gsize          seed_len,

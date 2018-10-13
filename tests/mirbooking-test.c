@@ -112,7 +112,7 @@ test_mirbooking ()
     g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new ();
 
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 1, 7);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 1, 7, NULL);
     mirbooking_broker_set_score_table (mirbooking, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
@@ -167,7 +167,7 @@ test_mirbooking_empty ()
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 1, 7);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 1, 7, NULL);
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     gdouble norm;
@@ -181,7 +181,7 @@ test_mirbooking_bad_seed_range ()
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 18, 7);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 18, 7, NULL);
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
@@ -213,7 +213,7 @@ test_mirbooking_numerical_integration ()
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 1, 7);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (default_table, 1, 7, NULL);
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");

@@ -17,7 +17,7 @@
  * Domains with Distinct Functions and RNA-Binding Properties,” Cell 151, no. 5
  * (November 21, 2012): 1055–67, https://doi.org/10.1016/j.cell.2012.10.036.
  * */
-#define AGO2_SCORE -5.72
+#define AGO2_SCORE (-5.72f)
 
 typedef struct
 {
@@ -25,6 +25,8 @@ typedef struct
     SparseMatrix  seed_scores; /* view over @seed_scores_bytes */
     gsize         seed_offset;
     gsize         seed_length;
+    GBytes       *supplementary_scores_bytes;
+    SparseMatrix  supplementary_scores;
 } MirbookingDefaultScoreTablePrivate;
 
 struct _MirbookingDefaultScoreTable
@@ -42,17 +44,11 @@ mirbooking_default_score_table_init (MirbookingDefaultScoreTable *self)
 }
 
 static void
-mirbooking_default_score_table_constructed (GObject *object)
+_init_sparse_matrix_from_bytes (SparseMatrix *sm, GBytes *bytes)
 {
-    MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (object);
-
-    g_return_if_fail (self->priv->seed_scores_bytes != NULL);
-
-    gsize *d = (gsize*) g_bytes_get_data (self->priv->seed_scores_bytes, NULL);
+    gsize *d = (gsize*) g_bytes_get_data (bytes, NULL);
 
     g_return_if_fail (d != NULL);
-
-    SparseMatrix *sm = &self->priv->seed_scores;
 
     gsize n       = *d;
     gsize nnz     = *(d + 1);
@@ -70,6 +66,7 @@ mirbooking_default_score_table_constructed (GObject *object)
     sm->s.csr.rowptr   = rowptr;
     sm->default_data.f = INFINITY;
     sm->data           = data;
+
 }
 
 static void
@@ -80,6 +77,11 @@ mirbooking_default_score_table_finalize (GObject *object)
     if (self->priv->seed_scores_bytes != NULL)
     {
         g_bytes_unref (self->priv->seed_scores_bytes);
+    }
+
+    if (self->priv->supplementary_scores_bytes != NULL)
+    {
+        g_bytes_unref (self->priv->supplementary_scores_bytes);
     }
 
     g_free (self->priv);
@@ -117,17 +119,35 @@ compute_score (MirbookingScoreTable *score_table,
         return INFINITY;
     }
 
-    gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
-    gssize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, seed_len);
+    gssize seed_i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
+    gssize seed_j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, seed_len);
 
     // either sequence index is undefined
-    if (i == -1 || j == -1)
+    if (seed_i == -1 || seed_j == -1)
     {
         return INFINITY;
     }
 
-    return _compute_Kd (sparse_matrix_get_float (&self->priv->seed_scores, i, j) + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE);
+    gfloat seed_score = sparse_matrix_get_float (&self->priv->seed_scores, seed_i, seed_j);
 
+    gfloat supplementary_score = 0.0f;
+    gsize supplementary_offset = 12;
+    gsize supplementary_len = 4;
+    if (self->priv->supplementary_scores_bytes != NULL &&
+        position >= (supplementary_offset - supplementary_len) &&
+        mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (mirna)) >= (supplementary_offset + supplementary_len))
+    {
+        gsize supplementary_i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), supplementary_offset, supplementary_len);
+        gsize supplementary_j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position - supplementary_offset + supplementary_len, supplementary_len);
+        if (supplementary_i != -1 && supplementary_j != -1)
+        {
+            supplementary_score = sparse_matrix_get_float (&self->priv->supplementary_scores,
+                                                           supplementary_i,
+                                                           supplementary_j);
+        }
+    }
+
+    return _compute_Kd (seed_score + supplementary_score + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE);
 }
 
 static gboolean
@@ -161,9 +181,7 @@ compute_positions (MirbookingScoreTable  *score_table,
     gsize p;
     for (p = 0; p < total_positions_len; p++)
     {
-        gdouble score = sparse_matrix_get_float (&self->priv->seed_scores, i, j) + mirbooking_target_get_accessibility_score (target, p) + AGO2_SCORE;
-
-        if (score < INFINITY)
+        if (sparse_matrix_get_float (&self->priv->seed_scores, i, j) < INFINITY)
         {
             _positions = g_realloc (_positions, (k + 1) * sizeof (gsize));
             _positions[k++] = p;
@@ -201,7 +219,8 @@ enum
 {
     PROP_SEED_SCORES = 1,
     PROP_SEED_OFFSET,
-    PROP_SEED_LENGTH
+    PROP_SEED_LENGTH,
+    PROP_SUPPLEMENTARY_SCORES
 };
 
 static void
@@ -212,6 +231,8 @@ mirbooking_default_score_table_get_property (GObject *object, guint property_id,
         case PROP_SEED_SCORES:
             g_value_set_boxed (value, MIRBOOKING_DEFAULT_SCORE_TABLE (object)->priv->seed_scores_bytes);
             break;
+        case PROP_SUPPLEMENTARY_SCORES:
+            g_value_set_boxed (value, MIRBOOKING_DEFAULT_SCORE_TABLE (object)->priv->supplementary_scores_bytes);
         default:
                 g_assert_not_reached ();
     }
@@ -229,12 +250,23 @@ mirbooking_default_score_table_set_property (GObject *object, guint property_id,
         case PROP_SEED_SCORES:
             score_table = g_value_get_boxed (value);
             self->priv->seed_scores_bytes = g_bytes_ref (score_table);
+            _init_sparse_matrix_from_bytes (&self->priv->seed_scores,
+                                            self->priv->seed_scores_bytes);
             break;
         case PROP_SEED_OFFSET:
             self->priv->seed_offset = g_value_get_uint (value);
             break;
         case PROP_SEED_LENGTH:
             self->priv->seed_length = g_value_get_uint (value);
+            break;
+        case PROP_SUPPLEMENTARY_SCORES:
+            score_table = g_value_get_boxed (value);
+            if (score_table != NULL)
+            {
+                self->priv->supplementary_scores_bytes = g_bytes_ref (score_table);
+                _init_sparse_matrix_from_bytes (&self->priv->supplementary_scores,
+                                                self->priv->supplementary_scores_bytes);
+            }
             break;
         default:
             g_assert_not_reached ();
@@ -246,7 +278,6 @@ mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *kla
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->constructed  = mirbooking_default_score_table_constructed;
     object_class->get_property = mirbooking_default_score_table_get_property;
     object_class->set_property = mirbooking_default_score_table_set_property;
     object_class->finalize     = mirbooking_default_score_table_finalize;
@@ -263,6 +294,9 @@ mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *kla
     g_object_class_install_property (object_class,
                                      PROP_SEED_LENGTH,
                                      g_param_spec_uint ("seed-length", "", "", 1, G_MAXUINT, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SEED_LENGTH, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     PROP_SUPPLEMENTARY_SCORES,
+                                     g_param_spec_boxed ("supplementary-scores", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
 }
 
 /**
@@ -287,7 +321,7 @@ mirbooking_default_score_table_new (gfloat *data, gsize seed_offset, gsize seed_
  * Returns: (transfer full)
  */
 MirbookingDefaultScoreTable *
-mirbooking_default_score_table_new_from_bytes (GBytes *seed_scores, gsize seed_offset, gsize seed_len)
+mirbooking_default_score_table_new_from_bytes (GBytes *seed_scores, gsize seed_offset, gsize seed_len, GBytes *supp_scores)
 {
     g_return_val_if_fail (g_bytes_get_data (seed_scores, NULL) != NULL, NULL);
 
@@ -295,6 +329,7 @@ mirbooking_default_score_table_new_from_bytes (GBytes *seed_scores, gsize seed_o
                          "seed-scores", seed_scores,
                          "seed-offset", seed_offset,
                          "seed-length", seed_len,
+                         "supplementary-scores", supp_scores,
                          NULL);
 }
 

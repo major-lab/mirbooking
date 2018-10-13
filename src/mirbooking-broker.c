@@ -906,7 +906,7 @@ _compute_F (double t, const double *y, double *F, void *user_data)
                                                                                  S[i],
                                                                                  ES);
 
-                g_assert_cmpfloat (Stp, <=, S[i]);
+                // g_assert_cmpfloat (Stp, <=, S[i]);
 
                 gdouble kother = 0;
                 {

@@ -31,6 +31,7 @@ static gchar                        **targets_files             = {NULL};
 static gchar                        **mirnas_files              = {NULL};
 static gchar                         *cds_regions_file          = NULL;
 static gchar                         *seed_scores_file          = NULL;
+static gchar                         *supplementary_scores_file = NULL;
 static gchar                         *accessibility_scores_file = NULL;
 static gchar                         *input_file                = NULL;
 static gchar                         *output_file               = NULL;
@@ -96,6 +97,7 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"mirnas",               0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirnas_files,              "miRNA FASTA files",                                                                             NULL},
     {"cds-regions",          0, 0, G_OPTION_ARG_FILENAME,       &cds_regions_file,          "Coding regions as a two-column (accession, 1-based inclusive interval) TSV file",                  "FILE"},
     {"seed-scores",          0, 0, G_OPTION_ARG_FILENAME,       &seed_scores_file,          "Precomputed seed::MRE Gibbs free energy duplex table as a row-major big-endian float matrix file", "FILE"},
+    {"supplementary-scores", 0, 0, G_OPTION_ARG_FILENAME,       &supplementary_scores_file, "Precomputed supplementary::MRE Gibbs free energy duplex table as a row-major big-endian float matrix file", "FILE"},
     {"accessibility-scores", 0, 0, G_OPTION_ARG_FILENAME,       &accessibility_scores_file, "Accessibility scores as a variable columns (accession, positions...) TSV file",                    "FILE"},
     {"input",                0, 0, G_OPTION_ARG_FILENAME,       &input_file,                "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)",  "FILE"},
     {"output",               0, 0, G_OPTION_ARG_FILENAME,       &output_file,               "Output destination file (defaults to stdout)",                                                     "FILE"},
@@ -488,9 +490,24 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
+    g_autoptr (GMappedFile) supplementary_scores_file_map = NULL;
+    g_autoptr (GBytes) supplementary_scores_map_bytes = NULL;
+    if (supplementary_scores_file != NULL)
+    {
+        supplementary_scores_file_map = g_mapped_file_new (supplementary_scores_file, TRUE, &error);
+        if (supplementary_scores_file_map == NULL)
+        {
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
+        }
+
+        supplementary_scores_map_bytes = g_mapped_file_get_bytes (supplementary_scores_file_map);
+    }
+
     g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new_from_bytes (seed_scores_map_bytes,
                                                                                                          seed_offset,
-                                                                                                         seed_length);
+                                                                                                         seed_length,
+                                                                                                         supplementary_scores_map_bytes);
     mirbooking_broker_set_score_table (mirbooking,
                                        MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
