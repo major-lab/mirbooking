@@ -10,8 +10,6 @@ typedef struct
     const gchar *sequence;
     gsize        sequence_len;
     GPtrArray   *sequence_skips; /* all the pointers in 'sequence' to skip (i.e. line feeds) */
-    gssize      *subsequence_index_cache;            // cached subsequence index by position
-    gsize        subsequence_index_cache_prefix_len; // length of the cached subsequence index
 } MirbookingSequencePrivate;
 
 enum
@@ -79,11 +77,6 @@ mirbooking_sequence_finalize (GObject *object)
 
     g_free (priv->accession);
     g_ptr_array_unref (priv->sequence_skips);
-
-    if (priv->subsequence_index_cache != NULL)
-    {
-        g_free (priv->subsequence_index_cache);
-    }
 
     G_OBJECT_CLASS (mirbooking_sequence_parent_class)->finalize (object);
 }
@@ -176,12 +169,6 @@ mirbooking_sequence_set_raw_sequence (MirbookingSequence *self, const gchar *seq
         g_ptr_array_add (priv->sequence_skips, (gpointer) seq);
         seq++; // jump right after the line feed
     }
-
-    if (priv->subsequence_index_cache != NULL)
-    {
-        g_free (priv->subsequence_index_cache);
-    }
-    priv->subsequence_index_cache = g_new0 (gssize, priv->sequence_len - priv->sequence_skips->len);
 }
 
 /**
@@ -309,11 +296,6 @@ sequence_index (const gchar *seq, gsize seq_len)
  * Compute an ordinal index for the given subsequence assuming a base 4 (i.e.
  * 'A', 'C', 'G', 'T' | 'U').
  *
- * The result is cached between computations, which can drastically speed up
- * #MirbookingMirna seed-based indexing and repetitive indexing of the same
- * target site. Note that the cache is invalidated each time this is called
- * with a different value of @len.
- *
  * Returns: The corresponding index or %-1 if it could not be determined
  * reliably.
  */
@@ -324,30 +306,7 @@ mirbooking_sequence_get_subsequence_index (MirbookingSequence *self, gsize offse
 
     g_return_val_if_fail (offset + len <= priv->sequence_len - priv->sequence_skips->len, 0);
 
-    // not worth to cache small subsequences
-    if (len <= 2)
-    {
-        return sequence_index (mirbooking_sequence_get_subsequence (self, offset, len), len);
-    }
-
-    if (priv->subsequence_index_cache_prefix_len == 0)
-    {
-        priv->subsequence_index_cache_prefix_len = len;
-    }
-
-    if (priv->subsequence_index_cache_prefix_len != len)
-    {
-        // reinitialize the prefix index
-        memset (priv->subsequence_index_cache, 0, (priv->sequence_len - priv->sequence_skips->len) * sizeof (gssize));
-        priv->subsequence_index_cache_prefix_len = len;
-    }
-
-    if (priv->subsequence_index_cache[offset] == 0)
-    {
-        priv->subsequence_index_cache[offset] = sequence_index (mirbooking_sequence_get_subsequence (self, offset, len), len);
-    }
-
-    return priv->subsequence_index_cache[offset];
+    return sequence_index (mirbooking_sequence_get_subsequence (self, offset, len), len);
 }
 
 guint
