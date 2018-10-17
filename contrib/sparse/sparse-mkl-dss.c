@@ -68,7 +68,7 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
         goto cleanup;
     }
 
-    MKL_INT reorder_opt = (A->rowperm[0] != A->rowperm[A->shape[0] - 1]) ? MKL_DSS_MY_ORDER : MKL_DSS_GET_ORDER;
+    MKL_INT reorder_opt = (A->shape[0] && A->rowperm[0] != A->rowperm[A->shape[0] - 1]) ? MKL_DSS_MY_ORDER : MKL_DSS_GET_ORDER;
     ret = dss_reorder (handle, reorder_opt, (MKL_INT*) A->rowperm);
     if (ret != MKL_DSS_SUCCESS)
     {

@@ -33,14 +33,14 @@ sparse_superlu_solve (SparseSolver *solver,
 
     StatInit (&stat);
 
-    if (A->colperm[0] != A->colperm[A->shape[0] - 1])
-    {
-        options.ColPerm = MY_PERMC;
-    }
-
-    if (A->rowperm[0] != A->rowperm[A->shape[0] - 1])
+    if (A->shape[0] && A->rowperm[0] != A->rowperm[A->shape[0] - 1])
     {
         options.RowPerm = MY_PERMR;
+    }
+
+    if (A->shape[1] && A->colperm[0] != A->colperm[A->shape[1] - 1])
+    {
+        options.ColPerm = MY_PERMC;
     }
 
     assert (A->shape[0] < INT_MAX);
