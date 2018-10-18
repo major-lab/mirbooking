@@ -921,7 +921,7 @@ _compute_F (double t, const double *y, double *F, void *user_data)
                 gdouble Km = occupant->enzymatic_score;
 
                 gdouble kf   = self->priv->lambda / Kd;
-                gdouble kr   = self->priv->lambda * Kd;
+                gdouble kr   = self->priv->lambda;
                 gdouble kcat = kf * (Km - Kd);
 
                 // FIXME: allow catalysis
@@ -1012,7 +1012,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                 g_assert_cmpfloat (Kd, ==, Km);
 
                 gdouble kf   = self->priv->lambda / Kd;
-                gdouble kr   = self->priv->lambda * Kd;
+                gdouble kr   = self->priv->lambda;
                 gdouble kcat = kf * (Km - Kd);
 
                 g_assert_cmpfloat (kcat, ==, 0.0);
