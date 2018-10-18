@@ -90,7 +90,7 @@ mirbooking_default_score_table_finalize (GObject *object)
 static gdouble
 _compute_Kd (gdouble deltaG)
 {
-    return 1e9 * exp (deltaG / (R * T));
+    return 1e12 * exp (deltaG / (R * T));
 }
 
 static gdouble

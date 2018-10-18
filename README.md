@@ -100,16 +100,16 @@ derivatives by specifying `-Dwith_openmp=true`.
 In addition to determine the steady state, miRBooking can also perform
 numerical integration of the microtargetome.
 
-The `kappa` parameter indicates how many nM (1e-9 Molar) of concentration
+The `kappa` parameter indicates how many pM (1e-12 Molar) of concentration
 a FPKM represents in the quantification. It can be estimated using spike-ins if
 their prior concentration is known. The default value has been calculated from
 ENCODE's HeLa S3 reference epigenome[^hela-s3-encode] using the following
 procedure:
 
  1. Obtain spike-ins concentration from Thermofisher and convert attomoles/µL
-    to nM
+    to pM
  2. Take ~2% of the concentrations of the mixture #1 for both replicates
- 3. Compute nM/FPKM ratios for each spike-in
+ 3. Compute pM/FPKM ratios for each spike-in
  4. Compute the geometric mean of the ratios to obtain the final $\kappa$ by
     pooling all replicates.
 

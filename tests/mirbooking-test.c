@@ -157,7 +157,7 @@ test_mirbooking ()
 
     MirbookingOccupant *occupant = target_site.occupants->data;
 
-    g_assert_cmpfloat (occupant->score, ==, (1e9/MIRBOOKING_BROKER_DEFAULT_KAPPA) * exp (-9.0f / (R*T)));
+    g_assert_cmpfloat (occupant->score, ==, (1e12/MIRBOOKING_BROKER_DEFAULT_KAPPA) * exp ((-9.0f - 5.72) / (R*T)));
     g_assert_cmpfloat (mirbooking_broker_get_occupant_quantity (mirbooking, occupant), >, 0);
 }
 
