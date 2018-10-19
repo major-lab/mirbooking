@@ -49,6 +49,10 @@ typedef struct
     GArray     *target_positions; // (target, mirna) -> positions, scores and occupants in the target
     GArray     *occupants;
 
+    /* transcription */
+    gdouble    *ktr;
+    gdouble    *kdeg;
+
     /* state of the system */
 
     /* state of the system, which corresponds to the concatenation of the
@@ -388,6 +392,35 @@ gpointer_from_gfloat (gfloat flt)
 gfloat
 mirbooking_broker_get_sequence_quantity (MirbookingBroker *self, MirbookingSequence *sequence)
 {
+    if (self->priv->init)
+    {
+        if (MIRBOOKING_IS_MIRNA (sequence))
+        {
+            gint i;
+            for (i = 0; i < self->priv->mirnas->len; i++)
+            {
+                if (g_ptr_array_index (self->priv->mirnas, i) == sequence)
+                {
+                    return self->priv->E[i];
+                }
+            }
+        }
+        else
+        {
+            gint i;
+            for (i = 0; i < self->priv->targets->len; i++)
+            {
+                if (g_ptr_array_index (self->priv->targets, i) == sequence)
+                {
+                    return self->priv->S[i];
+                }
+            }
+        }
+
+        g_assert_not_reached ();
+    }
+
+    // [S]_0
     return gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
 }
 
@@ -404,7 +437,43 @@ mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSeque
 {
     g_return_if_fail (MIRBOOKING_IS_MIRNA (sequence) || MIRBOOKING_IS_TARGET (sequence));
     g_return_if_fail (self->priv->init == 0 || g_hash_table_contains (self->priv->quantification, sequence));
-    g_return_if_fail (quantity > 0);
+    g_return_if_fail (quantity >= 0);
+
+    /* update the system */
+    // TODO: have reverse-index for these use cases
+    if (self->priv->init)
+    {
+        if (MIRBOOKING_IS_MIRNA (sequence))
+        {
+            gint i;
+            for (i = 0; i < self->priv->mirnas->len; i++)
+            {
+                if (g_ptr_array_index (self->priv->mirnas, i) == sequence)
+                {
+                    gdouble E0 = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
+                    g_assert_cmpfloat (self->priv->E[i] + E0 + quantity, >=, 0);
+                    self->priv->E[i] += quantity - E0;
+                    return;
+                }
+            }
+        }
+        else
+        {
+            gint i;
+            for (i = 0; i < self->priv->targets->len; i++)
+            {
+                if (g_ptr_array_index (self->priv->targets, i) == sequence)
+                {
+                    gdouble S0 = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
+                    g_assert_cmpfloat (self->priv->S[i] + S0 + quantity, >=, 0);
+                    self->priv->S[i] += quantity - S0;
+                    return;
+                }
+            }
+        }
+
+        g_assert_not_reached ();
+    }
 
     if (g_hash_table_insert (self->priv->quantification,
                              sequence,
@@ -512,8 +581,8 @@ _mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
         vacancy *= 1 - (_mirbooking_broker_get_target_site_occupants_quantity (self, nearby_target_site, ES) / St);
     }
 
-    g_assert_cmpfloat (vacancy, >=, 0);
-    g_assert_cmpfloat (vacancy, <=, 1);
+    // g_assert_cmpfloat (vacancy, >=, 0);
+    // g_assert_cmpfloat (vacancy, <=, 1);
 
     return vacancy;
 }
@@ -699,6 +768,9 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
 
     g_assert_cmpint (self->priv->occupants->len, ==, occupants_len);
 
+    self->priv->ktr  = g_new0 (gdouble, self->priv->targets->len);
+    self->priv->kdeg = g_new0 (gdouble, self->priv->targets->len);
+
     self->priv->y_len = self->priv->mirnas->len + self->priv->targets->len + self->priv->occupants->len + self->priv->targets->len;
 
     // state of the system
@@ -774,7 +846,16 @@ _compute_F (double t, const double *y, double *F, void *user_data)
 
     memset (F, 0, sizeof (gdouble) * self->priv->y_len);
 
-    gint i, j;
+    // basic transcription and degradation
+    gint i;
+    #pragma omp parallel for
+    for (i = 0; i < self->priv->targets->len; i++)
+    {
+        self->priv->dSdt[i] = self->priv->ktr[i];
+        self->priv->dPdt[i] = -self->priv->kdeg[i];
+    }
+
+    gint j;
     #pragma omp parallel for collapse(2)
     for (i = 0; i < self->priv->targets->len; i++)
     {
@@ -847,7 +928,7 @@ _compute_F (double t, const double *y, double *F, void *user_data)
                 dEdt[j] += -kf * E[j] * Stp + kr * ES[k] + kcat * ES[k] + kother * ES[k];
 
                 #pragma omp atomic
-                dSdt[i] += -kcat * ES[k];
+                dSdt[i] += - kcat * ES[k];
 
                 dESdt[k] = kf * E[j] * Stp - kr * ES[k] - kcat * ES[k] - kother * ES[k];
 
@@ -1141,6 +1222,9 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                                               other_k,
                                               -dESdES);
                 }
+
+                // across the catalysis interaction
+                // TODO
             }
         }
     }
@@ -1178,9 +1262,9 @@ mirbooking_broker_evaluate (MirbookingBroker          *self,
         gdouble _norm = 0;
         gint i;
         #pragma omp parallel for reduction(+:_norm)
-        for (i = 0; i < self->priv->occupants->len; i++)
+        for (i = 0; i < self->priv->y_len; i++)
         {
-            _norm += pow (self->priv->dESdt[i], 2);
+            _norm += pow (self->priv->F[i], 2);
         }
         *norm = sqrt (_norm);
     }
@@ -1279,6 +1363,24 @@ mirbooking_broker_step (MirbookingBroker         *self,
                     self->priv->E[j]   -= step_size * self->priv->ES_delta[k];
                     self->priv->ES[k]  += step_size * self->priv->ES_delta[k];
                 }
+            }
+        }
+
+        // Under the steady-state assumption, all substrate degradation is
+        // compensated by transcription of new targets.
+        // The system must be however reevaluated as we have applied an update.
+        _compute_F (self->priv->t,
+                    self->priv->y,
+                    self->priv->F,
+                    self);
+
+        {
+            gint i;
+            #pragma omp parallel for
+            for (i = 0; i < self->priv->targets->len; i++)
+            {
+                self->priv->ktr[i]  -= self->priv->dSdt[i];
+                self->priv->kdeg[i] += self->priv->dPdt[i];
             }
         }
     }

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <float.h>
+#include <omp.h>
 
 /* TODO:
  * - implicit methods
@@ -224,11 +225,12 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
 
     double h = self->h;
 
-    double error_, ye_norm_;
+    size_t iteration = 0;
 
-    #pragma omp parallel
     while (fabs (tw - *self->t) >= self->rtol * tw + self->atol)
     {
+        iteration++;
+
         t = *self->t;
 
         // ensure we always land exactly on the upper integration bound
@@ -241,25 +243,19 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         {
             /* restore state at the beginning of the step */
             int i;
-            #pragma omp for
+            #pragma omp parallel for
             for (i = 0; i < self->n; i++)
             {
                 y[i] = self->y[i];
-            }
 
-            int prev_step;
-            for (prev_step = 0; prev_step < step; prev_step++)
-            {
-                int i;
-                #pragma omp for
-                for (i = 0; i < self->n; i++)
+                int prev_step;
+                for (prev_step = 0; prev_step < step; prev_step++)
                 {
                     y[i] += h * self->integrator_meta->a[(step * step - step)/2 + prev_step] * self->F[prev_step * self->n + i];
                 }
             }
 
             /* update from previous steps */
-            #pragma omp single
             func (t + h * self->integrator_meta->c[step], y, self->F + (step * self->n), user_data);
         }
 
@@ -267,18 +263,13 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         if (!self->integrator_meta->last_step_is_update)
         {
             int i;
-            #pragma omp for
+            #pragma omp parallel for
             for (i = 0; i < self->n; i++)
             {
                 y[i] = self->y[i];
-            }
 
-            int step;
-            for (step = 0; step < self->integrator_meta->steps; step++)
-            {
-                int i;
-                #pragma omp for
-                for (i = 0; i < self->n; i++)
+                int step;
+                for (step = 0; step < self->integrator_meta->steps; step++)
                 {
                     y[i] += h * self->integrator_meta->b[step] * self->F[step * self->n + i];
                 }
@@ -288,30 +279,20 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         // error estimate
         if (self->integrator_meta->error_estimate)
         {
+            double error_ = 0;
+            double ye_norm_ = 0;
             int i;
-            #pragma omp for
+            #pragma omp parallel for reduction(+:error_) reduction(+:ye_norm_)
             for (i = 0; i < self->n; i++)
             {
                 ye[i] = self->y[i];
-            }
 
-            int step;
-            for (step = 0; step < self->integrator_meta->steps; step++)
-            {
-                int i;
-                #pragma omp for
-                for (i = 0; i < self->n; i++)
+                int step;
+                for (step = 0; step < self->integrator_meta->steps; step++)
                 {
                     ye[i] += h * self->integrator_meta->e[step] * self->F[step * self->n + i];
                 }
-            }
 
-            error_ = 0;
-            ye_norm_ = 0;
-
-            #pragma omp for reduction(+:error_) reduction(+:ye_norm_)
-            for (i = 0; i < self->n; i++)
-            {
                 error_   += pow (y[i] - ye[i], 2);
                 ye_norm_ += pow (ye[i], 2);
             }
@@ -327,12 +308,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             if (error <= tol)
             {
                 *self->t = t + h;
-                int i;
-                #pragma omp for
-                for (i = 0; i < self->n; i++)
-                {
-                    self->y[i] = y[i];
-                }
+                memcpy (self->y, y, self->n * sizeof (double));
             }
 
             // compute optimal step size
@@ -351,12 +327,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         else
         {
             *self->t = t + h;
-            int i;
-            #pragma omp for
-            for (i = 0; i < self->n; i++)
-            {
-                self->y[i] = y[i];
-            }
+            memcpy (self->y, y, self->n * sizeof (double));
         }
     }
 }
