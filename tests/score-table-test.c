@@ -50,7 +50,7 @@ test_score_table_compute_seed_score ()
                                                                target, 1, // CACACAG =>
                                                                &error);
 
-    g_assert_cmpfloat (site_score, ==, 1e9 * exp ((-20.0f - 5.72) / (R * T)));
+    g_assert_cmpfloat (site_score, ==, 1e12 * exp ((-20.0f - 5.72) / (R * T)));
     g_assert_null (error);
 }
 
@@ -85,9 +85,12 @@ test_score_table_compute_seed_scores ()
     g_assert_nonnull (site_scores);
     g_assert_nonnull (positions);
     g_assert_cmpint (positions_len, ==, 2);
-    g_assert_cmpfloat (site_scores[0], ==, 1e9 * exp ((-19.0f - 5.72) / (R * T)));
-    g_assert_cmpfloat (site_scores[1], ==, 1e9 * exp ((-20.0f - 5.72) / (R * T)));
+    g_assert_cmpfloat (site_scores[0], ==, 1e12 * exp ((-19.0f - 5.72) / (R * T)));
+    g_assert_cmpfloat (site_scores[1], ==, 1e12 * exp ((-20.0f - 5.72) / (R * T)));
     g_assert_null (error);
+
+    g_free (positions);
+    g_free (site_scores);
 }
 
 static void
@@ -113,7 +116,7 @@ test_score_table_mcff ()
                                                                &error);
 
     g_assert_null (error);
-    g_assert_cmpfloat (site_score, ==, 1e9 * exp (-7.09f / (R * T)));
+    g_assert_cmpfloat (site_score, ==, 1e12 * exp (-7.09f / (R * T)));
 }
 
 int main (int argc, gchar **argv)

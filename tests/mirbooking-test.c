@@ -131,8 +131,7 @@ test_mirbooking ()
     last_norm = 1.0/0.0;
     g_autoptr (GError) error = NULL;
 
-    gint i;
-    for (i = 0; i < 10; i++)
+    do
     {
         g_assert (mirbooking_broker_evaluate (mirbooking, &norm, &error));
         g_assert (mirbooking_broker_step (mirbooking, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1, &error));
@@ -147,6 +146,7 @@ test_mirbooking ()
         g_assert_cmpfloat (ES, <=, 6e5);
         g_assert_cmpfloat (ES, <=, 4e6);
     }
+    while (norm > 1e-6);
 
     GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 

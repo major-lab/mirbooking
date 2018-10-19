@@ -48,7 +48,7 @@ compute_score (MirbookingScoreTable *score_table,
     gfloat mfe;
     sscanf (standard_output, "%f", &mfe);
 
-    return 1e9 * exp (mfe / (R * T));
+    return 1e12 * exp (mfe / (R * T));
 }
 
 static void
