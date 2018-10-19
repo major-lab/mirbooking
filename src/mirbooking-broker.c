@@ -1152,30 +1152,6 @@ mirbooking_broker_step (MirbookingBroker         *self,
 
     if (step_mode == MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE)
     {
-        /* memoize original footprint */
-        gsize prime5_footprint = self->priv->prime5_footprint;
-        gsize prime3_footprint = self->priv->prime3_footprint;
-
-        gdouble norm = 1.0 / 0.0;
-        while ((self->priv->prime5_footprint + self->priv->prime3_footprint) > 0 && norm > 1e-3)
-        {
-            // find a suitable relaxation
-            mirbooking_broker_evaluate (self,
-                                        &norm,
-                                        error);
-
-            self->priv->prime5_footprint = MIN (self->priv->prime5_footprint + 1, self->priv->prime5_footprint);
-
-            if (self->priv->prime5_footprint > 0)
-            {
-                self->priv->prime5_footprint -= 1;
-            }
-            else if (self->priv->prime3_footprint > 0)
-            {
-                self->priv->prime3_footprint -= 1;
-            }
-        }
-
         _compute_F (self->priv->t,
                     self->priv->y,
                     self->priv->F,
@@ -1185,10 +1161,6 @@ mirbooking_broker_step (MirbookingBroker         *self,
                     self->priv->y,
                     self->priv->J,
                     self);
-
-        /* restore footprint */
-        self->priv->prime5_footprint = prime5_footprint;
-        self->priv->prime3_footprint = prime3_footprint;
 
         gboolean ret;
         ret = sparse_solver_solve (self->priv->solver,
