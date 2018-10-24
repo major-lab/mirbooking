@@ -76,21 +76,19 @@ test_score_table_compute_seed_scores ()
     g_autoptr (GError) error = NULL;
     gsize *positions;
     gsize  positions_len;
-    gdouble *site_scores = mirbooking_score_table_compute_scores (MIRBOOKING_SCORE_TABLE (score_table),
-                                                                  mirna,     // GAGGUAG =>
-                                                                  target, &positions, // CACACAG =>
-                                                                  &positions_len,
-                                                                  &error);
+    g_assert (mirbooking_score_table_compute_positions (MIRBOOKING_SCORE_TABLE (score_table),
+                                                        mirna,     // GAGGUAG =>
+                                                        target, &positions, // CACACAG =>
+                                                        &positions_len,
+                                                        &error));
 
-    g_assert_nonnull (site_scores);
     g_assert_nonnull (positions);
     g_assert_cmpint (positions_len, ==, 2);
-    g_assert_cmpfloat (site_scores[0], ==, 1e12 * exp ((-19.0f - 5.72) / (R * T)));
-    g_assert_cmpfloat (site_scores[1], ==, 1e12 * exp ((-20.0f - 5.72) / (R * T)));
+    g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[0], NULL), ==, 1e12 * exp ((-19.0f - 5.72) / (R * T)));
+    g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[1], NULL), ==, 1e12 * exp ((-20.0f - 5.72) / (R * T)));
     g_assert_null (error);
 
     g_free (positions);
-    g_free (site_scores);
 }
 
 static void

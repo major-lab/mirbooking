@@ -10,15 +10,14 @@ mirbooking_score_table_init (MirbookingScoreTable *self)
 
 }
 
-static gdouble *
-default_compute_scores (MirbookingScoreTable *self,
-                        MirbookingMirna       *mirna,
-                        MirbookingTarget      *target,
-                        gsize                **positions,
-                        gsize                 *positions_len,
-                        GError               **error)
+static gboolean
+default_compute_positions (MirbookingScoreTable *self,
+                           MirbookingMirna       *mirna,
+                           MirbookingTarget      *target,
+                           gsize                **positions,
+                           gsize                 *positions_len,
+                           GError               **error)
 {
-    gdouble *_scores   = g_new (gdouble, mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)));
     gsize *_positions = g_new (gsize, mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)));
 
     gint i;
@@ -27,11 +26,10 @@ default_compute_scores (MirbookingScoreTable *self,
     {
         gdouble score = mirbooking_score_table_compute_score (self, mirna, target, i, error);
 
-        g_return_val_if_fail (error != NULL, NULL);
+        g_return_val_if_fail (error != NULL, FALSE);
 
         if (score < INFINITY)
         {
-            _scores[j]    = score;
             _positions[j] = i;
             ++j;
         }
@@ -40,7 +38,7 @@ default_compute_scores (MirbookingScoreTable *self,
     *positions = _positions;
     *positions_len = j;
 
-    return _scores;
+    return TRUE;
 }
 
 static gdouble
@@ -58,7 +56,7 @@ default_compute_enzymatic_score (MirbookingScoreTable *score_table,
 void
 mirbooking_score_table_class_init (MirbookingScoreTableClass *klass)
 {
-    klass->compute_scores          = default_compute_scores;
+    klass->compute_positions       = default_compute_positions;
     klass->compute_enzymatic_score = default_compute_enzymatic_score;
 }
 
@@ -103,7 +101,7 @@ mirbooking_score_table_compute_score (MirbookingScoreTable *self,
 }
 
 /**
- * mirbooking_score_table_compute_scores:
+ * mirbooking_score_table_compute_positions:
  * @mirna:
  * @target:
  * @positions: (array length=positions_len) (out): A vector if positions where
@@ -113,31 +111,27 @@ mirbooking_score_table_compute_score (MirbookingScoreTable *self,
  * Compute scores for all positions where the #mirna might be encoutered on the
  * #target. This is much more efficient than traversing all the positions of a
  * target.
- *
- * Returns: (array length=positions_len) (transfer full): A #gfloat vector of
- * #positions_len entries where corresponding position on the target is given
- * by the #positions out array.
  */
-gdouble *
-mirbooking_score_table_compute_scores (MirbookingScoreTable  *self,
-                                       MirbookingMirna       *mirna,
-                                       MirbookingTarget      *target,
-                                       gsize                **positions,
-                                       gsize                 *positions_len,
-                                       GError               **error)
+gboolean
+mirbooking_score_table_compute_positions (MirbookingScoreTable  *self,
+                                          MirbookingMirna       *mirna,
+                                          MirbookingTarget      *target,
+                                          gsize                **positions,
+                                          gsize                 *positions_len,
+                                          GError               **error)
 {
-    g_return_val_if_fail (self != NULL, NULL);
-    g_return_val_if_fail (mirna != NULL, NULL);
-    g_return_val_if_fail (target != NULL, NULL);
+    g_return_val_if_fail (self != NULL, FALSE);
+    g_return_val_if_fail (mirna != NULL, FALSE);
+    g_return_val_if_fail (target != NULL, FALSE);
 
     MirbookingScoreTableClass *klass = MIRBOOKING_SCORE_TABLE_GET_CLASS (self);
 
-    return klass->compute_scores (self,
-                                  mirna,
-                                  target,
-                                  positions,
-                                  positions_len,
-                                  error);
+    return klass->compute_positions (self,
+                                     mirna,
+                                     target,
+                                     positions,
+                                     positions_len,
+                                     error);
 }
 
 /**

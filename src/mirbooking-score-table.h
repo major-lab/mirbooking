@@ -16,18 +16,19 @@ struct _MirbookingScoreTableClass
 {
     GObjectClass parent_class;
 
+    gboolean (*compute_positions) (MirbookingScoreTable  *self,
+                                   MirbookingMirna       *mirna,
+                                   MirbookingTarget      *target,
+                                   gsize                **positions,
+                                   gsize                 *positions_len,
+                                   GError               **error);
+
     gdouble (*compute_score)    (MirbookingScoreTable *self,
                                  MirbookingMirna      *mirna,
                                  MirbookingTarget     *target,
                                  gsize                 position,
                                  GError              **error);
 
-    gdouble * (*compute_scores) (MirbookingScoreTable  *self,
-                                 MirbookingMirna       *mirna,
-                                 MirbookingTarget      *target,
-                                 gsize                **positions,
-                                 gsize                 *positions_len,
-                                 GError               **error);
 
     gdouble (*compute_enzymatic_score) (MirbookingScoreTable *self,
                                         MirbookingMirna      *mirna,
@@ -37,18 +38,18 @@ struct _MirbookingScoreTableClass
 
 };
 
-gdouble   mirbooking_score_table_compute_score  (MirbookingScoreTable *self,
-                                                MirbookingMirna      *mirna,
-                                                MirbookingTarget     *target,
-                                                gsize                 position,
-                                                GError              **error);
+gboolean mirbooking_score_table_compute_positions  (MirbookingScoreTable  *self,
+                                                    MirbookingMirna       *mirna,
+                                                    MirbookingTarget      *target,
+                                                    gsize                **positions,
+                                                    gsize                 *positions_len,
+                                                    GError               **error);
 
-gdouble * mirbooking_score_table_compute_scores (MirbookingScoreTable  *self,
-                                                MirbookingMirna       *mirna,
-                                                MirbookingTarget      *target,
-                                                gsize                **positions,
-                                                gsize                 *positions_len,
-                                                GError               **error);
+gdouble   mirbooking_score_table_compute_score  (MirbookingScoreTable *self,
+                                                 MirbookingMirna      *mirna,
+                                                 MirbookingTarget     *target,
+                                                 gsize                 position,
+                                                 GError              **error);
 
 gdouble mirbooking_score_table_compute_enzymatic_score (MirbookingScoreTable *self,
                                                          MirbookingMirna      *mirna,

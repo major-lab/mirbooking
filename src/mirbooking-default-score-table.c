@@ -130,13 +130,13 @@ compute_score (MirbookingScoreTable *score_table,
 
 }
 
-static gdouble *
-compute_scores (MirbookingScoreTable  *score_table,
-                MirbookingMirna       *mirna,
-                MirbookingTarget      *target,
-                gsize                **positions,
-                gsize                 *positions_len,
-                GError               **error)
+static gboolean
+compute_positions (MirbookingScoreTable  *score_table,
+                   MirbookingMirna       *mirna,
+                   MirbookingTarget      *target,
+                   gsize                **positions,
+                   gsize                 *positions_len,
+                   GError               **error)
 {
     MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
 
@@ -148,7 +148,7 @@ compute_scores (MirbookingScoreTable  *score_table,
     gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
 
     // miRNA seed is undefined (thus no suitable targets)
-    g_return_val_if_fail (i != -1, NULL);
+    g_return_val_if_fail (i != -1, FALSE);
 
     gsize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), 0, seed_len);
 
@@ -156,8 +156,7 @@ compute_scores (MirbookingScoreTable  *score_table,
 
     gsize total_positions_len = seq_len - seed_len + 1;
 
-    gsize  *_positions   = g_malloc (total_positions_len * sizeof (gsize));
-    gdouble *_seed_scores = g_malloc (total_positions_len * sizeof (gdouble));
+    gsize  *_positions = g_malloc (total_positions_len * sizeof (gsize));
 
     gsize p;
     for (p = 0; p < total_positions_len; p++)
@@ -166,9 +165,7 @@ compute_scores (MirbookingScoreTable  *score_table,
 
         if (score < INFINITY)
         {
-            _positions[k]   = p;
-            _seed_scores[k] = _compute_Kd (score);
-            ++k;
+            _positions[k++] = p;
         }
 
         if (p < seq_len - seed_len)
@@ -185,7 +182,7 @@ compute_scores (MirbookingScoreTable  *score_table,
     *positions     = _positions;
     *positions_len = k;
 
-    return _seed_scores;
+    return TRUE;
 }
 
 enum
@@ -242,8 +239,8 @@ mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *kla
     object_class->set_property = mirbooking_default_score_table_set_property;
     object_class->finalize     = mirbooking_default_score_table_finalize;
 
-    klass->parent_class.compute_score           = compute_score;
-    klass->parent_class.compute_scores          = compute_scores;
+    klass->parent_class.compute_score     = compute_score;
+    klass->parent_class.compute_positions = compute_positions;
 
     g_object_class_install_property (object_class,
                                      PROP_SEED_SCORES,

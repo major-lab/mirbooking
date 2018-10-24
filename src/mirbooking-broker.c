@@ -14,7 +14,6 @@
 
 typedef struct _MirbookingTargetSitesScores
 {
-    gdouble   *seed_scores;
     gsize     *positions;
     gsize      positions_len;
     GPtrArray *occupants;
@@ -23,7 +22,6 @@ typedef struct _MirbookingTargetSitesScores
 void
 mirbooking_target_sites_scores_clear (MirbookingTargetSitesScores *tss)
 {
-    g_free (tss->seed_scores);
     g_free (tss->positions);
     g_ptr_array_unref (tss->occupants);
 }
@@ -627,13 +625,20 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
             MirbookingTarget *target = g_ptr_array_index (self->priv->targets, i);
             MirbookingMirna *mirna   = g_ptr_array_index (self->priv->mirnas, j);
             MirbookingTargetSitesScores *seed_scores = &g_array_index (self->priv->target_sites_scores, MirbookingTargetSitesScores, i * self->priv->mirnas->len + j);
-            seed_scores->seed_scores = mirbooking_score_table_compute_scores (self->priv->score_table,
-                                                                              mirna,
-                                                                              target,
-                                                                              &seed_scores->positions,
-                                                                              &seed_scores->positions_len,
-                                                                              NULL);
-            occupants_len += seed_scores->positions_len;
+            GError *err = NULL;
+            if (mirbooking_score_table_compute_positions (self->priv->score_table,
+                                                          mirna,
+                                                          target,
+                                                          &seed_scores->positions,
+                                                          &seed_scores->positions_len,
+                                                          &err))
+            {
+                occupants_len += seed_scores->positions_len;
+            }
+            else
+            {
+                g_critical ("%s", err->message);
+            }
         }
     }
 
@@ -671,6 +676,13 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
             for (p = 0; p < seed_scores->positions_len; p++)
             {
                 MirbookingTargetSite *target_site = &target_sites[seed_scores->positions[p]];
+
+                gdouble score = mirbooking_score_table_compute_score (self->priv->score_table,
+                                                                      mirna,
+                                                                      target_site->target,
+                                                                      seed_scores->positions[p],
+                                                                      NULL);
+
                 gdouble enzymatic_score = mirbooking_score_table_compute_enzymatic_score (self->priv->score_table,
                                                                                           mirna,
                                                                                           target_site->target,
@@ -682,7 +694,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
 
                 mirbooking_occupant_init (occupant,
                                           mirna,
-                                          seed_scores->seed_scores[p] / self->priv->kappa,
+                                          score / self->priv->kappa,
                                           enzymatic_score / self->priv->kappa);
 
                 target_site->occupants = g_slist_prepend (target_site->occupants, occupant);
@@ -1008,8 +1020,8 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                 gdouble Kd = occupant->score;
                 gdouble Km = occupant->enzymatic_score;
 
-                g_assert_cmpfloat (Kd, ==, seed_scores->seed_scores[p] / self->priv->kappa);
-                g_assert_cmpfloat (Kd, ==, Km);
+                g_assert_cmpfloat (Kd, >=, 0);
+                g_assert_cmpfloat (Km, >=, 0);
 
                 gdouble kf   = self->priv->lambda / Kd;
                 gdouble kr   = self->priv->lambda;
