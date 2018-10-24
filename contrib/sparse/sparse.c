@@ -55,7 +55,7 @@ sparse_matrix_init (SparseMatrix        *matrix,
     matrix->s.csr.rowptr = calloc (shape[0] + 1, sizeof (size_t));
 
     /* default is zero */
-    memset (&matrix->default_data, sizeof (matrix->default_data), 0);
+    memset (&matrix->default_data, 0, sizeof (matrix->default_data));
 
     /* storage */
     matrix->data = calloc (nnz, _size_for_type (matrix->type));
