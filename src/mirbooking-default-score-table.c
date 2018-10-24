@@ -66,11 +66,11 @@ _init_sparse_matrix_from_bytes (SparseMatrix *sm, GBytes *bytes)
 
     g_return_if_fail (d != NULL);
 
-    gsize n       = *d;
-    gsize nnz     = *(d + 1);
-    gsize* rowptr = d + 2;
-    gsize* colind = rowptr + n + 1;
-    gfloat* data  = (gfloat*) (colind + nnz);
+    gsize n             = *d;
+    gsize nnz           = *(d + 1);
+    const gsize* rowptr = d + 2;
+    const gsize* colind = rowptr + n + 1;
+    const gfloat* data  = (gfloat*) (colind + nnz);
 
     /* initialize the sparse matrix */
     sm->storage        = SPARSE_MATRIX_STORAGE_CSR;
@@ -78,10 +78,10 @@ _init_sparse_matrix_from_bytes (SparseMatrix *sm, GBytes *bytes)
     sm->shape[0]       = n;
     sm->shape[1]       = n;
     sm->s.csr.nnz      = nnz;
-    sm->s.csr.colind   = colind;
-    sm->s.csr.rowptr   = rowptr;
+    sm->s.csr.colind   = (gsize*) colind;
+    sm->s.csr.rowptr   = (gsize*) rowptr;
     sm->default_data.f = INFINITY;
-    sm->data           = data;
+    sm->data           = (void*) data;
 }
 
 static void

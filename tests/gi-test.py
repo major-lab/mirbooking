@@ -90,6 +90,9 @@ mirna = Mirbooking.Mirna(accession='MIMAT0000001', sequence='UGAGGUAGUAGGUUGUAUA
 def reverse_complement(seq):
     return reversed(seq.translate(bytes.maketrans(b'ACGU', b'TGCA')))
 
+from math import exp
+RT = 1.987203611e-3 * 310.15
+
 class SimpleScoreTable(Mirbooking.ScoreTable):
     def do_compute_score(self, mirna, target, position):
         # simple hamming distance
@@ -99,40 +102,48 @@ class SimpleScoreTable(Mirbooking.ScoreTable):
         d = sum(1 if a == b else 0
                 for a, b in zip(reverse_complement(mirna.get_subsequence (1, 7)), target.get_subsequence (position, 7)))
 
-        # at most 1 mismatch
-        if d == 6:
-            return -d
+        # at most 2 mismatch
+        if d >= 5:
+            return 1e12 * exp(-d/RT)
         else:
             return float('inf')
 
 class MirbookingScoreTableTestCase(unittest.TestCase):
     def test_simple_score_table(self):
         score_table = SimpleScoreTable()
-        scores, positions = score_table.compute_scores(mirna, target)
-        self.assertEqual(len(scores), len(positions))
-        for i, s in enumerate(scores):
-            self.assertEqual(s, score_table.compute_score(mirna, target, positions[i]))
+        ret, positions = score_table.compute_positions(mirna, target)
+        self.assertTrue(ret)
+        for p in positions:
+            self.assertTrue(score_table.compute_score(mirna, target, p) < float('inf'))
 
 class MirbookingBrokerTestCase(unittest.TestCase):
     def test_run(self):
         mirbooking = Mirbooking.Broker(score_table=SimpleScoreTable())
         mirbooking.set_sequence_quantity(target, 5.0)
         mirbooking.set_sequence_quantity(mirna, 5.0)
-        norm = 0
-        mirbooking.evaluate(norm)
-        mirbooking.step(Mirbooking.BROKER_STEP_MODE_SOLVE_STEADY_STATE, norm)
+        self.assertIsInstance(mirbooking.get_score_table(), SimpleScoreTable)
+
+        # solve steady-state
+        while True:
+            ret, norm = mirbooking.evaluate()
+            self.assertTrue(ret)
+            ret = mirbooking.step(Mirbooking.BrokerStepMode.SOLVE_STEADY_STATE, 1.0)
+            self.assertTrue(ret)
+            if norm < 1e-8:
+                break
+
         for target_site in mirbooking.get_target_sites():
             for occupant in target_site.occupants:
-                print('Target {} receives {} miRNA {} at position {}.'.format(target_site.target.get_accession(), occupant.quantity, occupant.mirna.get_accession(), target_site.position))
+                self.assertTrue(mirbooking.get_occupant_quantity(occupant) > 0)
 
     def test_get_target_sites_as_dataframe(self):
         mirbooking = Mirbooking.Broker(score_table=SimpleScoreTable())
         mirbooking.set_sequence_quantity(target, 5.0)
         mirbooking.set_sequence_quantity(mirna, 5.0)
-        mirbooking.evaluate(0, norm=None)
-        mirbooking.step(0, step_size=1)
+        ret, norm = mirbooking.evaluate()
+        mirbooking.step(Mirbooking.BrokerStepMode.SOLVE_STEADY_STATE, 1.0)
         df = mirbooking.get_target_sites_as_dataframe()
-        self.assertEqual(5, len(df))
+        self.assertEqual(71, len(df))
         self.assertEqual('NM_000014.4', df.index[0][0])
 
 unittest.main()

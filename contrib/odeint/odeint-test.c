@@ -17,6 +17,8 @@ f (double t, const double *y, double *F, void *user_data)
 int
 main (void)
 {
+    double output[ODEINT_METHOD_DORMAND_PRINCE + 1] = {0};
+
     OdeIntMethod method;
     for (method = 0; method <= ODEINT_METHOD_DORMAND_PRINCE; method++)
     {
@@ -33,7 +35,7 @@ main (void)
         int i;
         for (i = 1; i < 10; i++)
         {
-            double expected_t = i * 1e-2;
+            double expected_t = i * 1e-3;
             odeint_integrator_integrate (integrator,
                                          f,
                                          NULL,
@@ -42,13 +44,20 @@ main (void)
         }
 
         // at equilibrium, we have [E][S]/[ES] == kr/kf
-        printf ("%f\n", fabs(y[0] * y[1] -  y[2]));
-        assert (fabs(y[0] * y[1] -  y[2]) < 1e-3);
+        output[method] = y[0];
 
         odeint_integrator_free (integrator);
     }
 
-    // all methods should give
+    // all methods should give the same output
+    int i, j;
+    for (i = 0; i <= ODEINT_METHOD_DORMAND_PRINCE; i++)
+    {
+        for (j = 0; j <= ODEINT_METHOD_DORMAND_PRINCE; j++)
+        {
+            assert (fabs (output[i] - output[j]) < 10 * (ODEINT_INTEGRATOR_DEFAULT_RTOL * fabs (output[j]) + ODEINT_INTEGRATOR_DEFAULT_ATOL));
+        }
+    }
 
 
     return 0;

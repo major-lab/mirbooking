@@ -10,6 +10,8 @@
 G_BEGIN_DECLS
 
 /**
+ * MIRBOOKING_SCORE_TABLE_DEFAULT_KF:
+ *
  * Forward rate constant for the [E] + [S] -> [ES] reaction, which is
  * indistinguishable from seed types or supplementary bindings (Wee et al. 2012
  * and Salomon et al. 2015). We picked the value from the latest publication

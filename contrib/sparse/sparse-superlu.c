@@ -120,6 +120,8 @@ sparse_superlu_solve (SparseSolver *solver,
         }
     }
 
+    Destroy_SuperMatrix_Store (&AA);
+    Destroy_SuperMatrix_Store (&BB);
     Destroy_CompRow_Matrix (&L);
     Destroy_CompRow_Matrix (&U);
     StatFree (&stat);

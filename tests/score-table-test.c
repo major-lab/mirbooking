@@ -102,8 +102,8 @@ test_score_table_compute_seed_scores ()
 
     g_assert_nonnull (positions);
     g_assert_cmpint (positions_len, ==, 2);
-    g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[0], NULL), ==, 1e12 * exp ((-19.0f - 4.00f) / (R * T)));
-    g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[1], NULL), ==, 1e12 * exp ((-20.0f - 4.00f - 0.56f) / (R * T)));
+    g_assert_cmpfloat (mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table), mirna, target, positions[0], NULL), ==, 1e12 * exp ((-19.0f - 4.00f) / (R * T)));
+    g_assert_cmpfloat (mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table), mirna, target, positions[1], NULL), ==, 1e12 * exp ((-20.0f - 4.00f - 0.56f) / (R * T)));
     g_assert_null (error);
 
     g_free (positions);
@@ -328,35 +328,35 @@ test_score_table_schirle_et_al_2015 ()
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("");
 
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("");
-    mirbooking_sequence_set_raw_sequence (mirna, "UUCACAUUGCCCAAGUCUCUU", strlen ("UUCACAUUGCCCAAGUCUCUU"));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), "UUCACAUUGCCCAAGUCUCUU", strlen ("UUCACAUUGCCCAAGUCUCUU"));
 
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
     g_autoptr (GBytes) supplementary_scores = g_bytes_new_static (&SUPPLEMENTARY_SCORES, sizeof (SUPPLEMENTARY_SCORES));
     g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new_from_bytes (default_table, 1, 7, supplementary_scores));
 
     // A
-    mirbooking_sequence_set_raw_sequence (target, "CAAUGUGAAAA", strlen ("CAAUGUGAAAA"));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "CAAUGUGAAAA", strlen ("CAAUGUGAAAA"));
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 1, NULL);
     // FIXME: g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-6.5f - 4.00f - 0.56f) / (R * T)));
     // FIXME: g_assert_cmpfloat (Kd, <=, 0.75e3 + 0.04e3);
     g_assert_cmpfloat (Kd, >=, 0.75e3 - 0.04e3);
 
     // U
-    mirbooking_sequence_set_raw_sequence (target, "CAAUGUGAUAA", strlen ("CAAUGUGAUAA"));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "CAAUGUGAUAA", strlen ("CAAUGUGAUAA"));
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 1, NULL);
     g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-6.5f - 4.00f) / (R * T)));
     // FIXME: g_assert_cmpfloat (Kd, <=, 1.9e3 + 0.09e3);
     g_assert_cmpfloat (Kd, >=, 1.9e3 - 0.09e3);
 
     // C
-    mirbooking_sequence_set_raw_sequence (target, "CAAUGUGACAA", strlen ("CAAUGUGACAA"));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "CAAUGUGACAA", strlen ("CAAUGUGACAA"));
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 1, NULL);
     g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-6.5f - 4.00f) / (R * T)));
     // FIXME: g_assert_cmpfloat (Kd, <=, 1.9e3 + 0.10e3);
     g_assert_cmpfloat (Kd, >=, 1.9e3 - 0.10e3);
 
     // G
-    mirbooking_sequence_set_raw_sequence (target, "CAAUGUGAGAA", strlen ("CAAUGUGAGAA"));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "CAAUGUGAGAA", strlen ("CAAUGUGAGAA"));
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 1, NULL);
     g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-6.5f - 4.00f) / (R * T)));
     // FIXME: g_assert_cmpfloat (Kd, <=, 1.8e3 + 0.12e3);
