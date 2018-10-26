@@ -174,9 +174,20 @@ compute_positions (MirbookingScoreTable  *score_table,
             gsize out = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p, 1);
             gsize in  = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p+seed_len, 1);
 
+            if (in == -1)
+            {
+                break; // FIXME
+            }
+
+            g_assert_cmpint (in, !=, -1);
+            g_assert_cmpint (out, !=, -1);
+
             j -= out * (2l << (2 * (seed_len - 1) - 1));
             j *= 4;
             j += in;
+
+            g_assert_cmpint (j, <, 16384);
+            g_assert_cmpint (j, >=, 0);
         }
     }
 

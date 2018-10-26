@@ -17,8 +17,8 @@ Implementation of the miRBooking algorithm and metrics in C
 mirbooking --targets GCF_000001405.37_GRCh38.p11_rna.fna
            --mirnas mature.fa
            [--cds-regions cds-regions.tsv]
-           --seed-scores scores-7mer-1mismatch[.gz]
-           --accessibility-scores accessessibility-scores[.gz]
+           --seed-scores scores-7mer-1mismatch
+           [--accessibility-scores accessibility-scores[.gz]]
            [--input stdin]
            [--output stdout]
            [--output-format tsv|gff3]
@@ -27,8 +27,8 @@ mirbooking --targets GCF_000001405.37_GRCh38.p11_rna.fna
            [--max-iterations 100]
            [--seed-offset 1]
            [--seed-length 7]
-           [--5prime-footprint 26]
-           [--3prime-footprint 19]
+           [--5prime-footprint 10]
+           [--3prime-footprint 7]
            [--verbose]
 ```
 
@@ -36,16 +36,19 @@ To obtain detailed usage and options, launch `mirbooking --help`.
 
 The command line program expects a number of inputs:
 
- - `--targets`, a FASTA containing mRNA transcripts where the identifier is the
+ - `--targets`, a FASTA containing RNA transcripts where the identifier is the
    accession (i.e. NM_002710.3)
  - `--mirnas`, a FASTA containing mature miRNAs where the first token in the
    comment is the accession (i.e. MIMAT0004792)
- - `--score-table`, a score table with free energy for seeds
- - `--quantities`, a quantity file mapping target and mirna accessions to
+ - `--seed-scores`, a sparse score table of seed free energies which can be
+   generated using `mirbooking-generate-score-table` program described below
+ - `--accessibilitiy-scores` contains entries with position-wise free energy
+   contribution (or penalty) on the targets
+ - `--input`, a quantity file mapping target and mirna accessions to
    expressed quantity in FPKM/RPKM/RPM
 
-To compute the silencing, `--cds-regions` is a two columns TSV document mapping
-target accessions to coding regions the 'a..b' format where a and b are
+To compute the target silencings, `--cds-regions` is a two columns TSV document
+mapping target accessions to coding regions the 'a..b' format where a and b are
 inclusive 1-based indexes
 
 The output is a TSV with the following columns:
@@ -149,7 +152,7 @@ mirbooking-generate-score-table [--mcff=mcff]
                                 --output scores
 ```
 
-The `mirbooking-calibrate` tool is expecting a transcript and miRNA
+The `mirbooking-prepare-input` tool is expecting a transcript and miRNA
 quantification (e.g. two-column TSV document mapping accession to quantity) and
 process it such that it contains approximately the same amount of each kind by
 rescaling the smallest one toward the biggest one. It emits a calibrated output
@@ -179,13 +182,3 @@ experimentation session is:
 
 For a more detailed usage and code example, the [program source](https://github.com/major-lab/mirbooking/blob/master/bin/mirbooking.c)
 is very explicit as it perform a full session and fully output the target sites.
-
-## Parallelization (using GNU parallel)
-
-```bash
-parallel mirbooking --mirnas mature.fa --targets hg38.fa --score-table scores ::: wildtype.tsv over-expression.tsv
-```
-
-The targets, mirnas and score table files will reuse the same physical memory
-across all processes, yielding a minimal memory usage.
-

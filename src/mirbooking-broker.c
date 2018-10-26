@@ -706,7 +706,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
         }
     }
 
-    g_debug ("nnz: %lu, sparsity: %f%%", nnz,  100.0f - 100.0f * (gdouble) nnz / (gdouble) (self->priv->occupants->len * self->priv->occupants->len));
+    g_debug ("nnz: %lu, sparsity: %.2f%%", nnz,  100.0 * (1.0 - (gdouble) nnz / pow (self->priv->occupants->len, 2)));
 
     self->priv->y_len = self->priv->mirnas->len + self->priv->targets->len + self->priv->occupants->len + self->priv->targets->len;
 
