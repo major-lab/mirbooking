@@ -7,10 +7,10 @@
 #define T 310.15
 
 /*
- * For the duplex: CUCCAUC&GAUGGAG, ViennaRNA reports a free energy of -9.30.
- * Linang et al. measured a dissociation constant for a mouse Ago2 protein
- * carrying a guide miRNA with only the seed pairing of 210±60pM, which
- * correspond to a free energy of -13.73 kcal/mol. We imputate the -4.43
+ * For the duplex: CUCCAUC&GAUGGAG, ViennaRNA reports a free energy of -9.30
+ * kcal/mol.  Linang et al. measured a dissociation constant for a mouse Ago2
+ * protein carrying a guide miRNA with only the seed pairing of 26±2pM, which
+ * correspond to a free energy of -15.02 kcal/mol. We imputate the -5.72
  * kcal/mol to the Ago2 contribution to duplex stabilization.
  *
  * Reference: Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into
