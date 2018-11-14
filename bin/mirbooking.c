@@ -27,7 +27,8 @@ typedef enum _MirbookingOutputFormat
     MIRBOOKING_OUTPUT_FORMAT_GFF3
 } MirbookingOutputFormat;
 
-static gchar                        **sequences_files           = {NULL};
+static gchar                        **targets_files             = {NULL};
+static gchar                        **mirnas_files              = {NULL};
 static gchar                         *cds_regions_file          = NULL;
 static gchar                         *seed_scores_file          = NULL;
 static gchar                         *accessibility_scores_file = NULL;
@@ -91,7 +92,8 @@ set_sparse_solver(const gchar   *key,
 
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
-    {"sequences",            0, 0, G_OPTION_ARG_FILENAME_ARRAY, &sequences_files,           "Sequences FASTA file",                                                                             NULL},
+    {"targets",              0, 0, G_OPTION_ARG_FILENAME_ARRAY, &targets_files,             "Targets FASTA files",                                                                             NULL},
+    {"mirnas",               0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirnas_files,              "miRNA FASTA files",                                                                             NULL},
     {"cds-regions",          0, 0, G_OPTION_ARG_FILENAME,       &cds_regions_file,          "Coding regions as a two-column (accession, 1-based inclusive interval) TSV file",                  "FILE"},
     {"seed-scores",          0, 0, G_OPTION_ARG_FILENAME,       &seed_scores_file,          "Precomputed seed::MRE Gibbs free energy duplex table as a row-major big-endian float matrix file", "FILE"},
     {"accessibility-scores", 0, 0, G_OPTION_ARG_FILENAME,       &accessibility_scores_file, "Accessibility scores as a variable columns (accession, positions...) TSV file",                    "FILE"},
@@ -144,7 +146,8 @@ static void
 read_sequences_from_fasta (FILE        *file,
                            GMappedFile *mapped_file,
                            FastaFormat  fasta_format,
-                           GHashTable  *sequences_hash)
+                           GHashTable  *sequences_hash,
+                           gboolean     is_mirna)
 {
     gchar *accession;
     gchar *name;
@@ -191,7 +194,7 @@ read_sequences_from_fasta (FILE        *file,
 
             MirbookingSequence *sequence;
 
-            if (g_str_has_prefix (accession, "MIMAT") || g_str_has_prefix (accession, "SYNTH"))
+            if (is_mirna)
             {
                 sequence = MIRBOOKING_SEQUENCE (mirbooking_mirna_new_with_name (accession, name));
             }
@@ -514,7 +517,7 @@ main (gint argc, gchar **argv)
 
     // precondition all sequences
     gchar **cur_sequences_file = NULL;
-    for (cur_sequences_file = sequences_files; *cur_sequences_file != NULL; cur_sequences_file++)
+    for (cur_sequences_file = targets_files; *cur_sequences_file != NULL; cur_sequences_file++)
     {
         g_autoptr (FILE) seq_f = g_fopen (*cur_sequences_file, "r");
 
@@ -549,7 +552,47 @@ main (gint argc, gchar **argv)
         read_sequences_from_fasta (seq_f,
                                    seq_map,
                                    ff,
-                                   sequences_hash);
+                                   sequences_hash,
+                                   FALSE);
+    }
+
+    for (cur_sequences_file = mirnas_files; *cur_sequences_file != NULL; cur_sequences_file++)
+    {
+        g_autoptr (FILE) seq_f = g_fopen (*cur_sequences_file, "r");
+
+        if (seq_f == NULL)
+        {
+            g_printerr ("Could not open the sequences file '%s': %s.\n", *cur_sequences_file, g_strerror (errno));
+            return EXIT_FAILURE;
+        }
+
+        g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (fileno (seq_f), FALSE, &error);
+
+        if (seq_map == NULL)
+        {
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
+        }
+
+        FastaFormat ff;
+        if (g_strrstr (*cur_sequences_file, "gencode"))
+        {
+            ff = FASTA_FORMAT_GENCODE;
+        }
+        else if (g_strrstr (*cur_sequences_file, "mature"))
+        {
+            ff = FASTA_FORMAT_MIRBASE;
+        }
+        else
+        {
+            ff = FASTA_FORMAT_REFSEQ;
+        }
+
+        read_sequences_from_fasta (seq_f,
+                                   seq_map,
+                                   ff,
+                                   sequences_hash,
+                                   TRUE);
     }
 
     g_autoptr (GHashTable) cds_hash = g_hash_table_new_full (g_str_hash,
