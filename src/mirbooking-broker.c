@@ -28,7 +28,6 @@ mirbooking_target_sites_scores_clear (MirbookingTargetSitesScores *tss)
 
 typedef struct
 {
-    gdouble                     kappa;
     gdouble                     lambda;
     gsize                       prime5_footprint;
     gsize                       prime3_footprint;
@@ -105,8 +104,7 @@ mirbooking_broker_init (MirbookingBroker *self)
 
 enum
 {
-    PROP_KAPPA = 1,
-    PROP_LAMBDA,
+    PROP_LAMBDA = 1,
     PROP_5PRIME_FOOTPRINT,
     PROP_3PRIME_FOOTPRINT,
     PROP_SCORE_TABLE,
@@ -120,9 +118,6 @@ mirbooking_broker_set_property (GObject *object, guint property_id, const GValue
 
     switch (property_id)
     {
-        case PROP_KAPPA:
-            self->priv->kappa = g_value_get_double (value);
-            break;
         case PROP_LAMBDA:
             self->priv->lambda = g_value_get_double (value);
             break;
@@ -150,9 +145,6 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
 
     switch (property_id)
     {
-        case PROP_KAPPA:
-            g_value_set_double (value, self->priv->kappa);
-            break;
         case PROP_LAMBDA:
             g_value_set_double (value, self->priv->lambda);
             break;
@@ -265,8 +257,6 @@ mirbooking_broker_class_init (MirbookingBrokerClass *klass)
     object_class->get_property = mirbooking_broker_get_property;
     object_class->finalize     = mirbooking_broker_finalize;
 
-    g_object_class_install_property (object_class, PROP_KAPPA,
-                                     g_param_spec_double ("kappa", "", "", 0, G_MAXDOUBLE, MIRBOOKING_BROKER_DEFAULT_KAPPA, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_LAMBDA,
                                      g_param_spec_double ("lambda", "", "", 0, G_MAXDOUBLE, MIRBOOKING_BROKER_DEFAULT_LAMBDA, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_5PRIME_FOOTPRINT,
@@ -288,13 +278,6 @@ MirbookingBroker *
 mirbooking_broker_new (void)
 {
     return g_object_new (MIRBOOKING_BROKER_TYPE, NULL);
-}
-
-void
-mirbooking_broker_set_kappa (MirbookingBroker *self,
-                             gdouble           kappa)
-{
-    self->priv->kappa = kappa;
 }
 
 void
@@ -694,8 +677,8 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
 
                 mirbooking_occupant_init (occupant,
                                           mirna,
-                                          score / self->priv->kappa,
-                                          enzymatic_score / self->priv->kappa);
+                                          score,
+                                          enzymatic_score);
 
                 target_site->occupants = g_slist_prepend (target_site->occupants, occupant);
                 g_ptr_array_add (seed_scores->occupants, occupant);
@@ -926,9 +909,6 @@ _compute_F (double t, const double *y, double *F, void *user_data)
 
                 // The dissociation constant is derived from the duplex's Gibbs
                 // free energy
-                // We convert it to nanomolar and then using kappa, to the
-                // concentration units which are typically FPKM from
-                // high-throughput sequencing
                 gdouble Kd = occupant->score;
                 gdouble Km = occupant->enzymatic_score;
 
@@ -1014,9 +994,6 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
 
                 // The dissociation constant is derived from the duplex's Gibbs
                 // free energy
-                // We convert it to nanomolar and then using kappa, to the
-                // concentration units which are typically FPKM from
-                // high-throughput sequencing
                 gdouble Kd = occupant->score;
                 gdouble Km = occupant->enzymatic_score;
 

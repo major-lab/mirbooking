@@ -15,7 +15,6 @@
 
 G_BEGIN_DECLS
 
-#define MIRBOOKING_BROKER_DEFAULT_KAPPA            2.26   // pM/FPKM
 #define MIRBOOKING_BROKER_DEFAULT_LAMBDA           3.6e-5 // pM^-1s^-1
 #define MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER    MIRBOOKING_BROKER_SPARSE_SOLVER_SUPERLU
 #define MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT 26
@@ -41,8 +40,6 @@ typedef enum _MirbookingBrokerStepMode
 } MirbookingBrokerStepMode;
 
 MirbookingBroker *     mirbooking_broker_new                     (void);
-void                   mirbooking_broker_set_kappa               (MirbookingBroker *self,
-                                                                  gdouble           kappa);
 void                   mirbooking_broker_set_lambda              (MirbookingBroker *self,
                                                                   gdouble           lambda);
 void                   mirbooking_broker_set_sparse_solver       (MirbookingBroker             *self,
