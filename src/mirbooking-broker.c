@@ -28,7 +28,6 @@ mirbooking_target_sites_scores_clear (MirbookingTargetSitesScores *tss)
 
 typedef struct
 {
-    gdouble                     lambda;
     gsize                       prime5_footprint;
     gsize                       prime3_footprint;
     MirbookingScoreTable       *score_table;
@@ -118,9 +117,6 @@ mirbooking_broker_set_property (GObject *object, guint property_id, const GValue
 
     switch (property_id)
     {
-        case PROP_LAMBDA:
-            self->priv->lambda = g_value_get_double (value);
-            break;
         case PROP_5PRIME_FOOTPRINT:
             self->priv->prime5_footprint = g_value_get_uint (value);
             break;
@@ -145,9 +141,6 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
 
     switch (property_id)
     {
-        case PROP_LAMBDA:
-            g_value_set_double (value, self->priv->lambda);
-            break;
         case PROP_5PRIME_FOOTPRINT:
             g_value_set_uint (value, self->priv->prime5_footprint);
             break;
@@ -257,8 +250,6 @@ mirbooking_broker_class_init (MirbookingBrokerClass *klass)
     object_class->get_property = mirbooking_broker_get_property;
     object_class->finalize     = mirbooking_broker_finalize;
 
-    g_object_class_install_property (object_class, PROP_LAMBDA,
-                                     g_param_spec_double ("lambda", "", "", 0, G_MAXDOUBLE, MIRBOOKING_BROKER_DEFAULT_LAMBDA, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_5PRIME_FOOTPRINT,
                                      g_param_spec_uint ("prime5-footprint", "", "", 0, G_MAXUINT, MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_3PRIME_FOOTPRINT,
@@ -278,13 +269,6 @@ MirbookingBroker *
 mirbooking_broker_new (void)
 {
     return g_object_new (MIRBOOKING_BROKER_TYPE, NULL);
-}
-
-void
-mirbooking_broker_set_lambda (MirbookingBroker *self,
-                              gdouble           lambda)
-{
-    self->priv->lambda = lambda;
 }
 
 void
@@ -912,12 +896,9 @@ _compute_F (double t, const double *y, double *F, void *user_data)
                 gdouble Kd = occupant->score;
                 gdouble Km = occupant->enzymatic_score;
 
-                gdouble kf   = self->priv->lambda;
+                gdouble kf   = MIRBOOKING_SCORE_TABLE_DEFAULT_LAMBDA;
                 gdouble kr   = kf * Kd;
                 gdouble kcat = kf * (Km - Kd);
-
-                // FIXME: allow catalysis
-                g_assert_cmpfloat (kcat, ==, 0.0);
 
                 gdouble Stp = S[i] * _mirbooking_broker_get_target_site_vacancy (self,
                                                                                  target_site,
@@ -1000,11 +981,9 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                 g_assert_cmpfloat (Kd, >=, 0);
                 g_assert_cmpfloat (Km, >=, 0);
 
-                gdouble kf   = self->priv->lambda;
+                gdouble kf   = MIRBOOKING_SCORE_TABLE_DEFAULT_LAMBDA;
                 gdouble kr   = kf * Kd;
                 gdouble kcat = kf * (Km - Kd);
-
-                g_assert_cmpfloat (kcat, ==, 0.0);
 
                 gdouble Stp = S[i] * _mirbooking_broker_get_target_site_vacancy (self,
                                                                                  target_site,
@@ -1102,9 +1081,9 @@ mirbooking_broker_evaluate (MirbookingBroker          *self,
         gdouble _norm = 0;
         gint i;
         #pragma omp parallel for reduction(+:_norm)
-        for (i = 0; i < self->priv->y_len; i++)
+        for (i = 0; i < self->priv->occupants->len; i++)
         {
-            _norm += pow (self->priv->F[i], 2);
+            _norm += pow (self->priv->dESdt[i], 2);
         }
         *norm = sqrt (_norm);
     }

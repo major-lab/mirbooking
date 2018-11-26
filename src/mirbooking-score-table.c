@@ -48,9 +48,17 @@ default_compute_enzymatic_score (MirbookingScoreTable *score_table,
                                  gsize                 position,
                                  GError              **error)
 {
-    // Reference: https://www.uniprot.org/uniprot/Q9UKV8
-    // return 1.1;
-    return mirbooking_score_table_compute_score (score_table, mirna, target, position, error);
+    /*
+     * We use a fixed catalytic constant of 8.1e-4 s^-1 for clevage the
+     * reaction.
+     *
+     * Reference:
+     * Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into Domains
+     * with Distinct Functions and RNA-Binding Properties,” Cell 151, no. 5
+     * (November 21, 2012): 1055–67,
+     * https://doi.org/10.1016/j.cell.2012.10.036.
+     */
+    return mirbooking_score_table_compute_score (score_table, mirna, target, position, error) + (8.1e-4 / MIRBOOKING_SCORE_TABLE_DEFAULT_LAMBDA);
 }
 
 void
