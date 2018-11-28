@@ -16,8 +16,18 @@
 G_BEGIN_DECLS
 
 #define MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER    MIRBOOKING_BROKER_SPARSE_SOLVER_SUPERLU
-#define MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT 26
-#define MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT 19
+
+/*
+ * The full effect seems to be occurring with at least 17 nucleotides distance
+ * between consecutive seed starts. We attribute 7 nucleotides toward the 5'
+ * segment to account for the seed bindings and attribute the rest to the tail.
+ *
+ * Reference: Pål Sætrom et al., “Distance Constraints between MicroRNA Target
+ * Sites Dictate Efficacy and Cooperativity,” Nucleic Acids Research 35, no. 7
+ * (April 2007): 2333–42, https://doi.org/10.1093/nar/gkm133.
+ */
+#define MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT 7
+#define MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT 10
 
 #define MIRBOOKING_BROKER_TYPE mirbooking_broker_get_type ()
 G_DECLARE_FINAL_TYPE (MirbookingBroker, mirbooking_broker, MIRBOOKING, BROKER, GObject)
