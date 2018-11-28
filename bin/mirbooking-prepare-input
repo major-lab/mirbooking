@@ -24,7 +24,7 @@ quantities = pd.read_csv(args.input, sep='\t', index_col=0)
 mirnas = quantities.index.str.startswith('MIMAT') | quantities.index.str.startswith('SYNTH')
 
 # convert original units into pM
-quantities['quantity'] *= kappa
+quantities['quantity'] *= args.kappa
 
 # adjust miR:mRNA ratio
 quantities.loc[mirnas, 'quantity'] *= args.eta * quantities[~mirnas].quantity.sum() / quantities[mirnas].quantity.sum()
