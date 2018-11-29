@@ -909,13 +909,33 @@ _compute_F (double t, const double *y, double *F, void *user_data)
 
                 g_assert_cmpfloat (Stp, <=, S[i]);
 
+                gdouble kother = 0;
+                {
+                    gint j;
+                    for (j = 0; j < self->priv->mirnas->len; j++)
+                    {
+                        // all the position of the other microrna
+                        MirbookingTargetSitesScores *tss = &g_array_index (self->priv->target_sites_scores, MirbookingTargetSitesScores, self->priv->mirnas->len * i + j);
+
+                        gint q;
+                        for (q = 0; q < tss->positions_len; q++)
+                        {
+                            if (abs (tss->positions[q] - seed_scores->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
+                            {
+                                // kcat is universal
+                                kother += kcat * (_mirbooking_broker_get_occupant_quantity (self, g_ptr_array_index (tss->occupants, q), ES) / S[i]);
+                            }
+                        }
+                    }
+                }
+
                 #pragma omp atomic
-                dEdt[j] += -kf * E[j] * Stp + kr * ES[k] + kcat * ES[k];
+                dEdt[j] += -kf * E[j] * Stp + kr * ES[k] + kcat * ES[k] + kother * ES[k];
 
                 #pragma omp atomic
                 dSdt[i] += -kcat * ES[k];
 
-                dESdt[k] = kf * E[j] * Stp - kr * ES[k] - kcat * ES[k];
+                dESdt[k] = kf * E[j] * Stp - kr * ES[k] - kcat * ES[k] - kother * ES[k];
 
                 #pragma omp atomic
                 dPdt[i] += kcat * ES[k];
@@ -1008,9 +1028,42 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
 
                         gsize other_k = _mirbooking_broker_get_occupant_index (self, other_occupant);
 
+                        gdouble kother = 0;
+                        if (occupant == other_occupant)
+                        {
+                            gint j;
+                            for (j = 0; j < self->priv->mirnas->len; j++)
+                            {
+                                // all the position of the other microrna
+                                MirbookingTargetSitesScores *tss = &g_array_index (self->priv->target_sites_scores, MirbookingTargetSitesScores, self->priv->mirnas->len * i + j);
+
+                                gint q;
+                                for (q = 0; q < tss->positions_len; q++)
+                                {
+                                    if (abs (tss->positions[q] - seed_scores->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
+                                    {
+                                        // kcat is universal
+                                        kother += kcat * (ES[_mirbooking_broker_get_occupant_index (self, g_ptr_array_index (tss->occupants, q))] / S[i]);
+                                    }
+                                }
+                            }
+                        }
+                        else if (i == z && ABS (seed_scores->positions[p] - alternative_seed_scores->positions[w]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
+                        {
+                            /*
+                             * Here, we account for the kother if a microRNA is
+                             * shared for the pair of complexes because it's
+                             * essentially free and speeds up the convergence.
+                             *
+                             * Ideally we would do if for all pair of
+                             * complexes, but it has a combinatorial cost.
+                             */
+                            kother = kcat * (_mirbooking_broker_get_occupant_quantity (self, occupant, ES) / self->priv->S[i]);
+                        }
+
                         gdouble dEdES  = -1; // always
                         gdouble dSdES  = (z == i && seed_scores->positions[p] == alternative_seed_scores->positions[w]) ? -Stp / (self->priv->S[i] - _mirbooking_broker_get_target_site_occupants_quantity (self, target_site, ES)) : 0;
-                        gdouble dESdES = kf * (E[j] * dSdES + Stp * dEdES) - (kr + kcat) * (occupant == other_occupant ? 1 : 0);
+                        gdouble dESdES = kf * (E[j] * dSdES + Stp * dEdES) - (kr + kcat) * (occupant == other_occupant ? 1 : 0) - kother;
 
                         sparse_matrix_set_double (self->priv->J,
                                                   k,
@@ -1027,9 +1080,30 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
 
                     gsize other_k = _mirbooking_broker_get_occupant_index (self, other_occupant);
 
+                    gdouble kother = 0;
+                    if (occupant == other_occupant)
+                    {
+                        gint j;
+                        for (j = 0; j < self->priv->mirnas->len; j++)
+                        {
+                            // all the position of the other microrna
+                            MirbookingTargetSitesScores *tss = &g_array_index (self->priv->target_sites_scores, MirbookingTargetSitesScores, self->priv->mirnas->len * i + j);
+
+                            gint q;
+                            for (q = 0; q < tss->positions_len; q++)
+                            {
+                                if (abs (tss->positions[q] - seed_scores->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
+                                {
+                                    // kcat is universal
+                                    kother += kcat * (ES[_mirbooking_broker_get_occupant_index (self, g_ptr_array_index (tss->occupants, q))] / S[i]);
+                                }
+                            }
+                        }
+                    }
+
                     gdouble dEdES  = occupant->mirna == other_occupant->mirna ? -1 : 0;
                     gdouble dSdES  = -Stp / (self->priv->S[i] - _mirbooking_broker_get_target_site_occupants_quantity (self, target_site, ES));
-                    gdouble dESdES = kf * (E[j] * dSdES + Stp * dEdES) - (kr + kcat) * (occupant == other_occupant ? 1 : 0);
+                    gdouble dESdES = kf * (E[j] * dSdES + Stp * dEdES) - (kr + kcat) * (occupant == other_occupant ? 1 : 0) - kother;
 
                     if (mirna == other_occupant->mirna)
                     {
