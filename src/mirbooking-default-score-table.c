@@ -156,7 +156,7 @@ compute_positions (MirbookingScoreTable  *score_table,
 
     gsize total_positions_len = seq_len - seed_len + 1;
 
-    gsize  *_positions = g_malloc (total_positions_len * sizeof (gsize));
+    gsize  *_positions = NULL;
 
     gsize p;
     for (p = 0; p < total_positions_len; p++)
@@ -165,6 +165,7 @@ compute_positions (MirbookingScoreTable  *score_table,
 
         if (score < INFINITY)
         {
+            _positions = g_realloc (_positions, (k + 1) * sizeof (gsize));
             _positions[k++] = p;
         }
 

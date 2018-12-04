@@ -18,7 +18,7 @@ default_compute_positions (MirbookingScoreTable *self,
                            gsize                 *positions_len,
                            GError               **error)
 {
-    gsize *_positions = g_new (gsize, mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)));
+    gsize *_positions = NULL;
 
     gint i;
     gint j = 0;
@@ -30,6 +30,7 @@ default_compute_positions (MirbookingScoreTable *self,
 
         if (score < INFINITY)
         {
+            _positions = g_realloc (_positions, (j + 1) * sizeof (gsize));
             _positions[j] = i;
             ++j;
         }
