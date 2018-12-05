@@ -19,7 +19,8 @@ G_BEGIN_DECLS
  * (November 21, 2012): 1055–67,
  * https://doi.org/10.1016/j.cell.2012.10.036.
  */
-#define MIRBOOKING_SCORE_TABLE_DEFAULT_LAMBDA 3.6e-5 // pM^-1s^-1
+#define MIRBOOKING_SCORE_TABLE_DEFAULT_KF   3.6e-5 // pM^-1s^-1
+#define MIRBOOKING_SCORE_TABLE_DEFAULT_KCAT 8.1e-4 // s^-1
 
 #define MIRBOOKING_TYPE_SCORE_TABLE mirbooking_score_table_get_type ()
 G_DECLARE_DERIVABLE_TYPE (MirbookingScoreTable, mirbooking_score_table, MIRBOOKING, SCORE_TABLE, GObject)

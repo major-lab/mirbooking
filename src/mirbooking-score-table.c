@@ -59,7 +59,7 @@ default_compute_enzymatic_score (MirbookingScoreTable *score_table,
      * (November 21, 2012): 1055–67,
      * https://doi.org/10.1016/j.cell.2012.10.036.
      */
-    return mirbooking_score_table_compute_score (score_table, mirna, target, position, error) + (8.1e-4 / MIRBOOKING_SCORE_TABLE_DEFAULT_LAMBDA);
+    return mirbooking_score_table_compute_score (score_table, mirna, target, position, error) + (MIRBOOKING_SCORE_TABLE_DEFAULT_KCAT / MIRBOOKING_SCORE_TABLE_DEFAULT_KF);
 }
 
 void

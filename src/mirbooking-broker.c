@@ -103,8 +103,7 @@ mirbooking_broker_init (MirbookingBroker *self)
 
 enum
 {
-    PROP_LAMBDA = 1,
-    PROP_5PRIME_FOOTPRINT,
+    PROP_5PRIME_FOOTPRINT = 1,
     PROP_3PRIME_FOOTPRINT,
     PROP_SCORE_TABLE,
     PROP_SPARSE_SOLVER
@@ -896,7 +895,7 @@ _compute_F (double t, const double *y, double *F, void *user_data)
                 gdouble Kd = occupant->score;
                 gdouble Km = occupant->enzymatic_score;
 
-                gdouble kf   = MIRBOOKING_SCORE_TABLE_DEFAULT_LAMBDA;
+                gdouble kf   = MIRBOOKING_SCORE_TABLE_DEFAULT_KF;
                 gdouble kr   = kf * Kd;
                 gdouble kcat = kf * (Km - Kd);
 
@@ -1001,7 +1000,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                 g_assert_cmpfloat (Kd, >=, 0);
                 g_assert_cmpfloat (Km, >=, 0);
 
-                gdouble kf   = MIRBOOKING_SCORE_TABLE_DEFAULT_LAMBDA;
+                gdouble kf   = MIRBOOKING_SCORE_TABLE_DEFAULT_KF;
                 gdouble kr   = kf * Kd;
                 gdouble kcat = kf * (Km - Kd);
 
