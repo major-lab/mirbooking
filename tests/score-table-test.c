@@ -12,17 +12,17 @@ typedef struct __attribute__ ((packed)) _SparseMatrixMem
     gsize  n;
     gsize  nnz;
     gsize  rowptr[16384 + 1];
-    gsize  colind[5];
-    gfloat data[5];
+    gsize  colind[7];
+    gfloat data[7];
 } SeedScoreLayout;
 
 static SeedScoreLayout SEED_SCORES =
 {
     16384,
-    5,
-    {[8882] = 0, [8883] = 5},
-    {4370,    4371,   4372,   7261,  9284},
-    {-20.0f, -19.0f, -18.0f, -9.30f, -19.0f},
+    7,
+    {[8882] = 0, [8883] = 7},
+    {3228,  4370,   4371,   4372,   7261,   7421,   9284},
+    {-1.6f, -20.0f, -19.0f, -18.0f, -9.30f, -4.20f, -19.0f},
 };
 
 typedef struct __attribute__ ((packed)) _SupplementaryScoreLayout
@@ -30,17 +30,17 @@ typedef struct __attribute__ ((packed)) _SupplementaryScoreLayout
     gsize  n;
     gsize  nnz;
     gsize  rowptr[256 + 1];
-    gsize  colind[2];
-    gfloat data[2];
+    gsize  colind[4];
+    gfloat data[4];
 } SupplementaryScoreLayout;
 
 static SupplementaryScoreLayout SUPPLEMENTARY_SCORES =
 {
     256,
-    2,
-    {[251] = 0, [252] = 2},
-    {0,    16},
-    {0.0f, -0.20f},
+    4,
+    {[251] = 0, [252] = 4},
+    {0,    16,     63,   96},
+    {0.0f, -0.20f, 0.0f, 0.0f},
 };
 
 static void
@@ -150,7 +150,7 @@ test_score_table_wee_et_al_2012 ()
 
     // siRNA
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), "UGAGGUAGUAGGUUGUAUAUGU", strlen ("UGAGGUAGUAGGUUGUAUAUGU"));
-    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GAUACUAUACAACCUACUACCUCUAAAU", strlen ("GAUACUAUACAACCUACUACCUCUAAAU"));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GAUACUAUACAACCUACUACCUCAACCU", strlen ("GAUACUAUACAACCUACUACCUCAACCU"));
 
     gsize *positions;
     gsize  positions_len;
@@ -196,6 +196,76 @@ test_score_table_wee_et_al_2012 ()
     g_assert_cmpfloat (Km, ==, Kd + (MIRBOOKING_SCORE_TABLE_DEFAULT_KCAT / MIRBOOKING_SCORE_TABLE_DEFAULT_KF));
     g_assert_cmpfloat (Km, >=, 100 - 60);
     g_assert_cmpfloat (Km, <=, 100 + 60);
+
+    // g10g11 central internal loop 50±30
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GAUACUAUACAACGAACUACCUCAACCU", strlen ("GAUACUAUACAACGAACUACCUCAACCU"));
+
+    Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
+    Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
+
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 0.20f - 5.72f) / (R * T)));
+    // FIXME: g_assert_cmpfloat (Kd, >=, 50 - 30);
+    g_assert_cmpfloat (Kd, <=, 50 + 30);
+
+    // g15g16 mismatches in 3' supplementary region 30±20
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GAUACUAUCGAACCUACUACCUCAACCU", strlen ("GAUACUAUCGAACCUACUACCUCAACCU"));
+
+    Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
+    Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
+
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 5.72f) / (R * T)));
+    g_assert_cmpfloat (Kd, >=, 30 - 20);
+    g_assert_cmpfloat (Kd, <=, 30 + 20);
+
+    // g1-g19 complementary 40±20
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GAUUAUAUACAACCUACUACCUCAACCU", strlen ("GAUUAUAUACAACCUACUACCUCAACCU"));
+
+    Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
+    Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
+
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 0.20f - 5.72f) / (R * T)));
+    // FIXME: g_assert_cmpfloat (Kd, >=, 40 - 20);
+    g_assert_cmpfloat (Kd, <=, 40 + 20);
+
+    // seed-only 30±20
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GAAAAAAAAAAAAAAUCUACCUCUAAAU", strlen ("GAAAAAAAAAAAAAAUCUACCUCUAAAU"));
+
+    Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
+    Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
+
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 5.72f) / (R * T)));
+    g_assert_cmpfloat (Kd, >=, 30 - 20);
+    g_assert_cmpfloat (Kd, <=, 30 + 20);
+
+    // seed plus g13-g16 3' supplementary 20±10
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GAAAAAAAACAAAAAUCUACCUCUAAAU", strlen ("GAAAAAAAACAAAAAUCUACCUCUAAAU"));
+
+    Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
+    Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
+
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 0.20f - 5.72f) / (R * T)));
+    g_assert_cmpfloat (Kd, >=, 20 - 10);
+    g_assert_cmpfloat (Kd, <=, 20 + 10);
+
+    // g4g5 mismatches in seed 1e3±0.6e3
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GAUACUAUACAACCUACUAUUUCAACCU", strlen ("GAUACUAUACAACCUACUAUUUCAACCU"));
+
+    Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
+    Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
+
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-4.20f - 0.20f - 5.72f) / (R * T)));
+    g_assert_cmpfloat (Kd, >=, 1e3 - 0.6e3);
+    // FIXME: g_assert_cmpfloat (Kd, <=, 1e3 + 0.6e3);
+
+    // non-complementary luciferase target 2e3±1e3
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GAUAAGGCAUUUCAUUAUAGCUAUACCU", strlen ("GAUAAGGCAUUUCAUUAUAGCUAUACCU"));
+
+    Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
+    Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
+
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-1.6f - 5.72f) / (R * T)));
+    g_assert_cmpfloat (Kd, >=, 2e3 - 1e3);
+    // FIXME: g_assert_cmpfloat (Kd, <=, 2e3 + 1e3);
 
     g_free (positions);
 }
