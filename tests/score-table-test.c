@@ -76,7 +76,8 @@ static void
 test_score_table_compute_seed_scores ()
 {
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, NULL);
+    g_autoptr (GBytes) supplementary_scores = g_bytes_new_static (&SUPPLEMENTARY_SCORES, sizeof (SUPPLEMENTARY_SCORES));
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, supplementary_scores);
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT");

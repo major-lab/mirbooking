@@ -588,6 +588,8 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                                                          self->priv->targets->len * self->priv->mirnas->len);
     g_array_set_clear_func (self->priv->target_positions,
                             (GDestroyNotify) mirbooking_target_positions_clear);
+    g_array_set_size (self->priv->target_positions,
+                      self->priv->targets->len * self->priv->mirnas->len);
 
     // compute scores
     gsize occupants_len = 0;
@@ -617,14 +619,14 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
         }
     }
 
-    g_array_set_size (self->priv->target_positions,
-                      self->priv->targets->len * self->priv->mirnas->len);
+    g_debug ("Number of duplexes: %u", occupants_len);
 
     // pre-allocate occupants in contiguous memory
     self->priv->occupants = g_array_sized_new (FALSE, FALSE, sizeof (MirbookingOccupant), occupants_len);
 
-    // create occupants
-    // FIXME: #pragma omp parallel for collapse(2)
+    // intitialize occupants
+    MirbookingOccupant *occupants = self->priv->occupants->data;
+    #pragma omp parallel for collapse(2)
     for (i = 0; i < self->priv->targets->len; i++)
     {
         for (j = 0; j < self->priv->mirnas->len; j++)
@@ -650,6 +652,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
             }
 
             seed_positions->occupants = g_ptr_array_sized_new (seed_positions->positions_len);
+
             gint p;
             for (p = 0; p < seed_positions->positions_len; p++)
             {
@@ -667,8 +670,8 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                                                                                           seed_positions->positions[p],
                                                                                           NULL);
 
-                gsize k = occupants_offset + p;
-                MirbookingOccupant *occupant = &g_array_index (self->priv->occupants, MirbookingOccupant, k);
+                MirbookingOccupant *occupant = occupants + occupants_offset + p;
+
 
                 mirbooking_occupant_init (occupant,
                                           mirna,
@@ -682,8 +685,6 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
     }
 
     g_assert_cmpint (self->priv->occupants->len, ==, occupants_len);
-
-    g_debug ("Number of duplexes: %u", self->priv->occupants->len);
 
     // count nnz entries in the Jacobian
     gsize nnz = 0;
@@ -938,6 +939,9 @@ _compute_F (double t, const double *y, double *F, void *user_data)
                         }
                     }
                 }
+
+                //gdouble z = kf * E[j] + kf * Stp + kr + kcat + kother;
+                // g_print ("%.2e\n", (z - sqrt (pow (z, 2) - 4 * pow (kf, 2) * E[j] * Stp)) / (2 * kf));
 
                 #pragma omp atomic
                 dEdt[j] += -kf * E[j] * Stp + kr * ES[k] + kcat * ES[k] + kother * ES[k];

@@ -118,11 +118,14 @@ test_mirbooking ()
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
 
-    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE, strlen (TARGET_SEQUENCE));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GCACACA", strlen ("GCACACA"));
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
 
-    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target), 6e5);
-    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna), 4e6);
+    gdouble E0 = 4e6;
+    gdouble S0 = 6e5;
+
+    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target), S0);
+    mirbooking_broker_set_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna), E0);
 
     mirbooking_broker_set_5prime_footprint (mirbooking, 0);
     mirbooking_broker_set_3prime_footprint (mirbooking, 0);
@@ -158,7 +161,16 @@ test_mirbooking ()
     MirbookingOccupant *occupant = target_site.occupants->data;
 
     g_assert_cmpfloat (occupant->score, ==, 1e12 * exp ((-9.0f - 4.00f) / (R*T)));
-    g_assert_cmpfloat (mirbooking_broker_get_occupant_quantity (mirbooking, occupant), >, 0);
+
+    /* analytical solution for a single reaction */
+    gdouble kf = MIRBOOKING_SCORE_TABLE_DEFAULT_KF;
+    gdouble kr = kf * occupant->score;
+    gdouble kcat = MIRBOOKING_SCORE_TABLE_DEFAULT_KCAT;
+    gdouble z = kf * (E0 + S0) + kr + kcat;
+
+    gdouble ES = mirbooking_broker_get_occupant_quantity (mirbooking, occupant);
+    gdouble ES_eq = (z - sqrt (pow (z, 2) - 4 * pow (kf, 2) * E0 * S0)) / (2 * kf);
+    g_assert_cmpfloat (fabs (ES_eq - ES), <, 1e-8);
 }
 
 static void
