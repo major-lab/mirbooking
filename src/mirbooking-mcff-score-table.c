@@ -6,6 +6,12 @@
 #define R 1.987203611e-3
 #define T 310.15
 
+/*
+ * See @MirbookingDefaultScoreTable for the detail of the computation. Here,
+ * mcff returned -18.38 kcal/mol.
+ */
+#define AGO2_SCORE (3.02f)
+
 struct _MirbookingMcffScoreTable
 {
     MirbookingScoreTable parent_instance;
@@ -48,7 +54,7 @@ compute_score (MirbookingScoreTable *score_table,
     gfloat mfe;
     sscanf (standard_output, "%f", &mfe);
 
-    return 1e12 * exp (mfe / (R * T));
+    return 1e12 * exp ((mfe + AGO2_SCORE) / (R * T));
 }
 
 static void

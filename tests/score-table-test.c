@@ -132,7 +132,7 @@ test_score_table_mcff ()
                                                                &error);
 
     g_assert_null (error);
-    g_assert_cmpfloat (site_score, ==, 1e12 * exp (-7.09f / (R * T)));
+    g_assert_cmpfloat (site_score, ==, 1e12 * exp ((-7.09f + 3.02f) / (R * T)));
 }
 
 /**
