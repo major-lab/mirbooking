@@ -7,8 +7,8 @@
 #define T 310.15
 
 /*
- * For the duplex: CUCCAUC&GAUGGAG, ViennaRNA reports a free energy of -9.30
- * kcal/mol.
+ * For the duplex: CUCCAUCA&AGAUGGAG which account for a dangling 5' end of the
+ * microRNA, ViennaRNA reports a free energy of -10.80 kcal/mol.
  *
  * Wee et al. measured a dissociation constant for a mouse Ago2 protein
  * carrying a guide miRNA with only the seed pairing of 26±2 pM, which
@@ -17,13 +17,14 @@
  * On the other hand, Salomon et al. instead measured 15±2 pm, which correspond
  * to -15.36 kcal/mol.
  *
- * We thus impute the -6.06 kcal/mol to AGO2 entropic contribution.
+ * We thus the latest value and impute the -4.56 kcal/mol gap to AGO2 entropic
+ * contribution.
  *
  * Reference: Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into
  * Domains with Distinct Functions and RNA-Binding Properties,” Cell 151, no. 5
  * (November 21, 2012): 1055–67, https://doi.org/10.1016/j.cell.2012.10.036.
  * */
-#define AGO2_SCORE (-6.06f)
+#define AGO2_SCORE (-4.56f)
 
 typedef struct
 {

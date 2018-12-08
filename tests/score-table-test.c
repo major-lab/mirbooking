@@ -21,8 +21,8 @@ static SeedScoreLayout SEED_SCORES =
     16384,
     7,
     {[8882] = 0, [8883] = 7},
-    {3228,  4370,   4371,   4372,   7261,   7421,   9284},
-    {-1.6f, -20.0f, -19.0f, -18.0f, -9.30f, -4.20f, -19.0f},
+    {3228,  4370,   4371,   4372,   7261,    7421,   9284},
+    {-1.6f, -20.0f, -19.0f, -18.0f, -10.80f, -5.70f, -19.0f},
 };
 
 typedef struct __attribute__ ((packed)) _SupplementaryScoreLayout
@@ -68,7 +68,7 @@ test_score_table_compute_seed_score ()
                                                                target, 1, // CACACAG =>
                                                                &error);
 
-    g_assert_cmpfloat (site_score, ==, 1e12 * exp ((-20.0f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (site_score, ==, 1e12 * exp ((-20.0f - 4.56f) / (R * T)));
     g_assert_null (error);
 }
 
@@ -102,8 +102,8 @@ test_score_table_compute_seed_scores ()
 
     g_assert_nonnull (positions);
     g_assert_cmpint (positions_len, ==, 2);
-    g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[0], NULL), ==, 1e12 * exp ((-19.0f - 6.06f) / (R * T)));
-    g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[1], NULL), ==, 1e12 * exp ((-20.0f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[0], NULL), ==, 1e12 * exp ((-19.0f - 4.56f) / (R * T)));
+    g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[1], NULL), ==, 1e12 * exp ((-20.0f - 4.56f) / (R * T)));
     g_assert_null (error);
 
     g_free (positions);
@@ -132,7 +132,7 @@ test_score_table_mcff ()
                                                                &error);
 
     g_assert_null (error);
-    g_assert_cmpfloat (site_score, ==, 1e12 * exp ((-7.09f + 3.02f) / (R * T)));
+    g_assert_cmpfloat (site_score, ==, 1e12 * exp ((-7.691f + 4.40f) / (R * T)));
 }
 
 /**
@@ -166,7 +166,7 @@ test_score_table_wee_et_al_2012 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
     Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
 
-    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 0.20f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-10.80f - 0.20f - 4.56f) / (R * T)));
     g_assert_cmpfloat (Kd, >=, 20 - 10);
     g_assert_cmpfloat (Kd, <=, 20 + 10);
 
@@ -180,7 +180,7 @@ test_score_table_wee_et_al_2012 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
     Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
 
-    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-10.80f - 4.56f) / (R * T)));
     // FIXME: g_assert_cmpfloat (Kd, >=, 26 - 2);
     g_assert_cmpfloat (Kd, <=, 26 + 2);
 
@@ -194,7 +194,7 @@ test_score_table_wee_et_al_2012 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
     Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
 
-    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 0.20f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-10.80f - 0.20f - 4.56f) / (R * T)));
     // FIXME: g_assert_cmpfloat (Kd, >=, 13 - 1);
     g_assert_cmpfloat (Kd, <=, 13 + 1);
 
@@ -208,7 +208,7 @@ test_score_table_wee_et_al_2012 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
     Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
 
-    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 0.20f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-10.80f - 0.20f - 4.56f) / (R * T)));
     // FIXME: g_assert_cmpfloat (Kd, >=, 50 - 30);
     g_assert_cmpfloat (Kd, <=, 50 + 30);
 
@@ -218,7 +218,7 @@ test_score_table_wee_et_al_2012 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
     Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
 
-    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-10.80f - 4.56f) / (R * T)));
     g_assert_cmpfloat (Kd, >=, 30 - 20);
     g_assert_cmpfloat (Kd, <=, 30 + 20);
 
@@ -228,7 +228,7 @@ test_score_table_wee_et_al_2012 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
     Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
 
-    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 0.20f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-10.80f - 0.20f - 4.56f) / (R * T)));
     // FIXME: g_assert_cmpfloat (Kd, >=, 40 - 20);
     g_assert_cmpfloat (Kd, <=, 40 + 20);
 
@@ -238,7 +238,7 @@ test_score_table_wee_et_al_2012 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
     Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
 
-    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-10.80f - 4.56f) / (R * T)));
     g_assert_cmpfloat (Kd, >=, 30 - 20);
     g_assert_cmpfloat (Kd, <=, 30 + 20);
 
@@ -248,7 +248,7 @@ test_score_table_wee_et_al_2012 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
     Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
 
-    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.30f - 0.20f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-10.80f - 0.20f - 4.56f) / (R * T)));
     g_assert_cmpfloat (Kd, >=, 20 - 10);
     g_assert_cmpfloat (Kd, <=, 20 + 10);
 
@@ -258,7 +258,7 @@ test_score_table_wee_et_al_2012 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
     Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
 
-    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-4.20f - 0.20f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-5.70f - 0.20f - 4.56f) / (R * T)));
     g_assert_cmpfloat (Kd, >=, 1e3 - 0.6e3);
     // FIXME: g_assert_cmpfloat (Kd, <=, 1e3 + 0.6e3);
 
@@ -268,7 +268,7 @@ test_score_table_wee_et_al_2012 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 16, NULL);
     Km = mirbooking_score_table_compute_enzymatic_score (score_table, mirna, target, 16, NULL);
 
-    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-1.6f - 6.06f) / (R * T)));
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-1.6f - 4.56f) / (R * T)));
     g_assert_cmpfloat (Kd, >=, 2e3 - 1e3);
     // FIXME: g_assert_cmpfloat (Kd, <=, 2e3 + 1e3);
 

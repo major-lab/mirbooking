@@ -2,15 +2,16 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #define R 1.987203611e-3
 #define T 310.15
 
 /*
  * See @MirbookingDefaultScoreTable for the detail of the computation. Here,
- * mcff returned -18.38 kcal/mol.
+ * mcff returned -19.765 kcal/mol.
  */
-#define AGO2_SCORE (3.02f)
+#define AGO2_SCORE (4.40f)
 
 struct _MirbookingMcffScoreTable
 {
@@ -26,11 +27,15 @@ compute_score (MirbookingScoreTable *score_table,
                gsize                 position,
                GError              **error)
 {
-    gchar mirna_seq[8] = {0};
-    gchar target_seq[8] = {0};
+    gchar mirna_seq[9]  = {0};
+    gchar target_seq[9] = {0};
 
-    strncpy (mirna_seq, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), 1, 7), 7);
+    strncpy (mirna_seq + 1, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), 1, 7), 7);
     strncpy (target_seq, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position, position + 7), 7);
+
+    // dangling end
+    target_seq[7] = 'A';
+    mirna_seq[0]  = 'A';
 
     gchar *argv[] = {MCFF, "-seq", target_seq, "-zzd", mirna_seq, NULL};
 
