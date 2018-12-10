@@ -42,6 +42,7 @@ typedef struct
 {
     GBytes       *seed_scores_bytes;
     SparseMatrix  seed_scores; /* view over @seed_scores_bytes */
+    MirbookingDefaultScoreTableSupplementaryModel supplementary_model;
     GBytes       *supplementary_scores_bytes;
     SparseMatrix  supplementary_scores;
 } MirbookingDefaultScoreTablePrivate;
@@ -153,9 +154,11 @@ _get_subsequence_score (SparseMatrix     *scores,
         return INFINITY;
     }
 
-    return sparse_matrix_get_float (scores,
-                                    subsequence_i,
-                                    subsequence_j);
+    gfloat score = sparse_matrix_get_float (scores,
+                                            subsequence_i,
+                                            subsequence_j);
+
+    return score;
 }
 
 static gdouble
@@ -196,23 +199,86 @@ compute_score (MirbookingScoreTable *score_table,
                                                 SEED_OFFSET,
                                                 SEED_LENGTH);
 
-    gsize supplementary_offset = 12;
-    gsize supplementary_len = 4;
     gfloat supplementary_score = 0;
-    if (self->priv->supplementary_scores_bytes != NULL)
+    if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_3PRIME)
     {
-        supplementary_score = _get_subsequence_score (&self->priv->supplementary_scores,
-                                                      mirna,
-                                                      target,
-                                                      position,
-                                                      SEED_OFFSET + 3,
-                                                      supplementary_offset,
-                                                      supplementary_len);
-
-        /* unfavorable supplementary bindings does not contribute */
-        if (supplementary_score > 0)
+        if (self->priv->supplementary_scores_bytes != NULL)
         {
-            supplementary_score = 0;
+            gfloat supplementary_score_ = _get_subsequence_score (&self->priv->supplementary_scores,
+                                                                  mirna,
+                                                                  target,
+                                                                  position,
+                                                                  4,
+                                                                  SEED_OFFSET + SEED_LENGTH + 4,
+                                                                  4);
+            if (supplementary_score_ < 0)
+            {
+                supplementary_score = supplementary_score_;
+            }
+        }
+    }
+    else if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018)
+    {
+        /*
+         * Reference:
+         * Yifei Yan et al., “The Sequence Features That Define Efficient and
+         * Specific HAGO2-Dependent MiRNA Silencing Guides,” Nucleic Acids
+         * Research, June 22, 2018, https://doi.org/10.1093/nar/gky546.
+         */
+        gfloat A_box = 0, B_box = 0, C_box = 0, D_box = 0;
+        if (self->priv->supplementary_scores_bytes != NULL)
+        {
+            // A box
+            A_box = _get_subsequence_score (&self->priv->supplementary_scores,
+                                            mirna,
+                                            target,
+                                            position,
+                                            5,
+                                            SEED_OFFSET + SEED_LENGTH,
+                                            3);
+
+            // B box
+            B_box = _get_subsequence_score (&self->priv->supplementary_scores,
+                                            mirna,
+                                            target,
+                                            position,
+                                            5,
+                                            SEED_OFFSET + SEED_LENGTH + 3,
+                                            3);
+
+            // C box
+            C_box = _get_subsequence_score (&self->priv->supplementary_scores,
+                                            mirna,
+                                            target,
+                                            position,
+                                            5,
+                                            SEED_OFFSET + SEED_LENGTH + 6,
+                                            3);
+
+            // AAA::UUU
+            gfloat mismatch_threshold = 0.0f - 1e-15f; // sparse_matrix_get_float (&self->priv->supplementary_scores, 0, 63);
+
+            // TODO: D box (remaining nucleotides)
+
+            if (B_box <= mismatch_threshold)
+            {
+                supplementary_score += B_box;
+            }
+
+            if (B_box <= mismatch_threshold && C_box <= mismatch_threshold)
+            {
+                supplementary_score += C_box;
+            }
+
+            if (A_box <= mismatch_threshold && B_box <= mismatch_threshold && C_box <= mismatch_threshold)
+            {
+                supplementary_score += A_box;
+            }
+
+            if (A_box <= mismatch_threshold && B_box <= mismatch_threshold && C_box <= mismatch_threshold && D_box <= mismatch_threshold)
+            {
+                supplementary_score += D_box;
+            }
         }
     }
 
@@ -284,6 +350,7 @@ compute_positions (MirbookingScoreTable  *score_table,
 enum
 {
     PROP_SEED_SCORES = 1,
+    PROP_SUPPLEMENTARY_MODEL,
     PROP_SUPPLEMENTARY_SCORES
 };
 
@@ -315,6 +382,9 @@ mirbooking_default_score_table_set_property (GObject *object, guint property_id,
             score_table = g_value_get_boxed (value);
             self->priv->seed_scores_bytes = g_bytes_ref (score_table);
             break;
+        case PROP_SUPPLEMENTARY_MODEL:
+            self->priv->supplementary_model = g_value_get_uint (value);
+            break;
         case PROP_SUPPLEMENTARY_SCORES:
             score_table = g_value_get_boxed (value);
             self->priv->supplementary_scores_bytes = score_table == NULL ? NULL : g_bytes_ref (score_table);
@@ -341,6 +411,9 @@ mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *kla
                                      PROP_SEED_SCORES,
                                      g_param_spec_boxed ("seed-scores", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
+                                     PROP_SUPPLEMENTARY_MODEL,
+                                     g_param_spec_uint ("supplementary-model", "", "", 0, 2, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
                                      PROP_SUPPLEMENTARY_SCORES,
                                      g_param_spec_boxed ("supplementary-scores", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
 }
@@ -351,12 +424,13 @@ mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *kla
  * Returns: (transfer full)
  */
 MirbookingDefaultScoreTable *
-mirbooking_default_score_table_new (GBytes *seed_scores, GBytes *supp_scores)
+mirbooking_default_score_table_new (GBytes *seed_scores, MirbookingDefaultScoreTableSupplementaryModel supp_model, GBytes *supp_scores)
 {
     g_return_val_if_fail (g_bytes_get_data (seed_scores, NULL) != NULL, NULL);
 
     return g_object_new (MIRBOOKING_TYPE_DEFAULT_SCORE_TABLE,
                          "seed-scores", seed_scores,
+                         "supplementary-model", supp_model,
                          "supplementary-scores", supp_scores,
                          NULL);
 }
