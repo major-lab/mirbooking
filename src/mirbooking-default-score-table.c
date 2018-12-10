@@ -17,14 +17,23 @@
  * On the other hand, Salomon et al. instead measured 15±2 pm, which correspond
  * to -15.36 kcal/mol.
  *
- * We thus the latest value and impute the -4.56 kcal/mol gap to AGO2 entropic
+ * In addition, the seed setup experiment in both experiments had 'A', which
+ * shoudld account for a -0.56 kcal/mol additional contribution (Schirle et al. 2015).
+ *
+ * We thus the latest value and impute the -4.00 kcal/mol gap to AGO2 entropic
  * contribution.
  *
- * Reference: Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into
+ * Reference:
+ * Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into
  * Domains with Distinct Functions and RNA-Binding Properties,” Cell 151, no. 5
  * (November 21, 2012): 1055–67, https://doi.org/10.1016/j.cell.2012.10.036.
- * */
-#define AGO2_SCORE (-4.56f)
+ *
+ * Nicole T Schirle et al., “Water-Mediated Recognition of T1-Adenosine Anchors
+ * Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4 (September
+ * 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
+ */
+
+#define AGO2_SCORE (-4.00f)
 
 typedef struct
 {
@@ -165,6 +174,22 @@ compute_score (MirbookingScoreTable *score_table,
 
     gsize seed_offset = self->priv->seed_offset;
     gsize seed_len    = self->priv->seed_length;
+
+    /*
+     * AGO2 has a slight preference for sites starting with 'A' at position t1.
+     *
+     * Reference:
+     * Nicole T Schirle et al., “Water-Mediated Recognition of T1-Adenosine
+     * Anchors Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4
+     * (September 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
+     */
+    gfloat A_score = 0.0f;
+    if (position + seed_len + 1 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
+        *mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + seed_len, 1) == 'A')
+    {
+        A_score = -0.56f;
+    }
+
     gfloat seed_score = _get_subsequence_score (&self->priv->seed_scores,
                                                 mirna,
                                                 target,
@@ -191,7 +216,7 @@ compute_score (MirbookingScoreTable *score_table,
         }
     }
 
-    return _compute_Kd (seed_score + supplementary_score + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE);
+    return _compute_Kd (A_score + seed_score + supplementary_score + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE);
 }
 
 static gboolean
