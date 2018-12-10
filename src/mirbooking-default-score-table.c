@@ -73,7 +73,23 @@ _init_sparse_matrix_from_bytes (SparseMatrix *sm, GBytes *bytes)
     sm->s.csr.rowptr   = rowptr;
     sm->default_data.f = INFINITY;
     sm->data           = data;
+}
 
+static void
+mirbooking_default_score_table_constructed (GObject *object)
+{
+    MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (object);
+
+    _init_sparse_matrix_from_bytes (&self->priv->seed_scores,
+                                    self->priv->seed_scores_bytes);
+
+    if (self->priv->supplementary_scores_bytes != NULL)
+    {
+        _init_sparse_matrix_from_bytes (&self->priv->supplementary_scores,
+                                        self->priv->supplementary_scores_bytes);
+    }
+
+    G_OBJECT_CLASS (mirbooking_default_score_table_parent_class)->constructed (object);
 }
 
 static void
@@ -257,8 +273,6 @@ mirbooking_default_score_table_set_property (GObject *object, guint property_id,
         case PROP_SEED_SCORES:
             score_table = g_value_get_boxed (value);
             self->priv->seed_scores_bytes = g_bytes_ref (score_table);
-            _init_sparse_matrix_from_bytes (&self->priv->seed_scores,
-                                            self->priv->seed_scores_bytes);
             break;
         case PROP_SEED_OFFSET:
             self->priv->seed_offset = g_value_get_uint (value);
@@ -268,12 +282,7 @@ mirbooking_default_score_table_set_property (GObject *object, guint property_id,
             break;
         case PROP_SUPPLEMENTARY_SCORES:
             score_table = g_value_get_boxed (value);
-            if (score_table != NULL)
-            {
-                self->priv->supplementary_scores_bytes = g_bytes_ref (score_table);
-                _init_sparse_matrix_from_bytes (&self->priv->supplementary_scores,
-                                                self->priv->supplementary_scores_bytes);
-            }
+            self->priv->supplementary_scores_bytes = score_table == NULL ? NULL : g_bytes_ref (score_table);
             break;
         default:
             g_assert_not_reached ();
@@ -285,6 +294,7 @@ mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *kla
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    object_class->constructed  = mirbooking_default_score_table_constructed;
     object_class->get_property = mirbooking_default_score_table_get_property;
     object_class->set_property = mirbooking_default_score_table_set_property;
     object_class->finalize     = mirbooking_default_score_table_finalize;
