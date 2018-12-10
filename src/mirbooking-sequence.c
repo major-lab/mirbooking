@@ -256,12 +256,10 @@ sequence_index (const gchar *seq, gsize seq_len)
     gint i;
     gsize index = 0;
 
-    // note: 4**i = 2**2i = 2 << 2i - 1
-    // for i = 0, we do it manually as it would result in a negative shift
-
+    // note: 4**i = 2**2i = 1 << 2*i
     for (i = 0; i < seq_len; i++)
     {
-        gsize base = i == 0 ? 1 : (2l << (2 * i - 1));
+        gsize base = 1l << (2 * i);
         switch (seq[seq_len - i - 1])
         {
             case 'A':
@@ -304,7 +302,7 @@ mirbooking_sequence_get_subsequence_index (MirbookingSequence *self, gsize offse
 {
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
 
-    g_return_val_if_fail (offset + len <= priv->sequence_len - priv->sequence_skips->len, 0);
+    g_return_val_if_fail (offset + len <= priv->sequence_len - priv->sequence_skips->len, -1);
 
     return sequence_index (mirbooking_sequence_get_subsequence (self, offset, len), len);
 }
