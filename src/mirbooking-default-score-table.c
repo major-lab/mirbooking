@@ -112,6 +112,42 @@ mirbooking_default_score_table_finalize (GObject *object)
     G_OBJECT_CLASS (mirbooking_default_score_table_parent_class)->finalize (object);
 }
 
+static gfloat
+_get_subsequence_score (SparseMatrix     *scores,
+                        MirbookingMirna  *mirna,
+                        MirbookingTarget *target,
+                        gsize             position,
+                        gsize             mirna_position_offset,
+                        gsize             subsequence_offset,
+                        gsize             subsequence_len)
+{
+    g_return_val_if_fail ((1 << (2 * subsequence_len)) == scores->shape[0], INFINITY);
+
+    // the subsequence does not fit in the target
+    if (position + mirna_position_offset - subsequence_offset + subsequence_len > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)))
+    {
+        return INFINITY;
+    }
+
+    // the subsequence does not fit in the mirna
+    if (subsequence_offset + subsequence_len > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (mirna)))
+    {
+        return INFINITY;
+    }
+
+    gsize subsequence_i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), subsequence_offset, subsequence_len);
+    gsize subsequence_j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position + mirna_position_offset - subsequence_offset, subsequence_len);
+
+    if (subsequence_i == -1 || subsequence_j == -1)
+    {
+        return INFINITY;
+    }
+
+    return sparse_matrix_get_float (scores,
+                                    subsequence_i,
+                                    subsequence_j);
+}
+
 static gdouble
 _compute_Kd (gdouble deltaG)
 {
@@ -129,44 +165,29 @@ compute_score (MirbookingScoreTable *score_table,
 
     gsize seed_offset = self->priv->seed_offset;
     gsize seed_len    = self->priv->seed_length;
+    gfloat seed_score = _get_subsequence_score (&self->priv->seed_scores,
+                                                mirna,
+                                                target,
+                                                position,
+                                                seed_offset,
+                                                seed_offset,
+                                                seed_len);
 
-    // the seed does not fit in the target
-    if (position + seed_len > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)))
-    {
-        return INFINITY;
-    }
-
-    // the seed does not fit in the mirna
-    if (seed_offset + seed_len > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (mirna)))
-    {
-        return INFINITY;
-    }
-
-    gssize seed_i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
-    gssize seed_j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, seed_len);
-
-    // either sequence index is undefined
-    if (seed_i == -1 || seed_j == -1)
-    {
-        return INFINITY;
-    }
-
-    gfloat seed_score = sparse_matrix_get_float (&self->priv->seed_scores, seed_i, seed_j);
-
-    gfloat supplementary_score = 0.0f;
     gsize supplementary_offset = 12;
     gsize supplementary_len = 4;
-    if (self->priv->supplementary_scores_bytes != NULL &&
-        position >= (supplementary_offset - supplementary_len) &&
-        mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (mirna)) >= (supplementary_offset + supplementary_len))
+    gfloat supplementary_score = 0;
+    if (self->priv->supplementary_scores_bytes != NULL)
     {
-        gsize supplementary_i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), supplementary_offset, supplementary_len);
-        gsize supplementary_j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position - supplementary_offset + supplementary_len, supplementary_len);
-        if (supplementary_i != -1 && supplementary_j != -1)
+        supplementary_score = _get_subsequence_score (&self->priv->supplementary_scores,
+                                                      mirna,
+                                                      target,
+                                                      position,
+                                                      seed_offset + 3,
+                                                      supplementary_offset,
+                                                      supplementary_len);
+        if (supplementary_score == INFINITY)
         {
-            supplementary_score = sparse_matrix_get_float (&self->priv->supplementary_scores,
-                                                           supplementary_i,
-                                                           supplementary_j);
+            supplementary_score = 0;
         }
     }
 
