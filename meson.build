@@ -11,6 +11,25 @@ if mcff_bin.found()
     add_project_arguments(['-DHAVE_MCFF', '-DMCFF="@0@"'.format(mcff_bin.path())], language: 'c')
 endif
 
+if get_option('with_gomp')
+    add_project_arguments('-DHAVE_OPENMP', language: 'c')
+    openmp_dep = declare_dependency(compile_args: '-fopenmp',
+                                    dependencies: meson.get_compiler('c').find_library('gomp'))
+else
+    add_project_arguments('-Wno-unknown-pragmas', language: 'c')
+    openmp_dep = []
+    warning('OpenMP is recommended to perform computation in reasonable time.')
+endif
+
+if get_option('with_openmpi')
+    add_project_arguments('-DHAVE_MPI', language: 'c')
+    mpicc_bin = find_program('mpicc')
+    mpi_dep = declare_dependency(compile_args: run_command(mpicc_bin, ['-showme:compile:']).stdout().split(),
+                                 link_args: run_command(mpicc_bin, ['-showme:link:']).stdout().split())
+else
+    mpi_dep = []
+endif
+
 # Intel MKL
 if get_option('with_mkl')
     mkl_root = get_option('mkl_root')
@@ -24,14 +43,25 @@ if get_option('with_mkl')
         warning('MKL 64-bit interface is required for solving large systems.')
     endif
     mkl_core = meson.get_compiler('c').find_library('mkl_core', dirs: mkl_libdir)
-    mkl_gnu_thread = meson.get_compiler('c').find_library('mkl_gnu_thread', dirs: mkl_libdir)
-    mkl_gomp = meson.get_compiler('c').find_library('gomp')
+
+    if get_option('with_gomp')
+        mkl_thread = meson.get_compiler('c').find_library('mkl_gnu_thread', dirs: mkl_libdir)
+    else
+        mkl_thread = meson.get_compiler('c').find_library('mkl_sequential', dirs: mkl_libdir)
+    endif
+
+    if get_option('with_openmpi')
+        mkl_mpi = meson.get_compiler('c').find_library('mkl_blacs_openmpi_ilp64', dirs: mkl_libdir)
+    else
+        mkl_mpi = []
+    endif
+
     mkl_pthread = meson.get_compiler('c').find_library('pthread')
     mkl_m = meson.get_compiler('c').find_library('m')
     mkl_dl = meson.get_compiler('c').find_library('dl')
     mkl_dep = declare_dependency(compile_args: '-I@0@'.format(join_paths(mkl_root, 'include')),
                                  link_args: ['-Wl,--no-as-needed'],
-                                 dependencies: [mkl_ilp64, mkl_gnu_thread, mkl_core, mkl_gomp, mkl_pthread, mkl_m, mkl_dl])
+                                 dependencies: [mkl_ilp64, mkl_thread, mkl_core, mkl_mpi, mpi_dep, openmp_dep, mkl_pthread, mkl_m, mkl_dl])
 else
     warning('MKL is recommended for solving sparse systems efficiently.')
 endif
@@ -45,25 +75,6 @@ elif get_option('with_fftw3')
     fftw3_dep = dependency('fftw3', required: get_option('with_fftw3'))
 else
     warning('FFTW3 is recommended to compute accurate target silencing.')
-endif
-
-if get_option('with_openmp')
-    add_project_arguments('-DHAVE_OPENMP', language: 'c')
-    openmp_dep = declare_dependency(compile_args: '-fopenmp',
-                                    dependencies: meson.get_compiler('c').find_library('gomp'))
-else
-    add_project_arguments('-Wno-unknown-pragmas', language: 'c')
-    openmp_dep = []
-    warning('OpenMP is recommended to perform computation in reasonable time.')
-endif
-
-if get_option('with_mpi')
-    add_project_arguments('-DHAVE_MPI', language: 'c')
-    mpicc_bin = find_program('mpicc')
-    mpi_dep = declare_dependency(compile_args: run_command(mpicc_bin, ['-showme:compile:']).stdout().split(),
-                                 link_args: run_command(mpicc_bin, ['-showme:link:']).stdout().split())
-else
-    mpi_dep = []
 endif
 
 if get_option('with_introspection')

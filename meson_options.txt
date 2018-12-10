@@ -1,16 +1,20 @@
-option('with_openmp', type: 'boolean', value: false)
-option('with_mpi', type: 'boolean', value: false)
+option('with_fftw3', type: 'boolean', value: false)
+option('with_gomp', type: 'boolean', value: false)
+option('with_openmpi', type: 'boolean', value: false)
+
 option('with_mkl', type: 'boolean', value: false)
 option('with_mkl_ilp64', type: 'boolean', value: false)
 option('mkl_root', type: 'string')
 option('mkl_arch', type: 'string', value: 'intel64')
-option('with_fftw3', type: 'boolean', value: false)
-option('with_introspection', type: 'boolean', value: false)
+
+option('cuda_root', type: 'string', value: '/usr/local/cuda')
+
 option('with_superlu', type: 'boolean', value: false)
 option('with_superlu_mt', type: 'boolean', value: false)
 option('with_umfpack', type: 'boolean', value: false)
 option('with_mkl_dss', type: 'boolean', value: false)
 option('with_mkl_cluster', type: 'boolean', value: false)
 option('with_cusolver', type: 'boolean', value: false)
-option('cuda_root', type: 'string', value: '/usr/local/cuda')
+
+option('with_introspection', type: 'boolean', value: false)
 option('with_vapi', type: 'boolean', value: false)
