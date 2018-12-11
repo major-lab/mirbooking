@@ -12,17 +12,17 @@ typedef struct __attribute__ ((packed)) _SparseMatrixMem
     gsize  n;
     gsize  nnz;
     gsize  rowptr[16384 + 1];
-    gsize  colind[7];
-    gfloat data[7];
+    gsize  colind[8];
+    gfloat data[8];
 } SeedScoreLayout;
 
 static SeedScoreLayout SEED_SCORES =
 {
     16384,
-    7,
-    {[8882] = 0, [8883] = 7},
-    {3228,  4370,   4371,   4372,   7261,    7421,   9284},
-    {-1.6f, -20.0f, -19.0f, -18.0f, -10.80f, -5.70f, -19.0f},
+    8,
+    {[8882] = 0, [8883] = 7, [13391] = 7, [13392] = 8},
+    {3228,  4370,   4371,   4372,   7261,    7421,   9284,   952},
+    {-1.6f, -20.0f, -19.0f, -18.0f, -10.80f, -5.70f, -19.0f, -6.50f},
 };
 
 typedef struct __attribute__ ((packed)) _SupplementaryScoreLayout
@@ -310,7 +310,7 @@ test_score_table_solomon_et_al_2016 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 13, NULL);
 
     g_assert_cmpfloat (Kd, >=, 15 - 2);
-    // FIXME: g_assert_cmpfloat (Kd, <=, 15 + 2);
+    g_assert_cmpfloat (Kd, <=, 15 + 2);
 
     // Seed plus 3'UTR
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAACAAGGAUCUACCUCA", strlen ("ACUAUACAACCUACUACCUCA"));
@@ -318,7 +318,49 @@ test_score_table_solomon_et_al_2016 ()
     Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 13, NULL);
 
     g_assert_cmpfloat (Kd, >=, 11 - 2);
-    // FIXME: g_assert_cmpfloat (Kd, <=, 11 + 2);
+    g_assert_cmpfloat (Kd, <=, 11 + 2);
+}
+
+static void
+test_score_table_schirle_et_al_2015 ()
+{
+    gdouble Kd;
+    g_autoptr (MirbookingTarget) target = mirbooking_target_new ("");
+
+    g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("");
+    mirbooking_sequence_set_raw_sequence (mirna, "UUCACAUUGCCCAAGUCUCUU", strlen ("UUCACAUUGCCCAAGUCUCUU"));
+
+    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
+    g_autoptr (GBytes) supplementary_scores = g_bytes_new_static (&SUPPLEMENTARY_SCORES, sizeof (SUPPLEMENTARY_SCORES));
+    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new_from_bytes (default_table, 1, 7, supplementary_scores));
+
+    // A
+    mirbooking_sequence_set_raw_sequence (target, "CAAUGUGAAAA", strlen ("CAAUGUGAAAA"));
+    Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 1, NULL);
+    // FIXME: g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-6.5f - 4.00f - 0.56f) / (R * T)));
+    // FIXME: g_assert_cmpfloat (Kd, <=, 0.75e3 + 0.04e3);
+    g_assert_cmpfloat (Kd, >=, 0.75e3 - 0.04e3);
+
+    // U
+    mirbooking_sequence_set_raw_sequence (target, "CAAUGUGAUAA", strlen ("CAAUGUGAUAA"));
+    Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 1, NULL);
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-6.5f - 4.00f) / (R * T)));
+    // FIXME: g_assert_cmpfloat (Kd, <=, 1.9e3 + 0.09e3);
+    g_assert_cmpfloat (Kd, >=, 1.9e3 - 0.09e3);
+
+    // C
+    mirbooking_sequence_set_raw_sequence (target, "CAAUGUGACAA", strlen ("CAAUGUGACAA"));
+    Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 1, NULL);
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-6.5f - 4.00f) / (R * T)));
+    // FIXME: g_assert_cmpfloat (Kd, <=, 1.9e3 + 0.10e3);
+    g_assert_cmpfloat (Kd, >=, 1.9e3 - 0.10e3);
+
+    // G
+    mirbooking_sequence_set_raw_sequence (target, "CAAUGUGAGAA", strlen ("CAAUGUGAGAA"));
+    Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 1, NULL);
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-6.5f - 4.00f) / (R * T)));
+    // FIXME: g_assert_cmpfloat (Kd, <=, 1.8e3 + 0.12e3);
+    g_assert_cmpfloat (Kd, >=, 1.8e3 - 0.12e3);
 }
 
 int main (int argc, gchar **argv)
@@ -330,6 +372,7 @@ int main (int argc, gchar **argv)
     g_test_add_func ("/score-table/mcff", test_score_table_mcff);
     g_test_add_func ("/score-table/wee-et-al-2012", test_score_table_wee_et_al_2012);
     g_test_add_func ("/score-table/solomon-et-al-2016", test_score_table_solomon_et_al_2016);
+    g_test_add_func ("/score-table/schirle-et-al-2015", test_score_table_schirle_et_al_2015);
 
     return g_test_run ();
 }
