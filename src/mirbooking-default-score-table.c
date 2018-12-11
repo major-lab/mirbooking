@@ -10,8 +10,8 @@
 #define SEED_LENGTH 7
 
 /*
- * For the duplex: CUCCAUCA&AGAUGGAG which account for a dangling 5' end of the
- * microRNA, ViennaRNA reports a free energy of -10.80 kcal/mol.
+ * For the duplex: 'CUACCUC&GAGGUAG', ViennaRNA reports a binding energy of
+ * -9.37 kcal/mol.
  *
  * Wee et al. measured a dissociation constant for a mouse Ago2 protein
  * carrying a guide miRNA with only the seed pairing of 26±2 pM, which
@@ -23,7 +23,7 @@
  * In addition, the seed setup experiment in both experiments had 'A', which
  * shoudld account for a -0.56 kcal/mol additional contribution (Schirle et al. 2015).
  *
- * We thus the latest value and impute the -4.00 kcal/mol gap to AGO2 entropic
+ * We thus the latest value and impute the -5.43 kcal/mol gap to AGO2 entropic
  * contribution.
  *
  * Reference:
@@ -36,7 +36,7 @@
  * 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
  */
 
-#define AGO2_SCORE (-4.00f)
+#define AGO2_SCORE (-5.43f)
 
 typedef struct
 {
@@ -208,7 +208,9 @@ compute_score (MirbookingScoreTable *score_table,
                                                       SEED_OFFSET + 3,
                                                       supplementary_offset,
                                                       supplementary_len);
-        if (supplementary_score == INFINITY)
+
+        /* unfavorable supplementary bindings does not contribute */
+        if (supplementary_score > 0)
         {
             supplementary_score = 0;
         }
