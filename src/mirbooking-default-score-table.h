@@ -23,9 +23,19 @@ struct _MirbookingDefaultScoreTableClass
     MirbookingScoreTableClass parent_class;
 };
 
-MirbookingDefaultScoreTable * mirbooking_default_score_table_new (GBytes *seed_bytes,
-                                                                  MirbookingDefaultScoreTableSupplementaryModel supplementary_model,
-                                                                  GBytes *supp_bytes);
+typedef gboolean (*MirbookingDefaultScoreTableFilter) (MirbookingDefaultScoreTable *score_table,
+                                                       MirbookingMirna             *mirna,
+                                                       MirbookingTarget            *target,
+                                                       gsize                        position,
+                                                       gpointer                     user_data);
+
+
+MirbookingDefaultScoreTable * mirbooking_default_score_table_new        (GBytes *seed_bytes,
+                                                                         MirbookingDefaultScoreTableSupplementaryModel supplementary_model,
+                                                                         GBytes *supp_bytes);
+void                          mirbooking_default_score_table_set_filter (MirbookingDefaultScoreTable       *self,
+                                                                         MirbookingDefaultScoreTableFilter  filter,
+                                                                         gpointer                           user_data);
 
 G_END_DECLS
 

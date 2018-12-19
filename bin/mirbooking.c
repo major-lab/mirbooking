@@ -43,6 +43,8 @@ static gsize                          prime3_footprint          = MIRBOOKING_BRO
 static gboolean                       verbose                   = FALSE;
 static gboolean help = FALSE;
 
+static gdouble cutoff = 10; // pM
+
 static gboolean
 set_output_format (const gchar   *key,
                    const gchar   *value,
@@ -363,6 +365,28 @@ write_output_to_gff3 (MirbookingBroker *mirbooking, FILE *output_f)
     }
 }
 
+static gboolean
+filter (MirbookingDefaultScoreTable *score_table,
+        MirbookingMirna             *mirna,
+        MirbookingTarget            *target,
+        gsize                        position,
+        gpointer                     user_data)
+{
+    MirbookingBroker *broker = user_data;
+
+    gdouble E0 = mirbooking_broker_get_sequence_quantity (broker, mirna);
+    gdouble S0 = mirbooking_broker_get_sequence_quantity (broker, target);
+    gdouble Km = mirbooking_score_table_compute_enzymatic_score (score_table,
+                                                                 mirna,
+                                                                 target,
+                                                                 position,
+                                                                 NULL);
+
+    gdouble Z = E0 + S0 + Km;
+
+    return ((Z - sqrt (pow (Z, 2) - 4 * E0 * S0)) / 2.0) >= cutoff;
+}
+
 int
 main (gint argc, gchar **argv)
 {
@@ -440,6 +464,11 @@ main (gint argc, gchar **argv)
     g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (seed_scores_map_bytes,
                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL,
                                                                                               supplementary_scores_map_bytes);
+
+    mirbooking_default_score_table_set_filter (score_table,
+                                               filter,
+                                               mirbooking);
+
     mirbooking_broker_set_score_table (mirbooking,
                                        MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
@@ -544,9 +573,12 @@ main (gint argc, gchar **argv)
             return EXIT_FAILURE;
         }
 
-        mirbooking_broker_set_sequence_quantity (mirbooking,
-                                                 sequence,
-                                                 quantity);
+        if (quantity >= cutoff)
+        {
+            mirbooking_broker_set_sequence_quantity (mirbooking,
+                                                     sequence,
+                                                     quantity);
+        }
     }
 
     // mark targets with  scores

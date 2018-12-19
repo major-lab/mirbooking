@@ -45,6 +45,9 @@ typedef struct
     MirbookingDefaultScoreTableSupplementaryModel supplementary_model;
     GBytes       *supplementary_scores_bytes;
     SparseMatrix  supplementary_scores;
+    /* hints for filtering interactions */
+    MirbookingDefaultScoreTableFilter filter;
+    gpointer                          filter_user_data;
 } MirbookingDefaultScoreTablePrivate;
 
 struct _MirbookingDefaultScoreTable
@@ -313,7 +316,9 @@ compute_positions (MirbookingScoreTable  *score_table,
     gsize p;
     for (p = 0; p < total_positions_len; p++)
     {
-        if (sparse_matrix_get_float (&self->priv->seed_scores, i, j) < INFINITY)
+        if (sparse_matrix_get_float (&self->priv->seed_scores, i, j) < INFINITY &&
+            mirbooking_target_get_accessibility_score (target, p) < INFINITY    &&
+            (self->priv->filter == NULL || self->priv->filter (self, mirna, target, p, self->priv->filter_user_data)))
         {
             _positions = g_realloc (_positions, (k + 1) * sizeof (gsize));
             _positions[k++] = p;
@@ -433,4 +438,13 @@ mirbooking_default_score_table_new (GBytes *seed_scores, MirbookingDefaultScoreT
                          "supplementary-model", supp_model,
                          "supplementary-scores", supp_scores,
                          NULL);
+}
+
+void
+mirbooking_default_score_table_set_filter (MirbookingDefaultScoreTable *self,
+                                           MirbookingDefaultScoreTableFilter filter,
+                                           gpointer user_data)
+{
+    self->priv->filter           = filter;
+    self->priv->filter_user_data = user_data;
 }
