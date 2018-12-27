@@ -6,6 +6,9 @@
 #define R 1.987203611e-3
 #define T 310.15
 
+#define SEED_OFFSET 1
+#define SEED_LENGTH 7
+
 /*
  * For the duplex: CUCCAUCA&AGAUGGAG which account for a dangling 5' end of the
  * microRNA, ViennaRNA reports a free energy of -10.80 kcal/mol.
@@ -39,8 +42,6 @@ typedef struct
 {
     GBytes       *seed_scores_bytes;
     SparseMatrix  seed_scores; /* view over @seed_scores_bytes */
-    gsize         seed_offset;
-    gsize         seed_length;
     GBytes       *supplementary_scores_bytes;
     SparseMatrix  supplementary_scores;
 } MirbookingDefaultScoreTablePrivate;
@@ -172,9 +173,6 @@ compute_score (MirbookingScoreTable *score_table,
 {
     MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
 
-    gsize seed_offset = self->priv->seed_offset;
-    gsize seed_len    = self->priv->seed_length;
-
     /*
      * AGO2 has a slight preference for sites starting with 'A' at position t1.
      *
@@ -184,8 +182,8 @@ compute_score (MirbookingScoreTable *score_table,
      * (September 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
      */
     gfloat A_score = 0.0f;
-    if (position + seed_len + 1 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
-        *mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + seed_len, 1) == 'A')
+    if (position + SEED_LENGTH + 1 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
+        *mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + SEED_LENGTH, 1) == 'A')
     {
         A_score = -0.56f;
     }
@@ -194,9 +192,9 @@ compute_score (MirbookingScoreTable *score_table,
                                                 mirna,
                                                 target,
                                                 position,
-                                                seed_offset,
-                                                seed_offset,
-                                                seed_len);
+                                                SEED_OFFSET,
+                                                SEED_OFFSET,
+                                                SEED_LENGTH);
 
     gsize supplementary_offset = 12;
     gsize supplementary_len = 4;
@@ -207,7 +205,7 @@ compute_score (MirbookingScoreTable *score_table,
                                                       mirna,
                                                       target,
                                                       position,
-                                                      seed_offset + 3,
+                                                      SEED_OFFSET + 3,
                                                       supplementary_offset,
                                                       supplementary_len);
         if (supplementary_score == INFINITY)
@@ -231,19 +229,16 @@ compute_positions (MirbookingScoreTable  *score_table,
 
     gsize k = 0;
 
-    gsize seed_offset = self->priv->seed_offset;
-    gsize seed_len    = self->priv->seed_length;
-
-    gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), seed_offset, seed_len);
+    gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), SEED_OFFSET, SEED_LENGTH);
 
     // miRNA seed is undefined (thus no suitable targets)
     g_return_val_if_fail (i != -1, FALSE);
 
-    gsize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), 0, seed_len);
+    gsize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), 0, SEED_LENGTH);
 
     gsize seq_len = mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target));
 
-    gsize total_positions_len = seq_len - seed_len + 1;
+    gsize total_positions_len = seq_len - SEED_LENGTH + 1;
 
     gsize  *_positions = NULL;
 
@@ -256,10 +251,10 @@ compute_positions (MirbookingScoreTable  *score_table,
             _positions[k++] = p;
         }
 
-        if (p < seq_len - seed_len)
+        if (p < seq_len - SEED_LENGTH)
         {
             gsize out = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p, 1);
-            gsize in  = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p+seed_len, 1);
+            gsize in  = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p+SEED_LENGTH, 1);
 
             if (in == -1)
             {
@@ -269,7 +264,7 @@ compute_positions (MirbookingScoreTable  *score_table,
             g_assert_cmpint (in, !=, -1);
             g_assert_cmpint (out, !=, -1);
 
-            j -= out * (2l << (2 * (seed_len - 1) - 1));
+            j -= out * (2l << (2 * (SEED_LENGTH - 1) - 1));
             j *= 4;
             j += in;
 
@@ -287,8 +282,6 @@ compute_positions (MirbookingScoreTable  *score_table,
 enum
 {
     PROP_SEED_SCORES = 1,
-    PROP_SEED_OFFSET,
-    PROP_SEED_LENGTH,
     PROP_SUPPLEMENTARY_SCORES
 };
 
@@ -320,12 +313,6 @@ mirbooking_default_score_table_set_property (GObject *object, guint property_id,
             score_table = g_value_get_boxed (value);
             self->priv->seed_scores_bytes = g_bytes_ref (score_table);
             break;
-        case PROP_SEED_OFFSET:
-            self->priv->seed_offset = g_value_get_uint (value);
-            break;
-        case PROP_SEED_LENGTH:
-            self->priv->seed_length = g_value_get_uint (value);
-            break;
         case PROP_SUPPLEMENTARY_SCORES:
             score_table = g_value_get_boxed (value);
             self->priv->supplementary_scores_bytes = score_table == NULL ? NULL : g_bytes_ref (score_table);
@@ -352,75 +339,22 @@ mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *kla
                                      PROP_SEED_SCORES,
                                      g_param_spec_boxed ("seed-scores", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
-                                     PROP_SEED_OFFSET,
-                                     g_param_spec_uint ("seed-offset", "", "", 0, G_MAXUINT, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SEED_OFFSET, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
-    g_object_class_install_property (object_class,
-                                     PROP_SEED_LENGTH,
-                                     g_param_spec_uint ("seed-length", "", "", 1, G_MAXUINT, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SEED_LENGTH, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
-    g_object_class_install_property (object_class,
                                      PROP_SUPPLEMENTARY_SCORES,
                                      g_param_spec_boxed ("supplementary-scores", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
 }
 
 /**
  * mirbooking_default_score_table_new:
- * Returns: (transfer full)
- */
-MirbookingDefaultScoreTable *
-mirbooking_default_score_table_new (gfloat *data, gsize seed_offset, gsize seed_len)
-{
-    g_return_val_if_fail (data != NULL, NULL);
-
-    return g_object_new (MIRBOOKING_TYPE_DEFAULT_SCORE_TABLE,
-                         "seed-scores", g_bytes_new_take (data, 0),
-                         "seed-offset", seed_offset,
-                         "seed-length", seed_len,
-                         NULL);
-}
-
-/**
- * mirbooking_default_score_table_new_from_bytes:
  *
  * Returns: (transfer full)
  */
 MirbookingDefaultScoreTable *
-mirbooking_default_score_table_new_from_bytes (GBytes *seed_scores, gsize seed_offset, gsize seed_len, GBytes *supp_scores)
+mirbooking_default_score_table_new (GBytes *seed_scores, GBytes *supp_scores)
 {
     g_return_val_if_fail (g_bytes_get_data (seed_scores, NULL) != NULL, NULL);
 
     return g_object_new (MIRBOOKING_TYPE_DEFAULT_SCORE_TABLE,
                          "seed-scores", seed_scores,
-                         "seed-offset", seed_offset,
-                         "seed-length", seed_len,
                          "supplementary-scores", supp_scores,
                          NULL);
-}
-
-/**
- * mirbooking_default_score_table_new_from_stream:
- *
- * Returns: (transfer full): A #MirbookingDefaultScoreTable or %NULL if any
- * stream-related operation failed and @error will be set.
- */
-MirbookingDefaultScoreTable *
-mirbooking_default_score_table_new_from_stream (GInputStream *stream, gsize seed_offset, gsize seed_len, GError **error)
-{
-    g_autoptr (GMemoryOutputStream) out = G_MEMORY_OUTPUT_STREAM (g_memory_output_stream_new_resizable ());
-
-    if (g_output_stream_splice (G_OUTPUT_STREAM (out),
-                                stream,
-                                G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-                                NULL,
-                                error))
-    {
-        return g_object_new (MIRBOOKING_TYPE_DEFAULT_SCORE_TABLE,
-                             "seed-scores", g_memory_output_stream_steal_as_bytes (out),
-                             "seed-offset", seed_offset,
-                             "seed-length", seed_len,
-                             NULL);
-    }
-    else
-    {
-        return NULL;
-    }
 }

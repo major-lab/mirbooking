@@ -476,23 +476,6 @@ _mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
     return vacancy;
 }
 
-/**
- * mirbooking_broker_get_target_site_vacancy:
- * Returns: The number of unoccupied copies of the target site
- */
-gdouble
-mirbooking_broker_get_target_site_vacancy (MirbookingBroker *self, const MirbookingTargetSite *target_site)
-{
-    MirbookingTarget *target = target_site->target;
-    gfloat available_target_quantity = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, target));
-    return _mirbooking_broker_get_target_site_vacancy (self,
-                                                       target_site,
-                                                       self->priv->prime5_footprint,
-                                                       self->priv->prime3_footprint,
-                                                       available_target_quantity,
-                                                       self->priv->ES);
-}
-
 typedef struct _MirbookingScoredTargetSite
 {
     MirbookingTargetSite *target_site;

@@ -103,40 +103,12 @@ derivatives by specifying `-Dwith_openmp=true`.
 In addition to determine the steady state, miRBooking can also perform
 numerical integration of the microtargetome.
 
-The `kappa` parameter indicates how many pM (1e-12 Molar) of concentration
-a FPKM represents in the quantification. It can be estimated using spike-ins if
-their prior concentration is known. The default value has been calculated from
-ENCODE's HeLa S3 reference epigenome[^hela-s3-encode] using the following
-procedure:
-
- 1. Obtain spike-ins concentration from Thermofisher and convert attomoles/µL
-    to pM
- 2. Take ~2% of the concentrations of the mixture #1 for both replicates
- 3. Compute pM/FPKM ratios for each spike-in
- 4. Compute the geometric mean of the ratios to obtain the final $\kappa$ by
-    pooling all replicates.
-
-[^hela-s3-encode]: https://www.encodeproject.org/reference-epigenomes/ENCSR068MRQ/
-[^spike-ins-thermofisher]: https://www.thermofisher.com/order/catalog/product/4456740
-
-The `lambda`, expressed in $s^{-1}$ let one convert $K_d$ into proper forward
-and reverse reaction rates.
-
-For control conditions (i.e. wildtype or empty vector), long RNA-Seq (in RPKM
-or FPKM) with small RNA-Seq (RPM) quantifications should be combined as-is. If
-you have spike-ins, use them to adjust the fragment or read counts.
-
-For simulated over-expression conditions, an arbitrary value (i.e 1e5) can be
-added to endogenous or as a synthetic microRNA. No renormalization should be
-performed: the resulting library size will just be bigger, as expected for such
-an experiment.
-
 For knock-out conditions, zero the miRNA or mRNA expression.
 
 ## Other tools
 
-In addition to the `mirbooking` binary, this package ship a number of utilities
-to process quantity files and compute summaries based on Pandas.
+In addition to the `mirbooking` binary, this package ship a number of
+utilities.
 
 Te `mirbooking-generate-score-table` compute a hybridization energy table for
 the given seed size and upper bound on the number of mismatches.
@@ -150,23 +122,6 @@ mirbooking-generate-score-table [--mcff=mcff]
                                 [--seed-length=7]
                                 [--max-mismatches=1]
                                 --output scores
-```
-
-The `mirbooking-prepare-input` tool is expecting a transcript and miRNA
-quantification (e.g. two-column TSV document mapping accession to quantity) and
-process it such that it contains approximately the same amount of each kind by
-rescaling the smallest one toward the biggest one. It emits a calibrated output
-suitable for `mirbooking`.
-
-```bash
-mirbooking-calibrate targets.tsv mirnas.tsv | mirbooking [...]
-```
-
-The `mirbooking-extract-cds-regions` tool extract the coding regions from
-a GenBank file.
-
-```bash
-mirbooking-extract-cds-regions < GCR.gbff > cds-regions.tsv
 ```
 
 ## C API

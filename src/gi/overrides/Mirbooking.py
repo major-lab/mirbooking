@@ -17,15 +17,12 @@ class Broker(Mirbooking.Broker):
             for target_site in self.get_target_sites():
                 if target_site.target != cur_target:
                     cur_target = target_site.target
-                    target_silencing = self.get_target_silencing(target_site.target)
                     target_quantity = self.get_sequence_quantity(target_site.target)
                 for occupant in target_site.occupants:
                     yield [target_site.target.get_accession(),
                            target_site.target.get_name(),
                            target_quantity,
-                           target_silencing,
                            target_site.position,
-                           1 - self.get_target_site_vacancy(target_site),
                            occupant.mirna.get_accession(),
                            occupant.mirna.get_name(),
                            self.get_sequence_quantity(occupant.mirna),
@@ -34,9 +31,7 @@ class Broker(Mirbooking.Broker):
         columns = ['target_accession',
                    'target_name',
                    'target_quantity',
-                   'target_silencing',
                    'position',
-                   'occupancy',
                    'mirna_accession',
                    'mirna_name',
                    'mirna_quantity',
