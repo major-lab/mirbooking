@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+
+import argparse
+from itertools import product
+import subprocess
+from subprocess import check_output
+import pandas as pd
+from io import StringIO
+from tqdm import tqdm
+import tempfile
+from Bio.Seq import Seq
+from Bio.SeqIO import SeqRecord, write
+import sys
+from itertools import combinations
+from math import log
+import random
+from queue import PriorityQueue, Empty
+from threading import Thread, Lock
+import os
+import numpy as np
+from functools import partial
+from scipy.stats.mstats import gmean
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--target', action='append', help='Target transcripts or everything if not specified')
+parser.add_argument('--non-target', action='append', help='Non-target transcripts')
+parser.add_argument('--initial-candidate', action='append', help='Initial candidates')
+parser.add_argument('--workers', type=int, default=2, help='Number of workers spawning processes')
+parser.add_argument('--threads-per-worker', type=int, default=1, help='Number of threads per worker')
+parser.add_argument('--max-sequences', type=int, default=1, help='Maximum number of sequences per design')
+parser.add_argument('--designs-output')
+
+parser.add_argument('--mirbooking', default='mirbooking', help='Location of miRBooking binary')
+parser.add_argument('--input', required=True, help=argparse.SUPPRESS)
+
+args, mirbooking_args = parser.parse_known_args()
+
+if args.initial_candidate is None:
+    args.initial_candidate = [','.join(22*'N' for _ in range(args.max_sequences))]
+
+os.environ['OMP_NUM_THREADS'] = str(args.threads_per_worker)
+
+def run_mirbooking(candidate, quantities, q=1e4):
+    quantities = quantities.copy()
+    for d in candidate:
+        quantities.loc[d.id,'quantity'] = q / len(candidate)
+    # TODO: use a named pipe to bypass the filesystem
+    with tempfile.NamedTemporaryFile(dir='/dev/shm') as design_file:
+        write(candidate, design_file.name, format='fasta')
+        return pd.read_table(StringIO(check_output([args.mirbooking] + mirbooking_args + ['--mirnas', design_file.name], input=quantities.to_csv(sep='\t'), universal_newlines=True)), index_col=['target_accession', 'position', 'mirna_accession'])
+
+def expressed_fraction(df):
+    # fraction of targets without any microRNA bound (following Poisson-Binomial model)
+    target_with_pos = df.groupby(level=[0,1]).agg({'target_quantity': 'first', 'quantity': 'sum'})
+    assert (target_with_pos.quantity <= target_with_pos.target_quantity).all()
+    return (1 - (target_with_pos.quantity / target_with_pos.target_quantity)).groupby(level=0).prod()
+
+quantities = pd.read_table(args.input, index_col=0)
+def evaluate(candidate):
+    try:
+        df = run_mirbooking(candidate, quantities)
+
+        if args.target is None and args.non_target is None:
+            # if no target/non-target are specified, default to target everything mode
+            t_ef = expressed_fraction(df).reindex(quantities.index).fillna(1.0)
+        elif args.target is None:
+            t_ef = [1.0]
+        else:
+            t_ef = expressed_fraction(df).reindex(args.target).fillna(1.0)
+
+        if args.non_target is None:
+            nt_ef = [1.0]
+        else:
+            nt_ef = expressed_fraction(df).reindex(args.non_target).fillna(1.0)
+
+        return log(gmean(t_ef) / gmean(nt_ef), 2)
+    except subprocess.CalledProcessError as err:
+        sys.stderr.write(err.output)
+        raise err
+
+def generate_kmers(design, pos, k):
+    for seed in (''.join(s) for s in product('ACGT', repeat=k)):
+        yield design[:pos] + seed + design[pos + k:]
+
+def generate_random_mutants(design):
+    while True:
+        yield SeqRecord
+
+generate_seeds = partial(generate_kmers, pos=1, k=7)
+generate_abox = partial(generate_kmers, pos=8, k=3)
+generate_bbox = partial(generate_kmers, pos=11, k=3)
+generate_cbox = partial(generate_kmers, pos=14, k=3)
+generate_dbox = partial(generate_kmers, pos=14, k=3)
+
+def successors(design):
+    z = []
+    for i, seq in enumerate(design):
+
+        # seed expansion
+        if seq.seq[1:8] == 'NNNNNNN':
+            s = generate_seeds(seq)
+        elif seq.seq[11:14] == 'NNN':
+            s = generate_bbox(seq)
+        elif seq.seq[14:17] == 'NNN':
+            s = generate_cbox(seq)
+        elif seq.seq[8:11] == 'NNN':
+            s = generate_abox(seq)
+        else:
+            # the sequence does not have any successors
+            break
+        for succ_seq in s:
+            z.append([succ_seq if i == j else orig_seq for j, orig_seq in enumerate(design)])
+    random.shuffle(z)
+    return z
+
+best_candidate = None
+best_score = float('inf')
+
+counter = 1
+print_design_lock = Lock()
+def work(candidates, pb, designs_out):
+    global counter, best_candidate, best_score
+    while True:
+        item = candidates.get()
+        candidate_score, _, candidate = item
+        try:
+            if candidate is None:
+                return
+
+            if best_candidate:
+                pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=candidate_score, best_design=','.join(str(c.seq) for c in best_candidate), best_score=best_score)
+            else:
+                pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=candidate_score)
+
+            succ = []
+            for s in successors(candidate):
+                successor_score = evaluate(s)
+                # This monotonicity condition comes from Yan et al. 2018 tail model
+                # and the order in which boxes are enumerated in 'successors'.
+                if successor_score < candidate_score:
+                    succ.append(s)
+                    candidates.put((successor_score, counter, s))
+                    counter += 1
+
+            # terminal design
+            if not succ:
+                if candidate_score < best_score:
+                    best_candidate = candidate
+                    best_score = candidate_score
+                with print_design_lock:
+                    print(*[str(c.seq) for c in candidate], candidate_score, sep='\t', file=designs_out, flush=True)
+        except Exception as err:
+            print('Could not process candidate:', candidate)
+            print(err)
+            continue
+        finally:
+            candidates.task_done()
+            pb.update()
+
+with tqdm() as pb, open(args.designs_output, 'w') as f:
+    candidates = PriorityQueue()
+
+    # prepare workers
+    threads = [Thread(target=work, args=(candidates, pb, f)) for t in range(args.workers)]
+    for t in threads:
+        t.start()
+
+    # add initial candidates
+    for candidate in args.initial_candidate:
+        candidate = [SeqRecord(Seq(seq), id='smart{}'.format(i+1))
+                         for i, seq in enumerate(candidate.split(','))]
+        candidates.put((evaluate(candidate), counter, candidate))
+        counter += 1
+
+    # wait until all workers are done
+    candidates.join()
+
+    # stop all workers
+    for t in threads:
+        candidates.put((float('inf'), counter, None))
+        counter += 1
+
+    for t in threads:
+        t.join()

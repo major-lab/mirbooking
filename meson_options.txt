@@ -1,3 +1,5 @@
+option('with_mirdesign', type: 'boolean', value: false)
+
 option('with_fftw3', type: 'boolean', value: false)
 option('with_openmp', type: 'boolean', value: false)
 option('with_mpi', type: 'boolean', value: false)
