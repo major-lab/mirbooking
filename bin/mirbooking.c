@@ -380,14 +380,16 @@ main (gint argc, gchar **argv)
 
     g_autoptr (GBytes) seed_scores_map_bytes = g_mapped_file_get_bytes (seed_scores_map);
 
+    g_return_val_if_fail (seed_scores_map_bytes != NULL, EXIT_FAILURE);
+
     gsize seed_scores_map_bytes_len;
-    gsize n = *(const gsize*) g_bytes_get_data (seed_scores_map_bytes,
-                                                &seed_scores_map_bytes_len);
+    const gsize *seed_scores_data = g_bytes_get_data (seed_scores_map_bytes,
+                                                      &seed_scores_map_bytes_len);
 
     // we require at least 'n' and 'nnz'
-    if (seed_scores_map_bytes_len < 2 || (1l << 2 * 7) != n)
+    if (seed_scores_map_bytes_len < 2 * sizeof (gsize) || (1l << 2 * 7) != *seed_scores_data)
     {
-        g_printerr ("The specified '--seed-length' parameter is not compatible with the provided score table.\n");
+        g_printerr ("The specified seed scores file is invalid.\n");
         return EXIT_FAILURE;
     }
 
@@ -574,8 +576,6 @@ main (gint argc, gchar **argv)
 
         g_debug ("Done reading accessibility scores in %lums", 1000 * (g_get_monotonic_time () - accessibility_read_begin) / G_USEC_PER_SEC);
     }
-
-    g_hash_table_unref (sequences_hash);
 
     guint64 iteration = 0;
     guint64 iteration_begin = g_get_monotonic_time ();

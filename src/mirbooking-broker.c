@@ -22,7 +22,6 @@ typedef struct _MirbookingTargetPositions
 static void
 mirbooking_target_positions_clear (MirbookingTargetPositions *tss)
 {
-    g_print ("cleared positions\n");
     g_free (tss->positions);
     g_ptr_array_unref (tss->occupants);
 }
@@ -77,6 +76,7 @@ typedef struct
     gdouble *dPdt;
 
     /* steady-state solver */
+    MirbookingBrokerSparseSolver sparse_solver;
     SparseSolver *solver;
     /* for compactness and efficiency, the Jacobian is only defined over [ES] */
     SparseMatrix *J;        // len(ES) * len(ES)
@@ -102,6 +102,17 @@ mirbooking_broker_init (MirbookingBroker *self)
                                                    (GEqualFunc) mirbooking_sequence_equal);
 }
 
+static void
+mirbooking_broker_constructed (GObject *object)
+{
+    MirbookingBroker *self = MIRBOOKING_BROKER (object);
+
+    self->priv->solver = sparse_solver_new ((SparseSolverMethod) self->priv->sparse_solver);
+    g_assert_nonnull (self->priv->solver);
+
+    G_OBJECT_CLASS (mirbooking_broker_parent_class)->constructed (object);
+}
+
 enum
 {
     PROP_5PRIME_FOOTPRINT = 1,
@@ -124,13 +135,14 @@ mirbooking_broker_set_property (GObject *object, guint property_id, const GValue
             self->priv->prime3_footprint = g_value_get_uint (value);
             break;
         case PROP_SCORE_TABLE:
-            self->priv->score_table = g_value_dup_object (value);
+            mirbooking_broker_set_score_table (self, g_value_dup_object (value));
             break;
         case PROP_SPARSE_SOLVER:
-            self->priv->solver = sparse_solver_new (g_value_get_enum (value));
+            mirbooking_broker_set_sparse_solver (self, g_value_get_enum (value));
             break;
         default:
-            g_assert_not_reached ();
+            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+            break;
     }
 }
 
@@ -150,7 +162,8 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
         case PROP_SCORE_TABLE:
             g_value_set_object (value, self->priv->score_table);
         default:
-            g_assert_not_reached ();
+            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+            break;
     }
 }
 
@@ -218,23 +231,30 @@ mirbooking_broker_finalize (GObject *object)
     g_ptr_array_unref (self->priv->targets);
     g_ptr_array_unref (self->priv->mirnas);
 
-    // iteration-specific stuff
     if (self->priv->target_sites)
     {
-        g_array_free (self->priv->target_sites, TRUE);
+        g_array_unref (self->priv->target_sites);
         g_hash_table_unref (self->priv->target_sites_by_target);
         g_ptr_array_unref (self->priv->target_sites_by_target_index);
         g_array_unref (self->priv->target_positions);
         g_array_unref (self->priv->occupants);
+    }
 
+    if (self->priv->integrator)
+    {
         g_free (self->priv->y);
-
+        g_free (self->priv->F);
         odeint_integrator_free (self->priv->integrator);
+    }
 
-        sparse_solver_free (self->priv->solver);
+    if (self->priv->J)
+    {
         sparse_matrix_clear (self->priv->J);
+        g_free (self->priv->J);
         g_free (self->priv->ES_delta);
     }
+
+    sparse_solver_free (self->priv->solver);
 
     g_free (self->priv);
 
@@ -248,6 +268,7 @@ mirbooking_broker_class_init (MirbookingBrokerClass *klass)
 
     object_class->set_property = mirbooking_broker_set_property;
     object_class->get_property = mirbooking_broker_get_property;
+    object_class->constructed  = mirbooking_broker_constructed;
     object_class->finalize     = mirbooking_broker_finalize;
 
     g_object_class_install_property (object_class, PROP_5PRIME_FOOTPRINT,
@@ -289,7 +310,11 @@ void
 mirbooking_broker_set_sparse_solver (MirbookingBroker *self,
                                      MirbookingBrokerSparseSolver sparse_solver)
 {
-    self->priv->solver = sparse_solver_new (sparse_solver);
+    if (self->priv->sparse_solver != sparse_solver)
+    {
+        self->priv->sparse_solver = sparse_solver;
+        g_object_notify (G_OBJECT (self), "sparse-solver");
+    }
 }
 
 /**
@@ -307,7 +332,11 @@ mirbooking_broker_get_score_table (MirbookingBroker *self)
 void
 mirbooking_broker_set_score_table (MirbookingBroker *self, MirbookingScoreTable *score_table)
 {
-    self->priv->score_table = score_table;
+    if (score_table != self->priv->score_table)
+    {
+        self->priv->score_table = score_table;
+        g_object_notify (G_OBJECT (self), "score-table");
+    }
 }
 
 union gfloatptr
@@ -591,6 +620,9 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
             }
         }
     }
+
+    g_array_set_size (self->priv->target_positions,
+                      self->priv->targets->len * self->priv->mirnas->len);
 
     // pre-allocate occupants in contiguous memory
     self->priv->occupants = g_array_sized_new (FALSE, FALSE, sizeof (MirbookingOccupant), occupants_len);
@@ -1219,6 +1251,8 @@ mirbooking_broker_step (MirbookingBroker         *self,
                 g_assert (target_sites->target == target);
                 g_assert_cmpint (target_sites->position, ==, 0);
 
+                MirbookingMirna *mirna = g_ptr_array_index (self->priv->mirnas, j);
+
                 // fetch free energies for candidate MREs
                 MirbookingTargetPositions *seed_positions = &g_array_index (self->priv->target_positions,
                                                                             MirbookingTargetPositions,
@@ -1228,6 +1262,8 @@ mirbooking_broker_step (MirbookingBroker         *self,
                 for (p = 0; p < seed_positions->positions_len; p++)
                 {
                     MirbookingOccupant *occupant = g_ptr_array_index (seed_positions->occupants, p);
+
+                    g_assert (occupant->mirna == mirna);
 
                     gsize k = _mirbooking_broker_get_occupant_index (self, occupant);
 

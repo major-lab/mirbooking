@@ -242,6 +242,7 @@ sparse_solver_new (SparseSolverMethod method)
 {
     SparseSolver *ret = malloc (sizeof (SparseSolver));
 
+    memset (&ret->statistics, 0, sizeof (SparseSolverStatistics));
     ret->verbose = 0;
 
     #define PREPARE_SOLVER(solver_uc,solver)  \

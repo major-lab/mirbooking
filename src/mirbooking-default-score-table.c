@@ -240,7 +240,7 @@ compute_positions (MirbookingScoreTable  *score_table,
 
     gsize total_positions_len = seq_len - SEED_LENGTH + 1;
 
-    gsize  *_positions = NULL;
+    g_autofree gsize  *_positions = NULL;
 
     gsize p;
     for (p = 0; p < total_positions_len; p++)
@@ -273,7 +273,7 @@ compute_positions (MirbookingScoreTable  *score_table,
         }
     }
 
-    *positions     = _positions;
+    *positions     = g_steal_pointer (&_positions);
     *positions_len = k;
 
     return TRUE;

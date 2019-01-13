@@ -18,7 +18,7 @@ default_compute_positions (MirbookingScoreTable *self,
                            gsize                 *positions_len,
                            GError               **error)
 {
-    gsize *_positions = NULL;
+    g_autofree gsize *_positions = NULL;
 
     gint i;
     gint j = 0;
@@ -36,7 +36,7 @@ default_compute_positions (MirbookingScoreTable *self,
         }
     }
 
-    *positions = _positions;
+    *positions = g_steal_pointer (&_positions);
     *positions_len = j;
 
     return TRUE;

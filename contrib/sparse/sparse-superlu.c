@@ -1,8 +1,20 @@
 #include "sparse.h"
 
+#include "sparse-private.h"
+
 #include <SuperLU/slu_ddefs.h>
 #include <assert.h>
 #include <limits.h>
+
+#define memcpy_loop(to, from, n) \
+{                                \
+    int i;                       \
+    for (i = 0; i < (n); i++)    \
+    {                            \
+        (to)[i] = (from)[i];     \
+                                 \
+    }                            \
+}
 
 void
 sparse_superlu_init (SparseSolver *solver)
@@ -20,14 +32,18 @@ int
 sparse_superlu_solve (SparseSolver *solver,
                       SparseMatrix *A,
                       void         *x,
-                      void         *b)
+                      const void   *b)
 {
     superlu_options_t options = {0};
     SuperMatrix AA, L, U, BB;
     SuperLUStat_t stat;
     int_t info;
 
-    assert (A->s.csr.nnz <= INT_MAX);
+    assert (A->storage == SPARSE_MATRIX_STORAGE_CSR);
+    assert (A->type == SPARSE_MATRIX_TYPE_DOUBLE);
+    assert (A->shape[0] < INT_MAX);
+    assert (A->shape[1] < INT_MAX);
+    assert (A->s.csr.nnz < INT_MAX);
 
     set_default_options (&options);
 
@@ -43,34 +59,16 @@ sparse_superlu_solve (SparseSolver *solver,
         options.ColPerm = MY_PERMC;
     }
 
-    assert (A->shape[0] < INT_MAX);
-    assert (A->s.csr.nnz < INT_MAX);
+    int *colind = intMalloc (A->s.csr.nnz);
+    int *rowptr = intMalloc ((A->shape[0] + 1));
+    int *colperm = intMalloc (A->shape[1]);
+    int *rowperm = intMalloc (A->shape[0]);
 
-    int *colind = malloc (A->s.csr.nnz * sizeof (int));
-    int *rowptr = malloc ((A->shape[0] + 1) * sizeof (int));
-    int *colperm = malloc (A->shape[1] * sizeof (int));
-    int *rowperm = malloc (A->shape[0] * sizeof (int));
-
-    int i;
-    for (i = 0; i < A->s.csr.nnz; i++)
-    {
-        colind[i] = A->s.csr.colind[i];
-    }
-
-    for (i = 0; i < A->shape[0] + 1; i++)
-    {
-        rowptr[i] = A->s.csr.rowptr[i];
-    }
-
-    for (i = 0; i < A->shape[0]; i++)
-    {
-        rowperm[i] = A->rowperm[i];
-    }
-
-    for (i = 0; i < A->shape[1]; i++)
-    {
-        colperm[i] = A->colperm[i];
-    }
+    memcpy_loop (colind, A->s.csr.colind, A->s.csr.nnz);
+    memcpy_loop (rowptr, A->s.csr.rowptr, A->shape[0] + 1);
+    memcpy_loop (rowperm, A->rowperm, A->shape[0]);
+    memcpy_loop (colperm, A->colperm, A->shape[1]);
+    memcpy (x, b, A->shape[0] * sizeof (double));
 
     dCreate_CompRow_Matrix (&AA,
                             A->shape[0],
@@ -83,13 +81,11 @@ sparse_superlu_solve (SparseSolver *solver,
                             SLU_D,
                             SLU_GE);
 
-    memcpy (x, b, A->shape[0] * sizeof (double));
-
     dCreate_Dense_Matrix (&BB,
-                          A->shape[1],
+                          A->shape[0],
                           1,
                           x,
-                          A->shape[1],
+                          A->shape[0],
                           SLU_DN,
                           SLU_D,
                           SLU_GE);
@@ -106,29 +102,28 @@ sparse_superlu_solve (SparseSolver *solver,
 
     if (options.RowPerm != MY_PERMR)
     {
-        for (i = 0; i < A->shape[0]; i++)
-        {
-            A->rowperm[i] = rowperm[i];
-        }
+        memcpy_loop (A->rowperm, rowperm, A->shape[0]);
     }
 
     if (options.ColPerm != MY_PERMC)
     {
-        for (i = 0; i < A->shape[1]; i++)
-        {
-            A->colperm[i] = colperm[i];
-        }
+        memcpy_loop (A->colperm, colperm, A->shape[1]);
     }
 
-    Destroy_SuperMatrix_Store (&AA);
+    if (solver->verbose)
+    {
+        StatPrint (&stat);
+    }
+
+    SUPERLU_FREE (colind);
+    SUPERLU_FREE (rowptr);
+    SUPERLU_FREE (colperm);
+    SUPERLU_FREE (rowperm);
     Destroy_SuperMatrix_Store (&BB);
-    Destroy_CompRow_Matrix (&L);
+    Destroy_SuperMatrix_Store (&AA);
+    Destroy_SuperNode_Matrix (&L);
     Destroy_CompRow_Matrix (&U);
     StatFree (&stat);
-    free (colind);
-    free (rowptr);
-    free (colperm);
-    free (rowperm);
 
     return info == 0;
 }
