@@ -51,10 +51,9 @@ if get_option('with_cusolver')
     sparse_solvers_deps += cusolver_dep
 endif
 
-sparse_lib = library('sparse', ['sparse.c'] + sparse_solvers_sources,
+sparse_lib = static_library('sparse', ['sparse.c'] + sparse_solvers_sources,
                      c_args: sparse_solvers_compile_args,
-                     dependencies: sparse_solvers_deps,
-                     install: true)
+                     dependencies: sparse_solvers_deps)
 sparse_dep = declare_dependency(include_directories: include_directories('.'),
                                 link_with: sparse_lib)
 
