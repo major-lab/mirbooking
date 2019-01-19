@@ -20,6 +20,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
 #define MIRBOOKING_DEFAULT_TOLERANCE      1e-8
 #define MIRBOOKING_DEFAULT_MAX_ITERATIONS 100
+#define MIRBOOKING_DEFAULT_CUTOFF         1e-1
 
 typedef enum _MirbookingOutputFormat
 {
@@ -40,10 +41,8 @@ static gdouble                        tolerance                 = MIRBOOKING_DEF
 static guint64                        max_iterations            = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
 static gsize                          prime5_footprint          = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
 static gsize                          prime3_footprint          = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
+static gdouble                        cutoff                    = MIRBOOKING_DEFAULT_CUTOFF;
 static gboolean                       verbose                   = FALSE;
-static gboolean help = FALSE;
-
-static gdouble cutoff = 10; // pM
 
 static gboolean
 set_output_format (const gchar   *key,
@@ -93,21 +92,21 @@ set_sparse_solver(const gchar   *key,
 
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
-    {"targets",              0, 0, G_OPTION_ARG_FILENAME_ARRAY, &targets_files,             "Targets FASTA files",                                                                             NULL},
-    {"mirnas",               0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirnas_files,              "miRNA FASTA files",                                                                               NULL},
-    {"seed-scores",          0, 0, G_OPTION_ARG_FILENAME,       &seed_scores_file,          "Precomputed seed::MRE Gibbs free energy duplex table",                                            "FILE"},
-    {"supplementary-scores", 0, 0, G_OPTION_ARG_FILENAME,       &supplementary_scores_file, "Precomputed supplementary::MRE Gibbs free energy duplex table",                                   "FILE"},
-    {"accessibility-scores", 0, 0, G_OPTION_ARG_FILENAME,       &accessibility_scores_file, "Accessibility scores as a variable columns (accession, positions...) TSV file",                   "FILE"},
-    {"input",                0, 0, G_OPTION_ARG_FILENAME,       &input_file,                "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
-    {"output",               0, 0, G_OPTION_ARG_FILENAME,       &output_file,               "Output destination file (defaults to stdout)",                                                    "FILE"},
-    {"output-format",        0, 0, G_OPTION_ARG_CALLBACK,       &set_output_format,         "Output format (e.g. 'tsv', 'gff3')",                                                              "tsv"},
-    {"sparse-solver",        0, 0, G_OPTION_ARG_CALLBACK,       &set_sparse_solver,         "Sparse solver implementation to use",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER)},
-    {"tolerance",            0, 0, G_OPTION_ARG_DOUBLE,         &tolerance,                 "Absolute tolerance for the system norm to declare convergence",                                   G_STRINGIFY (MIRBOOKING_DEFAULT_TOLERANCE)},
-    {"max-iterations",       0, 0, G_OPTION_ARG_INT,            &max_iterations,            "Maximum number of iterations",                                                                    G_STRINGIFY (MIRBOOKING_DEFAULT_MAX_ITERATIONS)},
-    {"5prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime5_footprint,          "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
-    {"3prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime3_footprint,          "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
-    {"verbose",              0, 0, G_OPTION_ARG_NONE,           &verbose,                   "Turn on verbose output",                                                                          NULL},
-    {"help",                 0, 0, G_OPTION_ARG_NONE,           &help,                      "Show this help message",                                                                          NULL},
+    {"targets",              0, 0, G_OPTION_ARG_FILENAME_ARRAY, &targets_files,             "Targets FASTA files",                                                                                       NULL},
+    {"mirnas",               0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirnas_files,              "miRNA FASTA files",                                                                                         NULL},
+    {"seed-scores",          0, 0, G_OPTION_ARG_FILENAME,       &seed_scores_file,          "Precomputed seed::MRE Gibbs free energy duplex table as a row-major big-endian float matrix file",          "FILE"},
+    {"supplementary-scores", 0, 0, G_OPTION_ARG_FILENAME,       &supplementary_scores_file, "Precomputed supplementary::MRE Gibbs free energy duplex table as a row-major big-endian float matrix file", "FILE"},
+    {"accessibility-scores", 0, 0, G_OPTION_ARG_FILENAME,       &accessibility_scores_file, "Accessibility scores as a variable columns (accession, positions...) TSV file",                             "FILE"},
+    {"input",                0, 0, G_OPTION_ARG_FILENAME,       &input_file,                "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)",           "FILE"},
+    {"output",               0, 0, G_OPTION_ARG_FILENAME,       &output_file,               "Output destination file (defaults to stdout)",                                                              "FILE"},
+    {"output-format",        0, 0, G_OPTION_ARG_CALLBACK,       &set_output_format,         "Output format (i.e. 'tsv', 'gff3')",                                                                        "tsv"},
+    {"sparse-solver",        0, 0, G_OPTION_ARG_CALLBACK,       &set_sparse_solver,         "Sparse solver implementation to use",                                                                       G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER)},
+    {"tolerance",            0, 0, G_OPTION_ARG_DOUBLE,         &tolerance,                 "Absolute tolerance for the system norm to declare convergence",                                             G_STRINGIFY (MIRBOOKING_DEFAULT_TOLERANCE)},
+    {"max-iterations",       0, 0, G_OPTION_ARG_INT,            &max_iterations,            "Maximum number of iterations",                                                                              G_STRINGIFY (MIRBOOKING_DEFAULT_MAX_ITERATIONS)},
+    {"5prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime5_footprint,          "Footprint in the MRE's 5' direction",                                                                       G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
+    {"3prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime3_footprint,          "Footprint in the MRE's 3' direction",                                                                       G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
+    {"cutoff",               0, 0, G_OPTION_ARG_DOUBLE,         &cutoff,                    "Cutoff on the duplex concentration",                                                                        G_STRINGIFY (MIRBOOKING_DEFAULT_CUTOFF)},
+    {"verbose",              0, 0, G_OPTION_ARG_NONE,           &verbose,                   "Turn on verbose output",                                                                                    NULL},
     {NULL}
 };
 
@@ -288,8 +287,6 @@ write_output_to_tsv (MirbookingBroker *mirbooking,
                          "target_name\t"
                          "target_quantity\t"
                          "position\t"
-                         "region\t"
-                         "occupancy\t"
                          "mirna_accession\t"
                          "mirna_name\t"
                          "mirna_quantity\t"
@@ -374,9 +371,9 @@ filter (MirbookingDefaultScoreTable *score_table,
 {
     MirbookingBroker *broker = user_data;
 
-    gdouble E0 = mirbooking_broker_get_sequence_quantity (broker, mirna);
-    gdouble S0 = mirbooking_broker_get_sequence_quantity (broker, target);
-    gdouble Km = mirbooking_score_table_compute_enzymatic_score (score_table,
+    gdouble E0 = mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna));
+    gdouble S0 = mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target));
+    gdouble Km = mirbooking_score_table_compute_enzymatic_score (MIRBOOKING_SCORE_TABLE (score_table),
                                                                  mirna,
                                                                  target,
                                                                  position,

@@ -20,7 +20,7 @@ static gchar *nt = "ACGT";
 static const GOptionEntry MIRBOOKING_GENERATE_SCORE_TABLE_OPTIONS[] =
 {
     {"mcff",   0, 0, G_OPTION_ARG_FILENAME, &mcff,   NULL, "mcff"},
-    {"mask",   0, 0, G_OPTION_ARG_STRING,   &mask,   NULL, "......x"},
+    {"mask",   0, 0, G_OPTION_ARG_STRING,   &mask,   NULL, "....xxx"},
     {"output", 0, 0, G_OPTION_ARG_FILENAME, &output, NULL, "FILE"},
     {NULL}
 };
@@ -142,8 +142,6 @@ main (gint argc, gchar **argv)
     gsize i;
 
     // all rows are equally-sized
-    // note that this initialization step cannot be performed in parallel
-    // because rowptr are attributed in a order-dependent manner
     #pragma omp parallel for
     for (i = 0; i <= n; i++)
     {
@@ -226,10 +224,10 @@ main (gint argc, gchar **argv)
             #pragma omp atomic
             ++completed;
 
-            #pragma omp critical
             if (completed % n == 0)
             {
-                g_print ("Completed %f%% (%lu/%lu)\n", 100.0 * (gdouble) completed / (gdouble) (n * n), completed, n * n);
+                #pragma omp critical
+                g_print ("Completed %f%% (%lu/%lu)\n", 100.0 * (gdouble) completed / pow (n, 2), completed, n * n);
             }
         }
     }

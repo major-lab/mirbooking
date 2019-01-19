@@ -170,6 +170,13 @@ _compute_Kd (gdouble deltaG)
     return 1e12 * exp (deltaG / (R * T));
 }
 
+static gboolean
+is_g_bulge (MirbookingTarget *target, gsize position)
+{
+    return position + 4 + 4 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
+        *mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + 3, 1) == 'G';
+}
+
 static gdouble
 compute_score (MirbookingScoreTable *score_table,
                MirbookingMirna      *mirna,
@@ -202,21 +209,43 @@ compute_score (MirbookingScoreTable *score_table,
                                                 SEED_OFFSET,
                                                 SEED_LENGTH);
 
+    /*
+     * We allow a 'G' nucleation bulge at position t5.
+     *
+     * There's a penalty of 1.2 kcal/mol for this non-canonical motif that was
+     * taken from the authors free energy estimates.
+     *
+     * Reference:
+     * Sung Wook Chi, Gregory J. Hannon, and Robert B. Darnell, “An Alternative
+     * Mode of MicroRNA Target Recognition,” Nature Structural & Molecular
+     * Biology 19, no. 3 (March 2012): 321–27, https://doi.org/10.1038/nsmb.2230.
+     */
+    if (is_g_bulge (target, position))
+    {
+        gsize i, j;
+        i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), SEED_OFFSET, SEED_LENGTH);
+        j = (1l << (2 * 4)) * mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, 3) +
+            mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position + 4, 4);
+        seed_score = MIN (seed_score, sparse_matrix_get_float (&self->priv->seed_scores, i, j) + 1.2f);
+    }
+
     gfloat supplementary_score = 0;
     if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_3PRIME)
     {
         if (self->priv->supplementary_scores_bytes != NULL)
         {
-            gfloat supplementary_score_ = _get_subsequence_score (&self->priv->supplementary_scores,
-                                                                  mirna,
-                                                                  target,
-                                                                  position,
-                                                                  4,
-                                                                  SEED_OFFSET + SEED_LENGTH + 4,
-                                                                  4);
-            if (supplementary_score_ < 0)
+            gint bulge;
+            for (bulge = 0; bulge < 5; bulge++)
             {
-                supplementary_score = supplementary_score_;
+                gfloat supplementary_score_ = _get_subsequence_score (&self->priv->supplementary_scores,
+                                                                      mirna,
+                                                                      target,
+                                                                      position,
+                                                                      4 - bulge,
+                                                                      SEED_OFFSET + SEED_LENGTH + 4,
+                                                                      4);
+
+                supplementary_score = MIN (supplementary_score, supplementary_score_);
             }
         }
     }
@@ -258,10 +287,10 @@ compute_score (MirbookingScoreTable *score_table,
                                             SEED_OFFSET + SEED_LENGTH + 6,
                                             3);
 
-            // AAA::UUU
-            gfloat mismatch_threshold = 0.0f - 1e-15f; // sparse_matrix_get_float (&self->priv->supplementary_scores, 0, 63);
-
             // TODO: D box (remaining nucleotides)
+
+            // AAA::UUU
+            gfloat mismatch_threshold = -1e-8; // sparse_matrix_get_float (&self->priv->supplementary_scores, 0, 63);
 
             if (B_box <= mismatch_threshold)
             {
@@ -303,7 +332,12 @@ compute_positions (MirbookingScoreTable  *score_table,
     gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), SEED_OFFSET, SEED_LENGTH);
 
     // miRNA seed is undefined (thus no suitable targets)
-    g_return_val_if_fail (i != -1, FALSE);
+    if (i == -1)
+    {
+        *positions = NULL;
+        *positions_len = 0;
+        return TRUE;
+    }
 
     gsize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), 0, SEED_LENGTH);
 
@@ -316,8 +350,8 @@ compute_positions (MirbookingScoreTable  *score_table,
     gsize p;
     for (p = 0; p < total_positions_len; p++)
     {
-        if (sparse_matrix_get_float (&self->priv->seed_scores, i, j) < INFINITY &&
-            mirbooking_target_get_accessibility_score (target, p) < INFINITY    &&
+        if ((sparse_matrix_get_float (&self->priv->seed_scores, i, j) < INFINITY || is_g_bulge (target, p)) &&
+            mirbooking_target_get_accessibility_score (target, p) < INFINITY                                &&
             (self->priv->filter == NULL || self->priv->filter (self, mirna, target, p, self->priv->filter_user_data)))
         {
             _positions = g_realloc (_positions, (k + 1) * sizeof (gsize));

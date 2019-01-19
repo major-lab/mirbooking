@@ -16,19 +16,18 @@ Implementation of the miRBooking algorithm and metrics in C
 ```bash
 mirbooking --targets GCF_000001405.37_GRCh38.p11_rna.fna
            --mirnas mature.fa
-           [--cds-regions cds-regions.tsv]
-           --seed-scores scores-7mer-1mismatch
+           --seed-scores scores-7mer-3mismatch-ending
            [--accessibility-scores accessibility-scores[.gz]]
+           [--supplementary-scores scores-3mer]
            [--input stdin]
            [--output stdout]
            [--output-format tsv|gff3]
            [--sparse-solver superlu]
            [--tolerance 1e-7]
            [--max-iterations 100]
-           [--seed-offset 1]
-           [--seed-length 7]
            [--5prime-footprint 10]
            [--3prime-footprint 7]
+           [--cutoff 50]
            [--verbose]
 ```
 
@@ -44,12 +43,9 @@ The command line program expects a number of inputs:
    generated using `mirbooking-generate-score-table` program described below
  - `--accessibilitiy-scores` contains entries with position-wise free energy
    contribution (or penalty) on the targets
+ - `--supplementary-scores` contains either 4mer or 3mer
  - `--input`, a quantity file mapping target and mirna accessions to
-   expressed quantity in FPKM/RPKM/RPM
-
-To compute the target silencings, `--cds-regions` is a two columns TSV document
-mapping target accessions to coding regions the 'a..b' format where a and b are
-inclusive 1-based indexes
+   expressed quantity in pM
 
 The output is a TSV with the following columns:
 
@@ -58,10 +54,7 @@ The output is a TSV with the following columns:
 | target_accession | Target accession with version                          |
 | target_name      | Name of the target or N/A if unknown                   |
 | target_quantity  | Number of targets                                      |
-| target_silencing | Proportion targets silenced by the miRNAs              |
 | position         | Site position on the target                            |
-| location         | Location (e.g. 5', CDS, 3' or N/A if unknown)          |
-| occupancy        | Proportion of occupied sites at this position          |
 | mirna_accession  | miRNA accession                                        |
 | mirna_name       | Name of the miRNA or N/A if unknown                    |
 | mirna_quantity   | Number of miRNAs                                       |
@@ -119,8 +112,16 @@ variable.
 
 ```bash
 mirbooking-generate-score-table [--mcff=mcff]
-                                [--seed-length=7]
-                                [--max-mismatches=1]
+                                [--mask=....xxx]
+                                --output scores
+```
+
+To use `RNAcofold` instead from ViennaRNA package, a `mcff-ViennaRNA` script is
+provided to perform the conversion:
+
+```bash
+mirbooking-generate-score-table --mcff=scripts/mcff-ViennaRNA
+                                [--mask=....xxx]
                                 --output scores
 ```
 
@@ -132,7 +133,8 @@ experimentation session is:
  1. create a broker via `mirbooking_broker_new`
  2. create some sequence objects with `mirbooking_target_new` and `mirbooking_mirna_new`
  3. setup quantities via `mirbooking_broker_set_sequence_quantity`
- 4. call `mirbooking_broker_run` to perform a full hybridization
+ 4. call `mirbooking_broker_evaluate` and `mirbooking_broker_step` repeatedly
+    to perform a full hybridization
  5. retrieve and inspect the microtargetome with `mirbooking_broker_get_target_sites`
 
 For a more detailed usage and code example, the [program source](https://github.com/major-lab/mirbooking/blob/master/bin/mirbooking.c)

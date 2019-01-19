@@ -12,17 +12,17 @@ typedef struct __attribute__ ((packed)) _SeedScoreLayout
     gsize  n;
     gsize  nnz;
     gsize  rowptr[16384 + 1];
-    gsize  colind[9];
-    gfloat data[9];
+    gsize  colind[10];
+    gfloat data[10];
 } SeedScoreLayout;
 
 static SeedScoreLayout SEED_SCORES =
 {
     16384,
-    9,
-    {[8882] = 0, [8883] = 7, [12152] = 7, [12153] = 8, [13391] = 8, [13392] = 9},
-    {3228,  4370,   4371,   4372,   7261,    7421,   9284,   13441, 952},
-    {-2.12f, -20.0f, -19.0f, -18.0f, -9.37f, -4.28f, -19.0f, -7.79f, -6.34f}, // FIXME: 7.79f is incorrect
+    10,
+    {[657] = 0, [658] = 1, [8882] = 1, [8883] = 8, [12152] = 8, [12153] = 9, [13391] = 9, [13392] = 10},
+    {11871,  3228,   4370,   4371,   4372,   7261,   7421,   9284,   13441,  952},
+    {-9.79f, -2.12f, -20.0f, -19.0f, -18.0f, -9.37f, -4.28f, -19.0f, -7.79f, -6.34f}, // FIXME: 7.79f is incorrect
 };
 
 typedef struct __attribute__ ((packed)) _SupplementaryScore3Layout
@@ -137,9 +137,9 @@ test_score_table_compute_seed_scores ()
                                                         &error));
 
     g_assert_nonnull (positions);
-    g_assert_cmpint (positions_len, ==, 2);
-    g_assert_cmpfloat (mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table), mirna, target, positions[0], NULL), ==, 1e12 * exp ((-19.0f - 5.43f) / (R * T)));
-    g_assert_cmpfloat (mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table), mirna, target, positions[1], NULL), ==, 1e12 * exp ((-20.0f - 5.43f - 0.56f) / (R * T)));
+    g_assert_cmpint (positions_len, ==, 19);
+    g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[0], NULL), ==, 1e12 * exp ((-19.0f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[1], NULL), ==, 1e12 * exp ((-20.0f - 5.43f - 0.56f) / (R * T)));
     g_assert_null (error);
 }
 
@@ -426,11 +426,11 @@ test_score_table_yan_et_al_2018 ()
 
     mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna),  "UGUUCUGAUGAGCUCUUCGUC", strlen ("UGUUCUGAUGAGCUCUUCGUC"));
 
-    g_assert_cmpmem ("GUUCUGA", 7, mirbooking_sequence_get_subsequence (mirna, 1, 7), 7);
-    g_assert_cmpmem ("UGA", 3, mirbooking_sequence_get_subsequence (mirna, 8, 3), 3);
-    g_assert_cmpmem ("GCU",3, mirbooking_sequence_get_subsequence (mirna, 11, 3), 3);
-    g_assert_cmpmem ("CUU", 3, mirbooking_sequence_get_subsequence (mirna, 14, 3), 3);
-    g_assert_cmpmem ("CGUC", 4, mirbooking_sequence_get_subsequence (mirna, 17, 4), 4);
+    g_assert_cmpmem ("GUUCUGA", 7, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), 1, 7), 7);
+    g_assert_cmpmem ("UGA", 3, mirbooking_sequence_get_subsequence     (MIRBOOKING_SEQUENCE (mirna), 8, 3), 3);
+    g_assert_cmpmem ("GCU",3, mirbooking_sequence_get_subsequence      (MIRBOOKING_SEQUENCE (mirna), 11, 3), 3);
+    g_assert_cmpmem ("CUU", 3, mirbooking_sequence_get_subsequence     (MIRBOOKING_SEQUENCE (mirna), 14, 3), 3);
+    g_assert_cmpmem ("CGUC", 4, mirbooking_sequence_get_subsequence    (MIRBOOKING_SEQUENCE (mirna), 17, 4), 4);
 
     gdouble Kd;
 
@@ -503,6 +503,49 @@ test_score_table_yan_et_al_2018 ()
     g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-0.56f -7.79f - 1.11f - 5.43f) / (R * T)));
 }
 
+static void
+test_score_table_jo_et_al_2015 ()
+{
+    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
+    g_autoptr (GBytes) supplementary_scores = g_bytes_new_static (&SUPPLEMENTARY_SCORES, sizeof (SUPPLEMENTARY_SCORES));
+    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
+                                                                                                                          MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018,
+                                                                                                                          supplementary_scores));
+
+    g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("");
+    g_autoptr (MirbookingTarget) target = mirbooking_target_new ("");
+
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), "UGAGGUAGUAGGUUGUAUAGU", 21);
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "ACUAUACAACCUACUACCUCG", 21);
+
+    // gdouble Kd;
+    // Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 13, NULL);
+
+    // g_assert_cmpfloat (MIRBOOKING_SCORE_TABLE_DEFAULT_KF, ==, 1.7e-5);
+    // g_assert_cmpfloat (Kd, ==, 17);
+}
+
+static void
+test_score_table_chi_et_al_2012 ()
+{
+    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
+    g_autoptr (GBytes) supplementary_scores = g_bytes_new_static (&SUPPLEMENTARY_SCORES_4, sizeof (SUPPLEMENTARY_SCORES_4));
+    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
+                                                                                                                          MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_3PRIME,
+                                                                                                                          supplementary_scores));
+
+    g_autoptr (MirbookingTarget) target = mirbooking_target_new ("");
+    g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("");
+
+    // G-buldged seed
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GUGGCCUU", 8);
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna),  "UAAGGCAC", 8);
+
+    gdouble Kd = mirbooking_score_table_compute_score (score_table, mirna, target, 0, NULL);
+
+    g_assert_cmpfloat (Kd, ==, 1e12 * exp ((-9.79f + 1.2f - 5.43f) / (R * T)));
+}
+
 int main (int argc, gchar **argv)
 {
     g_test_init (&argc, &argv, NULL);
@@ -513,7 +556,9 @@ int main (int argc, gchar **argv)
     g_test_add_func ("/score-table/wee-et-al-2012", test_score_table_wee_et_al_2012);
     g_test_add_func ("/score-table/solomon-et-al-2016", test_score_table_solomon_et_al_2016);
     g_test_add_func ("/score-table/schirle-et-al-2015", test_score_table_schirle_et_al_2015);
-    g_test_add_func ("/score-table/yal-et-al-2018", test_score_table_yan_et_al_2018);
+    g_test_add_func ("/score-table/yan-et-al-2018", test_score_table_yan_et_al_2018);
+    g_test_add_func ("/score-table/jo-et-al-2015", test_score_table_jo_et_al_2015);
+    g_test_add_func ("/score-table/chi-et-al-2012", test_score_table_chi_et_al_2012);
 
     return g_test_run ();
 }

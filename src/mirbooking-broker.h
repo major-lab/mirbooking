@@ -79,9 +79,6 @@ gboolean               mirbooking_broker_step                    (MirbookingBrok
 GArray *               mirbooking_broker_get_target_sites        (MirbookingBroker *self);
 gdouble                mirbooking_broker_get_occupant_quantity   (MirbookingBroker         *self,
                                                                   const MirbookingOccupant *occupant);
-void                   mirbooking_broker_set_occupant_quantity   (MirbookingBroker         *self,
-                                                                  const MirbookingOccupant *occupant,
-                                                                  gdouble                   quantity);
 
 G_END_DECLS
 

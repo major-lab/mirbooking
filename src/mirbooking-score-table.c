@@ -26,7 +26,7 @@ default_compute_positions (MirbookingScoreTable *self,
     {
         gdouble score = mirbooking_score_table_compute_score (self, mirna, target, i, error);
 
-        g_return_val_if_fail (error != NULL, FALSE);
+        // g_return_val_if_fail (error == NULL, FALSE);
 
         if (score < INFINITY)
         {
