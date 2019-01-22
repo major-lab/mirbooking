@@ -21,11 +21,30 @@ else
     warning('OpenMP is recommended to perform computation in reasonable time.')
 endif
 
-if get_option('with_openmpi')
+# Intel MPI
+if get_option('with_impi')
     add_project_arguments('-DHAVE_MPI', language: 'c')
-    mpicc_bin = find_program('mpicc')
-    mpi_dep = declare_dependency(compile_args: run_command(mpicc_bin, ['-showme:compile:']).stdout().split(),
-                                 link_args: run_command(mpicc_bin, ['-showme:link:']).stdout().split())
+    impi_root = get_option('impi_root')
+    impi_arch = get_option('impi_arch')
+    impi_link_args = [
+    '-L/soft/bioinfo/linux_RH7/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib/release_mt',
+    '-L/soft/bioinfo/linux_RH7/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib',
+    '-Xlinker', '--enable-new-dtags', '-Xlinker', '-rpath', '-Xlinker',
+    '/soft/bioinfo/linux_RH7/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib/release_mt',
+    '-Xlinker', '-rpath', '-Xlinker',
+    '/soft/bioinfo/linux_RH7/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib',
+    '-Xlinker', '-rpath', '-Xlinker',
+    '/opt/intel/mpi-rt/2107.0.0/intel64/lib/release_mt', '-Xlinker', '-rpath',
+    '-Xlinker', '/opt/intel/mpi-rt/2017.0.0/intel64/lib', '-lmpifort', '-lmpi',
+    '-lmpigi', '-ldl', '-lrt', '-lpthread']
+
+    mpi_dep = declare_dependency(include_directories: include_directories(join_paths(impi_root, impi_arch, 'include')),
+                                 link_args: impi_link_args)
+elif get_option('with_openmpi')
+    add_project_arguments('-DHAVE_MPI', language: 'c')
+    mpicc = find_program('mpicc')
+    mpi_dep = declare_dependency(compile_args: run_command(mpicc, ['-showme:compile:']).stdout().split(),
+                                 link_args: run_command(mpicc, ['-showme:link:']).stdout().split())
 else
     mpi_dep = []
 endif
@@ -36,10 +55,10 @@ if get_option('with_mkl')
     mkl_arch = get_option('mkl_arch')
     mkl_libdir = join_paths(mkl_root, 'lib', mkl_arch)
     if get_option('with_mkl_ilp64')
-        mkl_ilp64 = declare_dependency(compile_args: '-m64',
+        mkl_interface = declare_dependency(compile_args: '-DMKL_ILP64',
                                        dependencies: meson.get_compiler('c').find_library('mkl_intel_ilp64', dirs: mkl_libdir))
     else
-        mkl_ilp64 = meson.get_compiler('c').find_library('mkl_intel_lp64', dirs: mkl_libdir)
+        mkl_interface = meson.get_compiler('c').find_library('mkl_intel_lp64', dirs: mkl_libdir)
         warning('MKL 64-bit interface is required for solving large systems.')
     endif
     mkl_core = meson.get_compiler('c').find_library('mkl_core', dirs: mkl_libdir)
@@ -50,18 +69,28 @@ if get_option('with_mkl')
         mkl_thread = meson.get_compiler('c').find_library('mkl_sequential', dirs: mkl_libdir)
     endif
 
-    if get_option('with_openmpi')
-        mkl_mpi = meson.get_compiler('c').find_library('mkl_blacs_openmpi_ilp64', dirs: mkl_libdir)
+    if get_option('with_impi')
+        if get_option('with_mkl_ilp64')
+            mkl_blacs = meson.get_compiler('c').find_library('mkl_blacs_intelmpi_ilp64', dirs: mkl_libdir)
+        else
+            mkl_blacs = meson.get_compiler('c').find_library('mkl_blacs_intelmpi_lp64', dirs: mkl_libdir)
+        endif
+    elif get_option('with_openmpi')
+        if get_option('with_mkl_ilp64')
+            mkl_blacs = meson.get_compiler('c').find_library('mkl_blacs_openmpi_ilp64', dirs: mkl_libdir)
+        else
+            mkl_blacs = meson.get_compiler('c').find_library('mkl_blacs_openmpi_lp64', dirs: mkl_libdir)
+        endif
     else
-        mkl_mpi = []
+        mkl_blacs = []
     endif
 
     mkl_pthread = meson.get_compiler('c').find_library('pthread')
     mkl_m = meson.get_compiler('c').find_library('m')
     mkl_dl = meson.get_compiler('c').find_library('dl')
-    mkl_dep = declare_dependency(compile_args: '-I@0@'.format(join_paths(mkl_root, 'include')),
+    mkl_dep = declare_dependency(compile_args: ['-m64', '-I@0@'.format(join_paths(mkl_root, 'include'))],
                                  link_args: ['-Wl,--no-as-needed'],
-                                 dependencies: [mkl_ilp64, mkl_thread, mkl_core, mkl_mpi, mpi_dep, openmp_dep, mkl_pthread, mkl_m, mkl_dl])
+                                 dependencies: [mkl_interface, mkl_thread, mkl_core, mkl_blacs, mpi_dep, openmp_dep, mkl_pthread, mkl_m, mkl_dl])
 else
     warning('MKL is recommended for solving sparse systems efficiently.')
 endif

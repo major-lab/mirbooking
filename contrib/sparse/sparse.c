@@ -304,8 +304,6 @@ sparse_solver_set_verbose (SparseSolver *solver, int verbose)
 int
 sparse_solver_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
 {
-    assert (A->shape[0] == A->shape[1]);
-
     return solver->solve (solver, A, x, b);
 }
 

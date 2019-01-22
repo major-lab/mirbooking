@@ -33,13 +33,7 @@ if get_option('with_mkl')
     if get_option('with_mkl_cluster')
         sparse_solvers_compile_args += ['-DHAVE_MKL_CLUSTER']
         sparse_solvers_sources += 'sparse-mkl-cluster.c'
-        if get_option('with_mkl_ilp64')
-            mkl_blacs_openmpi_ilp64 = meson.get_compiler('c').find_library('mkl_blacs_openmpi_ilp64', dirs: mkl_libdir)
-        else
-            mkl_blacs_openmpi_ilp64 = meson.get_compiler('c').find_library('mkl_blacs_openmpi_lp64', dirs: mkl_libdir)
-        endif
-        sparse_solvers_deps += mkl_blacs_openmpi_ilp64
-        sparse_solvers_deps += mpi_dep
+        sparse_solvers_deps += mkl_dep
     endif
 endif
 
@@ -64,7 +58,7 @@ sparse_dep = declare_dependency(include_directories: include_directories('.'),
 test('sparse', executable('sparse-test', 'sparse-test.c',
                           dependencies: [sparse_dep]))
 
-if get_option('with_mkl_cluster') and get_option('with_mpi')
-test('sparse-mpi', executable('sparse-mpi-test', 'sparse-mpi-test.c',
-     dependencies: [sparse_dep, mpi_dep]))
+if get_option('with_mkl_cluster')
+    test('sparse-mpi', executable('sparse-mpi-test', 'sparse-mpi-test.c',
+         dependencies: [sparse_dep, mpi_dep]))
 endif
