@@ -11,40 +11,17 @@ if mcff_bin.found()
     add_project_arguments(['-DHAVE_MCFF', '-DMCFF="@0@"'.format(mcff_bin.path())], language: 'c')
 endif
 
-if get_option('with_gomp')
+if get_option('with_openmp')
+    openmp_dep = dependency('openmp')
     add_project_arguments('-DHAVE_OPENMP', language: 'c')
-    openmp_dep = declare_dependency(compile_args: '-fopenmp',
-                                    dependencies: meson.get_compiler('c').find_library('gomp'))
 else
-    add_project_arguments('-Wno-unknown-pragmas', language: 'c')
     openmp_dep = []
-    warning('OpenMP is recommended to perform computation in reasonable time.')
+    add_project_arguments('-Wno-unknown-pragmas', language: 'c')
 endif
 
-# Intel MPI
-if get_option('with_impi')
+if get_option('with_mpi')
+    mpi_dep = dependency('mpi', language: 'c')
     add_project_arguments('-DHAVE_MPI', language: 'c')
-    impi_root = get_option('impi_root')
-    impi_arch = get_option('impi_arch')
-    impi_link_args = [
-    '-L/soft/bioinfo/linux_RH7/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib/release_mt',
-    '-L/soft/bioinfo/linux_RH7/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib',
-    '-Xlinker', '--enable-new-dtags', '-Xlinker', '-rpath', '-Xlinker',
-    '/soft/bioinfo/linux_RH7/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib/release_mt',
-    '-Xlinker', '-rpath', '-Xlinker',
-    '/soft/bioinfo/linux_RH7/intel/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib',
-    '-Xlinker', '-rpath', '-Xlinker',
-    '/opt/intel/mpi-rt/2107.0.0/intel64/lib/release_mt', '-Xlinker', '-rpath',
-    '-Xlinker', '/opt/intel/mpi-rt/2017.0.0/intel64/lib', '-lmpifort', '-lmpi',
-    '-lmpigi', '-ldl', '-lrt', '-lpthread']
-
-    mpi_dep = declare_dependency(include_directories: include_directories(join_paths(impi_root, impi_arch, 'include')),
-                                 link_args: impi_link_args)
-elif get_option('with_openmpi')
-    add_project_arguments('-DHAVE_MPI', language: 'c')
-    mpicc = find_program('mpicc')
-    mpi_dep = declare_dependency(compile_args: run_command(mpicc, ['-showme:compile:']).stdout().split(),
-                                 link_args: run_command(mpicc, ['-showme:link:']).stdout().split())
 else
     mpi_dep = []
 endif
@@ -63,19 +40,13 @@ if get_option('with_mkl')
     endif
     mkl_core = meson.get_compiler('c').find_library('mkl_core', dirs: mkl_libdir)
 
-    if get_option('with_gomp')
+    if get_option('with_openmp')
         mkl_thread = meson.get_compiler('c').find_library('mkl_gnu_thread', dirs: mkl_libdir)
     else
         mkl_thread = meson.get_compiler('c').find_library('mkl_sequential', dirs: mkl_libdir)
     endif
 
-    if get_option('with_impi')
-        if get_option('with_mkl_ilp64')
-            mkl_blacs = meson.get_compiler('c').find_library('mkl_blacs_intelmpi_ilp64', dirs: mkl_libdir)
-        else
-            mkl_blacs = meson.get_compiler('c').find_library('mkl_blacs_intelmpi_lp64', dirs: mkl_libdir)
-        endif
-    elif get_option('with_openmpi')
+    if get_option('with_mpi')
         if get_option('with_mkl_ilp64')
             mkl_blacs = meson.get_compiler('c').find_library('mkl_blacs_openmpi_ilp64', dirs: mkl_libdir)
         else

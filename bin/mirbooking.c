@@ -387,10 +387,12 @@ filter (MirbookingDefaultScoreTable *score_table,
 int
 main (gint argc, gchar **argv)
 {
+    gint rank = 0;
 #if HAVE_MPI
     gint provided;
-    MPI_Init_thread (&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-    g_return_val_if_fail (provided != MPI_THREAD_FUNNELED, EXIT_FAILURE);
+    g_return_val_if_fail (MPI_Init_thread (&argc, &argv, MPI_THREAD_FUNNELED, &provided) == MPI_SUCCESS, EXIT_FAILURE);
+    g_return_val_if_fail (provided == MPI_THREAD_FUNNELED, EXIT_FAILURE);
+    MPI_Comm_rank (MPI_COMM_WORLD, &rank);
 #endif
 
     g_autoptr (GOptionContext) context = g_option_context_new ("[FILE]");
@@ -478,10 +480,13 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    if ((output_f = output_file == NULL ? stdout : g_fopen (output_file, "w")) == NULL)
+    if (rank == 0)
     {
-        g_printerr ("Could not open the output file '%s': %s.\n", output_file, g_strerror (errno));
-        return EXIT_FAILURE;
+        if ((output_f = output_file == NULL ? stdout : g_fopen (output_file, "w")) == NULL)
+        {
+            g_printerr ("Could not open the output file '%s': %s.\n", output_file, g_strerror (errno));
+            return EXIT_FAILURE;
+        }
     }
 
     // accession -> #MirbookingSequence
@@ -659,19 +664,26 @@ main (gint argc, gchar **argv)
     }
     while (TRUE);
 
-    switch (output_format)
+    if (rank == 0)
     {
-        case MIRBOOKING_OUTPUT_FORMAT_TSV:
-            write_output_to_tsv (mirbooking,
-                                 output_f);
-            break;
-        case MIRBOOKING_OUTPUT_FORMAT_GFF3:
-            write_output_to_gff3 (mirbooking,
-                                  output_f);
-            break;
-        default:
-            return EXIT_FAILURE;
+        switch (output_format)
+        {
+            case MIRBOOKING_OUTPUT_FORMAT_TSV:
+                write_output_to_tsv (mirbooking,
+                                     output_f);
+                break;
+            case MIRBOOKING_OUTPUT_FORMAT_GFF3:
+                write_output_to_gff3 (mirbooking,
+                                      output_f);
+                break;
+            default:
+                return EXIT_FAILURE;
+        }
     }
+
+#if HAVE_MPI
+    MPI_Finalize ();
+#endif
 
     return EXIT_SUCCESS;
 }

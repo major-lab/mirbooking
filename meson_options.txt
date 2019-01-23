@@ -1,17 +1,12 @@
 option('with_fftw3', type: 'boolean', value: false)
-option('with_gomp', type: 'boolean', value: false)
-option('with_openmpi', type: 'boolean', value: false)
+option('with_openmp', type: 'boolean', value: false)
+option('with_mpi', type: 'boolean', value: false)
 
 # Intel MKL
 option('with_mkl', type: 'boolean', value: false)
 option('with_mkl_ilp64', type: 'boolean', value: false)
 option('mkl_root', type: 'string')
 option('mkl_arch', type: 'string', value: 'intel64')
-
-# Intel MPI
-option('with_impi', type: 'boolean', value: false)
-option('impi_root', type: 'string')
-option('impi_arch', type: 'string', value: 'intel64')
 
 option('cuda_root', type: 'string', value: '/usr/local/cuda')
 

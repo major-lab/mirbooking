@@ -11,6 +11,9 @@
 #endif
 #include <sparse.h>
 #include <stdio.h>
+#if HAVE_MPI
+#include <mpi.h>
+#endif
 
 typedef struct _MirbookingTargetPositions
 {
@@ -28,6 +31,8 @@ mirbooking_target_positions_clear (MirbookingTargetPositions *tss)
 
 typedef struct
 {
+    gint                        rank;
+
     gsize                       prime5_footprint;
     gsize                       prime3_footprint;
     MirbookingScoreTable       *score_table;
@@ -96,6 +101,14 @@ static void
 mirbooking_broker_init (MirbookingBroker *self)
 {
     self->priv = g_new0 (MirbookingBrokerPrivate, 1);
+#if HAVE_MPI
+    int flag;
+    MPI_Initialized (&flag);
+    if (flag)
+        g_return_if_fail (MPI_Comm_rank (MPI_COMM_WORLD, &self->priv->rank) == MPI_SUCCESS);
+#else
+    self->priv->rank = 0;
+#endif
     self->priv->targets = g_ptr_array_new_with_free_func (g_object_unref);
     self->priv->mirnas = g_ptr_array_new_with_free_func (g_object_unref);
     self->priv->quantification = g_hash_table_new ((GHashFunc) mirbooking_sequence_hash,
@@ -231,8 +244,10 @@ mirbooking_broker_finalize (GObject *object)
     {
         sparse_matrix_clear (self->priv->J);
         g_free (self->priv->J);
-        g_free (self->priv->ES_delta);
     }
+
+    if (self->priv->ES_delta)
+        g_free (self->priv->ES_delta);
 
     sparse_solver_free (self->priv->solver);
 
@@ -715,6 +730,8 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
     self->priv->dESdt = self->priv->dSdt  + self->priv->targets->len;
     self->priv->dPdt  = self->priv->dESdt + self->priv->occupants->len;
 
+    self->priv->ES_delta = g_new0 (gdouble, self->priv->occupants->len);
+
     // integrator
     self->priv->integrator = odeint_integrator_new (ODEINT_METHOD_DORMAND_PRINCE,
                                                     &self->priv->t,
@@ -840,7 +857,6 @@ static void
 _prepare_J (MirbookingBroker *self)
 {
     self->priv->J = g_new0 (SparseMatrix, 1);
-    self->priv->ES_delta = g_new0 (gdouble, self->priv->occupants->len);
 
     // count nnz entries in the Jacobian
     gsize nnz = 0;
@@ -1205,15 +1221,18 @@ mirbooking_broker_step (MirbookingBroker         *self,
 
     if (step_mode == MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE)
     {
-        _compute_F (self->priv->t,
-                    self->priv->y,
-                    self->priv->F,
-                    self);
+        if (self->priv->rank == 0)
+        {
+            _compute_F (self->priv->t,
+                        self->priv->y,
+                        self->priv->F,
+                        self);
 
-        _compute_J (self->priv->t,
-                    self->priv->y,
-                    self->priv->J,
-                    self);
+            _compute_J (self->priv->t,
+                        self->priv->y,
+                        self->priv->J,
+                        self);
+        }
 
         gboolean ret;
         ret = sparse_solver_solve (self->priv->solver,

@@ -12,6 +12,7 @@ mirbooking_broker_sparse_solver_get_type (void)
             {0, "SUPERLU",  "superlu"},
             {2, "UMFPACK",  "umfpack"},
             {3, "MKL_DSS",  "mkl-dss"},
+            {4, "MKL_CLUSTER", "mkl-cluster"},
             {5, "CUSOLVER", "cusolver"},
             {0, NULL,       NULL}
         };
