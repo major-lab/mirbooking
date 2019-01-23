@@ -42,9 +42,8 @@ typedef struct _SparseMatrix
         double d;
     } default_data;
     void *data;
-    /* optimal row and col permutations */
-    size_t *colperm;
-    size_t *rowperm;
+    /* solver-specific data */
+    void *solver_storage;
 } SparseMatrix;
 
 void   sparse_matrix_init      (SparseMatrix *matrix, SparseMatrixStorage storage, SparseMatrixType type, size_t shape[2], size_t nnz);

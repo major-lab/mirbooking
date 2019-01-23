@@ -34,10 +34,18 @@ sparse_superlu_mt_solve (SparseSolver *solver,
     assert (A->shape[0] < INT_MAX);
     assert (A->s.csr.nnz < INT_MAX);
 
+    if (A->solver_storage == NULL)
+    {
+        A->solver_storage = calloc (A->shape[0] + A->shape[1], sizeof (int));
+    }
+
+    int *rowperm = intMalloc (A->shape[0]);
+    int *colperm = intMalloc (A->shape[1]);
+    memcpy (rowperm, A->solver_storage, A->shape[0] * sizeof (int));
+    memcpy (colperm, ((int*)A->solver_storage) + A->shape[0], A->shape[1] * sizeof (int));
+
     int *colind = malloc (A->s.csr.nnz * sizeof (int));
     int *rowptr = malloc ((A->shape[0] + 1) * sizeof (int));
-    int *colperm = malloc (A->shape[1] * sizeof (int));
-    int *rowperm = malloc (A->shape[0] * sizeof (int));
 
     int i;
     for (i = 0; i < A->s.csr.nnz; i++)
@@ -48,16 +56,6 @@ sparse_superlu_mt_solve (SparseSolver *solver,
     for (i = 0; i < A->shape[0] + 1; i++)
     {
         rowptr[i] = A->s.csr.rowptr[i];
-    }
-
-    for (i = 0; i < A->shape[0]; i++)
-    {
-        rowperm[i] = A->rowperm[i];
-    }
-
-    for (i = 0; i < A->shape[1]; i++)
-    {
-        colperm[i] = A->colperm[i];
     }
 
     dCreate_CompRow_Matrix (&AA,
@@ -91,8 +89,15 @@ sparse_superlu_mt_solve (SparseSolver *solver,
             &BB,
             &info);
 
-    Destroy_SuperMatrix_Store (&L);
-    Destroy_SuperMatrix_Store (&U);
+    memcpy (A->solver_storage, rowperm, A->shape[0] * sizeof (int));
+    memcpy (((int*)A->solver_storage) + A->shape[0], colperm, A->shape[1] * sizeof (int));
+
+    SUPERLU_FREE (colind);
+    SUPERLU_FREE (rowptr);
+    Destroy_SuperMatrix_Store (&BB);
+    Destroy_SuperMatrix_Store (&AA);
+    Destroy_SuperNode_Matrix (&L);
+    Destroy_SuperNode_Matrix (&U);
 
     return info == 0;
 }

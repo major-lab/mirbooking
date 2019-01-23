@@ -80,16 +80,13 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
     {
         rowptr  = (MKL_INT*) A->s.csr.rowptr;
         colind  = (MKL_INT*) A->s.csr.colind;
-        rowperm = (MKL_INT*) A->rowperm;
     }
     else
     {
         rowptr  = malloc ((A->shape[0] + 1) * sizeof (MKL_INT));
         colind  = malloc (A->s.csr.nnz * sizeof (MKL_INT));
-        rowperm = malloc (A->shape[0] * sizeof (MKL_INT));
         memcpy_loop (rowptr, A->s.csr.rowptr, A->shape[0] + 1);
         memcpy_loop (colind, A->s.csr.colind, A->s.csr.nnz);
-        memcpy_loop (rowperm, A->rowperm, A->shape[0]);
     }
 
     ret = dss_define_structure (handle,
@@ -103,6 +100,13 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
     {
         goto cleanup;
     }
+
+    if (A->solver_storage == NULL)
+    {
+        A->solver_storage = calloc (A->shape[0], sizeof (MKL_INT));
+    }
+
+    rowperm = A->solver_storage;
 
     MKL_INT reorder_opt = (rowperm[0] != rowperm[A->shape[0] - 1]) ? MKL_DSS_MY_ORDER : MKL_DSS_GET_ORDER;
     ret = dss_reorder (handle, reorder_opt, rowperm);
@@ -154,14 +158,14 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
     solver->statistics.solve_time   = ret_values[2];
     solver->statistics.flops        = ret_values[3];
 
-    MKL_INT delete_opt = 0;
 cleanup:
     if (sizeof (MKL_INT) != sizeof (size_t))
     {
         free (rowptr);
         free (colind);
-        free (rowperm);
     }
+
+    MKL_INT delete_opt = 0;
     dss_delete (handle, delete_opt);
 
     return ret == MKL_DSS_SUCCESS;

@@ -21,8 +21,6 @@ main (void)
     double x[2] = {0, 0};
     double b[2] = {1, 1};
 
-    assert (J.rowperm[0] == J.rowperm[J.shape[1] - 1]);
-
     SparseSolver *solver = sparse_solver_new (SPARSE_SOLVER_METHOD_SUPERLU);
     assert (solver);
     assert (sparse_solver_solve (solver,
@@ -32,7 +30,6 @@ main (void)
 
     assert (x[0] == 0.5);
     assert (x[1] == 1);
-    assert (J.rowperm[0] != J.rowperm[J.shape[1] - 1]);
 
     // resolving with permcol/permrow
     assert (sparse_solver_solve (solver,

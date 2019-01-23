@@ -60,8 +60,7 @@ sparse_matrix_init (SparseMatrix        *matrix,
     /* storage */
     matrix->data = calloc (nnz, _size_for_type (matrix->type));
 
-    matrix->colperm = calloc (shape[1], sizeof (size_t));
-    matrix->rowperm = calloc (shape[0], sizeof (size_t));
+    matrix->solver_storage = NULL;
 }
 
 void
@@ -70,8 +69,8 @@ sparse_matrix_clear (SparseMatrix *matrix)
     free (matrix->s.csr.colind);
     free (matrix->data);
     free (matrix->s.csr.rowptr);
-    free (matrix->colperm);
-    free (matrix->rowperm);
+    if (matrix->solver_storage)
+        free (matrix->solver_storage);
 }
 
 /**
