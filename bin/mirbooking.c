@@ -366,18 +366,27 @@ static gboolean
 filter (MirbookingDefaultScoreTable *score_table,
         MirbookingMirna             *mirna,
         MirbookingTarget            *target,
-        gsize                        position,
+        gssize                       position,
         gpointer                     user_data)
 {
     MirbookingBroker *broker = user_data;
 
     gdouble E0 = mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna));
     gdouble S0 = mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target));
-    gdouble Km = mirbooking_score_table_compute_enzymatic_score (MIRBOOKING_SCORE_TABLE (score_table),
-                                                                 mirna,
-                                                                 target,
-                                                                 position,
-                                                                 NULL);
+
+    gdouble Km;
+    if (position == -1)
+    {
+        Km = 0;
+    }
+    else
+    {
+        Km = mirbooking_score_table_compute_enzymatic_score (MIRBOOKING_SCORE_TABLE (score_table),
+                                                             mirna,
+                                                             target,
+                                                             position,
+                                                             NULL);
+    }
 
     gdouble Z = E0 + S0 + Km;
 

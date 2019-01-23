@@ -26,7 +26,7 @@ struct _MirbookingDefaultScoreTableClass
 typedef gboolean (*MirbookingDefaultScoreTableFilter) (MirbookingDefaultScoreTable *score_table,
                                                        MirbookingMirna             *mirna,
                                                        MirbookingTarget            *target,
-                                                       gsize                        position,
+                                                       gssize                       position,
                                                        gpointer                     user_data);
 
 

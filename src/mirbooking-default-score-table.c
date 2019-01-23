@@ -347,6 +347,13 @@ compute_positions (MirbookingScoreTable  *score_table,
 
     g_autofree gsize  *_positions = NULL;
 
+    if (self->priv->filter != NULL && !self->priv->filter (self, mirna, target, -1, self->priv->filter_user_data))
+    {
+        *positions = NULL;
+        *positions_len = 0;
+        return TRUE;
+    }
+
     gsize p;
     for (p = 0; p < total_positions_len; p++)
     {
