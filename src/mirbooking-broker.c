@@ -102,17 +102,6 @@ mirbooking_broker_init (MirbookingBroker *self)
                                                    (GEqualFunc) mirbooking_sequence_equal);
 }
 
-static void
-mirbooking_broker_constructed (GObject *object)
-{
-    MirbookingBroker *self = MIRBOOKING_BROKER (object);
-
-    self->priv->solver = sparse_solver_new ((SparseSolverMethod) self->priv->sparse_solver);
-    g_assert_nonnull (self->priv->solver);
-
-    G_OBJECT_CLASS (mirbooking_broker_parent_class)->constructed (object);
-}
-
 enum
 {
     PROP_5PRIME_FOOTPRINT = 1,
@@ -268,7 +257,6 @@ mirbooking_broker_class_init (MirbookingBrokerClass *klass)
 
     object_class->set_property = mirbooking_broker_set_property;
     object_class->get_property = mirbooking_broker_get_property;
-    object_class->constructed  = mirbooking_broker_constructed;
     object_class->finalize     = mirbooking_broker_finalize;
 
     g_object_class_install_property (object_class, PROP_5PRIME_FOOTPRINT,
@@ -310,9 +298,17 @@ void
 mirbooking_broker_set_sparse_solver (MirbookingBroker *self,
                                      MirbookingBrokerSparseSolver sparse_solver)
 {
-    if (self->priv->sparse_solver != sparse_solver)
+    if (self->priv->solver == NULL || self->priv->sparse_solver != sparse_solver)
     {
+        if (self->priv->solver)
+        {
+            sparse_solver_free (self->priv->solver);
+        }
+
         self->priv->sparse_solver = sparse_solver;
+        self->priv->solver = sparse_solver_new ((SparseSolverMethod) sparse_solver);
+        g_return_if_fail (self->priv->solver != NULL);
+
         g_object_notify (G_OBJECT (self), "sparse-solver");
     }
 }
