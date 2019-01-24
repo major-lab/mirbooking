@@ -111,10 +111,34 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 
 typedef enum _FastaFormat
 {
-    FASTA_FORMAT_REFSEQ,
+    FASTA_FORMAT_GENERIC,
+    FASTA_FORMAT_NCBI,
     FASTA_FORMAT_GENCODE,
     FASTA_FORMAT_MIRBASE
 } FastaFormat;
+
+static FastaFormat
+detect_fasta_format (const gchar *path)
+{
+    g_autofree const gchar *path_basename = g_path_get_basename (path);
+
+    if (g_str_has_prefix (path_basename, "gencode."))
+    {
+        return FASTA_FORMAT_GENCODE;
+    }
+    else if (g_str_has_prefix (path_basename, "mature"))
+    {
+        return FASTA_FORMAT_MIRBASE;
+    }
+    else if (g_str_has_prefix (path_basename, "GCF_") || g_str_has_prefix (path_basename, "GCA_"))
+    {
+        return FASTA_FORMAT_NCBI;
+    }
+    else
+    {
+        return FASTA_FORMAT_GENERIC;
+    }
+}
 
 static void
 read_sequences_from_fasta (FILE        *file,
@@ -147,7 +171,7 @@ read_sequences_from_fasta (FILE        *file,
                     name = strtok (NULL, "|");
                 }
             }
-            else // including REFSEQ
+            else if (fasta_format == FASTA_FORMAT_NCBI)
             {
                 accession = strtok (line + 1, " ");
                 name = NULL;
@@ -158,6 +182,11 @@ read_sequences_from_fasta (FILE        *file,
                 {
                     name = name_p;
                 }
+            }
+            else
+            {
+                accession = strtok (line + 1, " ");
+                name = strtok (NULL, "\n");
             }
 
             seq = g_mapped_file_get_contents (mapped_file) + ftell (file);
@@ -453,23 +482,9 @@ main (gint argc, gchar **argv)
             return EXIT_FAILURE;
         }
 
-        FastaFormat ff;
-        if (g_strrstr (*cur_sequences_file, "gencode"))
-        {
-            ff = FASTA_FORMAT_GENCODE;
-        }
-        else if (g_strrstr (*cur_sequences_file, "mature"))
-        {
-            ff = FASTA_FORMAT_MIRBASE;
-        }
-        else
-        {
-            ff = FASTA_FORMAT_REFSEQ;
-        }
-
         read_sequences_from_fasta (seq_f,
                                    seq_map,
-                                   ff,
+                                   detect_fasta_format (*cur_sequences_file),
                                    sequences_hash,
                                    FALSE);
     }
@@ -492,23 +507,9 @@ main (gint argc, gchar **argv)
             return EXIT_FAILURE;
         }
 
-        FastaFormat ff;
-        if (g_strrstr (*cur_sequences_file, "gencode"))
-        {
-            ff = FASTA_FORMAT_GENCODE;
-        }
-        else if (g_strrstr (*cur_sequences_file, "mature"))
-        {
-            ff = FASTA_FORMAT_MIRBASE;
-        }
-        else
-        {
-            ff = FASTA_FORMAT_REFSEQ;
-        }
-
         read_sequences_from_fasta (seq_f,
                                    seq_map,
-                                   ff,
+                                   detect_fasta_format (*cur_sequences_file),
                                    sequences_hash,
                                    TRUE);
     }
