@@ -37,7 +37,7 @@ compute_score (MirbookingScoreTable *score_table,
     target_seq[7] = 'A';
     mirna_seq[0]  = 'A';
 
-    gchar *argv[] = {MCFF, "-seq", target_seq, "-zzd", mirna_seq, NULL};
+    gchar *argv[] = {"mcff", "-seq", target_seq, "-zzd", mirna_seq, NULL};
 
     g_autofree gchar *standard_output = NULL, *standard_error = NULL;
     gint exit_status;
@@ -45,7 +45,7 @@ compute_score (MirbookingScoreTable *score_table,
     if (!g_spawn_sync (NULL,
                        argv,
                        NULL,
-                       G_SPAWN_DEFAULT,
+                       G_SPAWN_SEARCH_PATH,
                        NULL,
                        NULL,
                        &standard_output,
