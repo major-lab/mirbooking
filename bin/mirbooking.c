@@ -20,7 +20,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
 #define MIRBOOKING_DEFAULT_TOLERANCE      1e-8
 #define MIRBOOKING_DEFAULT_MAX_ITERATIONS 100
-#define MIRBOOKING_DEFAULT_CUTOFF         1e-1
+#define MIRBOOKING_DEFAULT_CUTOFF         200 // pM
 
 typedef enum _MirbookingOutputFormat
 {
