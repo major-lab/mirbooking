@@ -4,10 +4,8 @@ Implementation of the miRBooking algorithm and metrics in C
 
  - fast and memory efficient
  - usable from Python, JavaScript and Vala via GObject introspection
- - usable from Java via JNA
- - memory-mapped score tables, target and mirnas (for parallel execution)
- - gzip-compressed score tables
- - memory-mapped and zero-copy for input files containing sequences (i.e. FASTA)
+ - memory-mapped score tables, target and mirnas FASTA for  low memory
+   footprint in parallel execution
  - binary with support for static linking for more portability
  - stdin/stdout for piping from and into other tools
 
@@ -23,11 +21,11 @@ mirbooking --targets GCF_000001405.37_GRCh38.p11_rna.fna
            [--output stdout]
            [--output-format tsv|gff3]
            [--sparse-solver superlu]
-           [--tolerance 1e-7]
+           [--tolerance 1e-8]
            [--max-iterations 100]
-           [--5prime-footprint 10]
+           [--5prime-footprint 9]
            [--3prime-footprint 7]
-           [--cutoff 50]
+           [--cutoff 100]
            [--verbose]
 ```
 
@@ -47,19 +45,23 @@ The command line program expects a number of inputs:
  - `--input`, a quantity file mapping target and mirna accessions to
    expressed quantity in pM
 
+The `--cutoff` parameter can exploit a known upper bound on the complex
+concentration to adjust the granularity of the model. Only interaction that can
+ideally reach the specified picomolar concentration will be modeled.
+
 The output is a TSV with the following columns:
 
 | Column           | Description                                            |
 | ---------------- | ------------------------------------------------------ |
 | target_accession | Target accession with version                          |
 | target_name      | Name of the target or N/A if unknown                   |
-| target_quantity  | Number of targets                                      |
+| target_quantity  | Total target concentration in picomolars               |
 | position         | Site position on the target                            |
 | mirna_accession  | miRNA accession                                        |
 | mirna_name       | Name of the miRNA or N/A if unknown                    |
-| mirna_quantity   | Number of miRNAs                                       |
-| score            | Molar Gibbs free energy of the miRNA::MRE duplex       |
-| quantity         | Number of occupants miRNAs at a this target position   |
+| mirna_quantity   | Total miRNA concentration in picomolars                |
+| score            | Michalis-Menten constant of the miRNA::MRE duplex      |
+| quantity         | miRNA::MRE duplex concentration this target position   |
 
 ## Installation
 
@@ -91,12 +93,13 @@ this dependency.
 OpenMP can be optionally used to parallelize the evaluation of partial
 derivatives by specifying `-Dwith_openmp=true`.
 
+MPI can be optionally used to distribute the computation across multiple
+machine on supported solvers (i.e. `mkl-cluster`) by specifying `-Dwith_mpi=true`.
+
 ## Numerical integration
 
 In addition to determine the steady state, miRBooking can also perform
-numerical integration of the microtargetome.
-
-For knock-out conditions, zero the miRNA or mRNA expression.
+numerical integration of the microtargetome using the programming API.
 
 ## Other tools
 
