@@ -48,6 +48,7 @@ typedef struct
     /* hints for filtering interactions */
     MirbookingDefaultScoreTableFilter filter;
     gpointer                          filter_user_data;
+    GDestroyNotify                    filter_user_data_destroy;
 } MirbookingDefaultScoreTablePrivate;
 
 struct _MirbookingDefaultScoreTable
@@ -119,6 +120,11 @@ mirbooking_default_score_table_finalize (GObject *object)
     if (self->priv->supplementary_scores_bytes != NULL)
     {
         g_bytes_unref (self->priv->supplementary_scores_bytes);
+    }
+
+    if (self->priv->filter_user_data_destroy)
+    {
+        self->priv->filter_user_data_destroy (self->priv->filter_user_data);
     }
 
     g_free (self->priv);
@@ -481,11 +487,16 @@ mirbooking_default_score_table_new (GBytes *seed_scores, MirbookingDefaultScoreT
                          NULL);
 }
 
+/**
+ * mirbooking_default_score_table_set_filter:
+ */
 void
 mirbooking_default_score_table_set_filter (MirbookingDefaultScoreTable *self,
                                            MirbookingDefaultScoreTableFilter filter,
-                                           gpointer user_data)
+                                           gpointer user_data,
+                                           GDestroyNotify destroy_func)
 {
     self->priv->filter           = filter;
     self->priv->filter_user_data = user_data;
+    self->priv->filter_user_data_destroy = destroy_func;
 }

@@ -475,7 +475,8 @@ main (gint argc, gchar **argv)
 
     mirbooking_default_score_table_set_filter (score_table,
                                                filter,
-                                               mirbooking);
+                                               g_object_ref (mirbooking),
+                                               g_object_unref);
 
     mirbooking_broker_set_score_table (mirbooking,
                                        MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));

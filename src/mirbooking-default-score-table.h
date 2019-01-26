@@ -35,7 +35,8 @@ MirbookingDefaultScoreTable * mirbooking_default_score_table_new        (GBytes 
                                                                          GBytes *supp_bytes);
 void                          mirbooking_default_score_table_set_filter (MirbookingDefaultScoreTable       *self,
                                                                          MirbookingDefaultScoreTableFilter  filter,
-                                                                         gpointer                           user_data);
+                                                                         gpointer                           user_data,
+                                                                         GDestroyNotify                     destroy_func);
 
 G_END_DECLS
 
