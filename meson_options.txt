@@ -10,7 +10,7 @@ option('mkl_arch', type: 'string', value: 'intel64')
 
 option('cuda_root', type: 'string', value: '/usr/local/cuda')
 
-option('with_superlu', type: 'boolean', value: false)
+option('with_superlu', type: 'boolean', value: true)
 option('with_superlu_mt', type: 'boolean', value: false)
 option('with_umfpack', type: 'boolean', value: false)
 option('with_mkl_dss', type: 'boolean', value: false)
