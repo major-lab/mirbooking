@@ -58,7 +58,7 @@ sparse_dep = declare_dependency(include_directories: include_directories('.'),
 test('sparse', executable('sparse-test', 'sparse-test.c',
                           dependencies: [sparse_dep]))
 
-if get_option('with_mkl_cluster')
+if get_option('with_mkl') and get_option('with_mkl_cluster')
     test('sparse-mpi', executable('sparse-mpi-test', 'sparse-mpi-test.c',
          dependencies: [sparse_dep, mpi_dep]))
 endif

@@ -1,5 +1,4 @@
 #include "sparse.h"
-
 #include "sparse-private.h"
 
 #include <SuperLU/slu_ddefs.h>
