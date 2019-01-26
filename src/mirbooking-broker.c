@@ -421,15 +421,6 @@ mirbooking_broker_set_time (MirbookingBroker *self, gdouble time)
     self->priv->t = time;
 }
 
-
-static int
-sequence_cmp_desc (MirbookingSequence **a, MirbookingSequence **b, MirbookingBroker *mirbooking)
-{
-    gfloat a_quantity = gfloat_from_gpointer (g_hash_table_lookup (mirbooking->priv->quantification, *a));
-    gfloat b_quantity = gfloat_from_gpointer (g_hash_table_lookup (mirbooking->priv->quantification, *b));
-    return (a_quantity < b_quantity) - (a_quantity > b_quantity);
-}
-
 /*
  * Compute the footprint window in which two microRNA can have overlapping
  * footprint at this position.
@@ -529,10 +520,6 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
     g_return_val_if_fail (self != NULL, FALSE);
     g_return_val_if_fail (self->priv->score_table != NULL, FALSE);
     g_return_val_if_fail (self->priv->solver != NULL, FALSE);
-
-    // sort internal targets and mirnas in descending quantity
-    g_ptr_array_sort_with_data (self->priv->targets, (GCompareDataFunc) sequence_cmp_desc, self);
-    g_ptr_array_sort_with_data (self->priv->mirnas, (GCompareDataFunc) sequence_cmp_desc, self);
 
     gint i;
     #pragma omp parallel for reduction(+:target_sites_len)
