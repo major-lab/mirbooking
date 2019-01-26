@@ -349,8 +349,9 @@ write_output_to_gff3 (MirbookingBroker *mirbooking, FILE *output_f)
         GSList *occupants;
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
         {
+            // the sequence ontology for 'miRNA_target_site' is 'SO:0000934'
             MirbookingOccupant *occupant = occupants->data;
-            g_fprintf (output_f, "%s\tmiRBooking\tmiRNA\t%lu\t%lu\t%e\t.\t.\tID=%d;Name=%s;Alias=%s\n",
+            g_fprintf (output_f, "%s\tmiRBooking\tmiRNA_target_site\t%lu\t%lu\t%e\t.\t.\tID=%d;Name=%s;Alias=%s\n",
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        (gsize) MAX (1, (gssize) target_site->position + 1 - (gssize) prime5_footprint),
                        MIN (mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target_site->target)), target_site->position + 1 + prime3_footprint),
