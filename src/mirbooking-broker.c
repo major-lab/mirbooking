@@ -803,8 +803,6 @@ _compute_F (double t, const double *y, double *F, void *user_data)
                                                                                  S[i],
                                                                                  ES);
 
-                // g_assert_cmpfloat (Stp, <=, S[i]);
-
                 gdouble kother = 0;
                 {
                     gint j;
@@ -1118,13 +1116,6 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                     gdouble dSdES  = -Stp / (self->priv->S[i] - _mirbooking_broker_get_target_site_occupants_quantity (self, target_site, ES));
                     gdouble dESdES = kf * (E[j] * dSdES + Stp * dEdES) - (kr + kcat) * (occupant == other_occupant ? 1 : 0) - kother;
 
-                    if (mirna == other_occupant->mirna)
-                    {
-                        // it's already computed above
-                        g_assert_cmpfloat (sparse_matrix_get_double (self->priv->J, k, other_k), ==, -dESdES);
-                        continue;
-                    }
-
                     sparse_matrix_set_double (self->priv->J,
                                               k,
                                               other_k,
@@ -1279,12 +1270,10 @@ mirbooking_broker_step (MirbookingBroker         *self,
     }
     else if (step_mode == MIRBOOKING_BROKER_STEP_MODE_INTEGRATE)
     {
-        gdouble t = self->priv->t;
         odeint_integrator_integrate (self->priv->integrator,
                                      _compute_F,
                                      self,
                                      self->priv->t + step_size);
-        g_assert_cmpfloat (self->priv->t, ==, t + step_size);
     }
     else
     {
