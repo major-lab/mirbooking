@@ -420,7 +420,7 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
-    g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new ();
+    g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new_with_rank (rank);
 
     mirbooking_broker_set_5prime_footprint (mirbooking, prime5_footprint);
     mirbooking_broker_set_3prime_footprint (mirbooking, prime3_footprint);

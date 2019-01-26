@@ -52,6 +52,8 @@ typedef enum _MirbookingBrokerStepMode
 } MirbookingBrokerStepMode;
 
 MirbookingBroker *     mirbooking_broker_new                     (void);
+MirbookingBroker *     mirbooking_broker_new_with_rank           (gint rank);
+gint                   mirbooking_broker_get_rank                (MirbookingBroker *self);
 void                   mirbooking_broker_set_sparse_solver       (MirbookingBroker             *self,
                                                                   MirbookingBrokerSparseSolver  sparse_solver);
 void                   mirbooking_broker_set_5prime_footprint    (MirbookingBroker *self,

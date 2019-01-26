@@ -11,9 +11,6 @@
 #endif
 #include <sparse.h>
 #include <stdio.h>
-#if HAVE_MPI
-#include <mpi.h>
-#endif
 
 typedef struct _MirbookingTargetPositions
 {
@@ -101,14 +98,6 @@ static void
 mirbooking_broker_init (MirbookingBroker *self)
 {
     self->priv = g_new0 (MirbookingBrokerPrivate, 1);
-#if HAVE_MPI
-    int flag;
-    MPI_Initialized (&flag);
-    if (flag)
-        g_return_if_fail (MPI_Comm_rank (MPI_COMM_WORLD, &self->priv->rank) == MPI_SUCCESS);
-#else
-    self->priv->rank = 0;
-#endif
     self->priv->targets = g_ptr_array_new_with_free_func (g_object_unref);
     self->priv->mirnas = g_ptr_array_new_with_free_func (g_object_unref);
     self->priv->quantification = g_hash_table_new ((GHashFunc) mirbooking_sequence_hash,
@@ -117,7 +106,8 @@ mirbooking_broker_init (MirbookingBroker *self)
 
 enum
 {
-    PROP_5PRIME_FOOTPRINT = 1,
+    PROP_RANK = 1,
+    PROP_5PRIME_FOOTPRINT,
     PROP_3PRIME_FOOTPRINT,
     PROP_SCORE_TABLE,
     PROP_SPARSE_SOLVER
@@ -130,6 +120,9 @@ mirbooking_broker_set_property (GObject *object, guint property_id, const GValue
 
     switch (property_id)
     {
+        case PROP_RANK:
+            self->priv->rank = g_value_get_int (value);
+            break;
         case PROP_5PRIME_FOOTPRINT:
             self->priv->prime5_footprint = g_value_get_uint (value);
             break;
@@ -155,6 +148,9 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
 
     switch (property_id)
     {
+        case PROP_RANK:
+            g_value_set_int (value, self->priv->rank);
+            break;
         case PROP_5PRIME_FOOTPRINT:
             g_value_set_uint (value, self->priv->prime5_footprint);
             break;
@@ -265,6 +261,8 @@ mirbooking_broker_class_init (MirbookingBrokerClass *klass)
     object_class->get_property = mirbooking_broker_get_property;
     object_class->finalize     = mirbooking_broker_finalize;
 
+    g_object_class_install_property (object_class, PROP_RANK,
+                                     g_param_spec_int ("rank", "", "", 0, G_MAXINT, 0, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_5PRIME_FOOTPRINT,
                                      g_param_spec_uint ("prime5-footprint", "", "", 0, G_MAXUINT, MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
     g_object_class_install_property (object_class, PROP_3PRIME_FOOTPRINT,
@@ -284,6 +282,28 @@ MirbookingBroker *
 mirbooking_broker_new (void)
 {
     return g_object_new (MIRBOOKING_BROKER_TYPE, NULL);
+}
+
+/**
+ * mirbooking_broker_new_with_rank:
+ *
+ * Returns: (transfer full): A plain #Mirbooking instance with specified rank
+ */
+MirbookingBroker *
+mirbooking_broker_new_with_rank (gint rank)
+{
+    return g_object_new (MIRBOOKING_BROKER_TYPE, "rank", rank, NULL);
+}
+
+/**
+ * mirbooking_broker_get_rank:
+ *
+ * Obtain the rank of this broker in a distributed context.
+ */
+gint
+mirbooking_broker_get_rank (MirbookingBroker *self)
+{
+    return self->priv->rank;
 }
 
 void

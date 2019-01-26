@@ -111,6 +111,8 @@ test_mirbooking ()
 {
     g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new ();
 
+    g_assert_cmpint (mirbooking_broker_get_rank (mirbooking), ==, 0);
+
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
     g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
     mirbooking_broker_set_score_table (mirbooking, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
