@@ -80,6 +80,11 @@ GArray *               mirbooking_broker_get_target_sites        (MirbookingBrok
 gdouble                mirbooking_broker_get_occupant_quantity   (MirbookingBroker         *self,
                                                                   const MirbookingOccupant *occupant);
 
+void                   mirbooking_broker_get_target_occupants_pmf (MirbookingBroker *self,
+                                                                   MirbookingTarget  *target,
+                                                                   gdouble          **pmf,
+                                                                   gsize             *n);
+
 G_END_DECLS
 
 #endif /* __MIRBOOKING_BROKER_H__ */

@@ -1326,45 +1326,32 @@ mirbooking_broker_get_target_sites (MirbookingBroker *self)
     return self->priv->target_sites;
 }
 
-static gdouble
-mean_silencing_by_number_of_sites (guint k)
-{
-    return fmax (1 - pow (2, -0.0392 * k + 0.0054), 0);
-}
-
 /**
- * mirbooking_broker_get_target_silencing:
+ * mirbooking_broker_get_target_occupants_pmf:
  * @target: The #MirbookingTarget for which we are retrieving the silencing
+ * @pmf: The probability mass function of the number of bound miRISC complexes
+ * @n: The length of the PMF
  *
- * Compute the silencing of the target according to the Poisson-Binomial
- * distribution.
- *
- * First we estimate the number of occupant per target using the
- * Poisson-Binomial PMF and then we use an empirical regression for computing
- * the expected miRNA-induced silencing by weighting each discrete outcomes.
- *
- * For individual miRNA-induced silencing, this value should be distributed
- * proportionally to the individual occupancy.
- *
- * Returns: The silencing computed across all the occupied sites
+ * Compute the probability mass function of the number of occupied target sites
+ * on a given target by modeling them with a Poisson-Binomial distribution.
  */
-gdouble
-mirbooking_broker_get_target_silencing (MirbookingBroker *self, MirbookingTarget *target)
+void
+mirbooking_broker_get_target_occupants_pmf (MirbookingBroker *self, MirbookingTarget *target, gdouble **pmf, gsize *n)
 {
-    gdouble target_silencing = 0;
     MirbookingTargetSite *target_site = g_hash_table_lookup (self->priv->target_sites_by_target, target);
     gfloat target_quantity = mirbooking_broker_get_sequence_quantity (self, MIRBOOKING_SEQUENCE (target));
 
-    g_return_val_if_fail (target_site != NULL, 0.0f);
+    g_return_if_fail (target_site != NULL);
 
     g_autoptr (GArray) probability_by_position = g_array_new (FALSE, FALSE, sizeof (gdouble));
     while (target_site < &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len) &&
            target_site->target == target)
     {
-        if (_mirbooking_broker_get_target_site_occupants_quantity (self, target_site, self->priv->ES))
+        gdouble occupants_quantity = _mirbooking_broker_get_target_site_occupants_quantity (self, target_site, self->priv->ES);
+        if (occupants_quantity > 0)
         {
-            gdouble proba = _mirbooking_broker_get_target_site_occupants_quantity (self, target_site, self->priv->ES) / target_quantity;
-            g_array_append_val (probability_by_position, proba);
+            gdouble p = occupants_quantity / target_quantity;
+            g_array_append_val (probability_by_position, p);
         }
 
         ++target_site;
@@ -1375,16 +1362,10 @@ mirbooking_broker_get_target_silencing (MirbookingBroker *self, MirbookingTarget
     pb_init (&pb,
              (gdouble*) probability_by_position->data,
              probability_by_position->len);
-    guint k;
-    #pragma omp parallel for reduction(+:target_silencing)
-    for (k = 0; k <= probability_by_position->len; k++)
-    {
-        g_assert_cmpfloat (pb_pmf (&pb, k), >=, 0);
-        g_assert_cmpfloat (mean_silencing_by_number_of_sites (k), >=, 0);
-        target_silencing += pb_pmf (&pb, k) * mean_silencing_by_number_of_sites (k);
-    }
+
+    *pmf = g_new (gdouble, 1 + probability_by_position->len);
+    memcpy (*pmf, pb.pmf, (1 + probability_by_position->len) * sizeof (gdouble));
+    *n   = probability_by_position->len;
 
     pb_destroy (&pb);
-
-    return target_silencing;
 }
