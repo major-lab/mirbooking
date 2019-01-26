@@ -1161,8 +1161,6 @@ mirbooking_broker_evaluate (MirbookingBroker          *self,
                             gdouble                   *norm,
                             GError                   **error)
 {
-    guint64 step_begin = g_get_monotonic_time ();
-
     if (g_once_init_enter (&self->priv->init))
     {
         g_return_val_if_fail (_mirbooking_broker_prepare_step (self),
@@ -1187,8 +1185,6 @@ mirbooking_broker_evaluate (MirbookingBroker          *self,
         *norm = sqrt (_norm);
     }
 
-    g_debug ("Evaluated in %lums", 1000 * (g_get_monotonic_time () - step_begin) / G_USEC_PER_SEC);
-
     return TRUE;
 }
 
@@ -1208,8 +1204,6 @@ mirbooking_broker_step (MirbookingBroker         *self,
                         gdouble                   step_size,
                         GError                   **error)
 {
-    guint64 step_begin = g_get_monotonic_time ();
-
     if (g_once_init_enter (&self->priv->init))
     {
         g_return_val_if_fail (_mirbooking_broker_prepare_step (self),
@@ -1299,8 +1293,6 @@ mirbooking_broker_step (MirbookingBroker         *self,
     {
         g_assert_not_reached ();
     }
-
-    g_debug ("Stepped in %lums", 1000 * (g_get_monotonic_time () - step_begin) / G_USEC_PER_SEC);
 
     return TRUE;
 }

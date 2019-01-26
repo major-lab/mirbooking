@@ -625,10 +625,12 @@ main (gint argc, gchar **argv)
     }
 
     guint64 iteration = 0;
-    guint64 iteration_begin = g_get_monotonic_time ();
+    guint64 iteration_begin, iteration_end, evaluate_begin, evaluate_end, step_begin, step_end;
     gdouble norm;
     do
     {
+        iteration_begin = g_get_monotonic_time ();
+
         iteration++;
 
         if (iteration > max_iterations)
@@ -637,7 +639,7 @@ main (gint argc, gchar **argv)
             return EXIT_FAILURE;
         }
 
-        iteration_begin = g_get_monotonic_time ();
+        evaluate_begin = g_get_monotonic_time ();
 
         if (!mirbooking_broker_evaluate (mirbooking,
                                          &norm,
@@ -647,10 +649,7 @@ main (gint argc, gchar **argv)
             return EXIT_FAILURE;
         }
 
-        g_debug ("iteration: %lu norm: %.2e time: %lums",
-                 iteration,
-                 norm,
-                 1000 * (g_get_monotonic_time () - iteration_begin) / G_USEC_PER_SEC);
+        evaluate_end = g_get_monotonic_time ();
 
         if (!isfinite (norm))
         {
@@ -663,6 +662,8 @@ main (gint argc, gchar **argv)
             break;
         }
 
+        step_begin = g_get_monotonic_time ();
+
         if (!mirbooking_broker_step (mirbooking,
                                      MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE,
                                      1,
@@ -670,6 +671,20 @@ main (gint argc, gchar **argv)
         {
             g_printerr ("%s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);
             return EXIT_FAILURE;
+        }
+
+        step_end = g_get_monotonic_time ();
+
+        iteration_end = g_get_monotonic_time ();
+
+        if (rank == 0)
+        {
+            g_debug ("iteration: %lu norm: %.2e evaluate-time: %lums step-time: %lums total-time: %lums",
+                     iteration,
+                     norm,
+                     1000 * (evaluate_end - evaluate_begin) / G_USEC_PER_SEC,
+                     1000 * (step_end - step_begin) / G_USEC_PER_SEC,
+                     1000 * (iteration_end - iteration_begin) / G_USEC_PER_SEC);
         }
     }
     while (TRUE);
