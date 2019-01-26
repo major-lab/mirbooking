@@ -8,6 +8,16 @@
 #include <cuda_runtime_api.h>
 #include <limits.h>
 
+#define memcpy_loop(to, from, n) \
+{                                \
+    int i;                       \
+    for (i = 0; i < (n); i++)    \
+    {                            \
+        (to)[i] = (from)[i];     \
+                                 \
+    }                            \
+}
+
 void
 sparse_cusolver_init (SparseSolver *solver)
 {
@@ -51,16 +61,8 @@ sparse_cusolver_solve (SparseSolver *solver,
     int *rowptr = malloc ((A->shape[0]+1) * sizeof (int));
     int *colind = malloc (A->s.csr.nnz * sizeof (int));
 
-    int i;
-    for (i = 0; i < A->shape[0] + 1; i++)
-    {
-        rowptr[i] = A->s.csr.rowptr[i];
-    }
-
-    for (i = 0; i < A->s.csr.nnz; i++)
-    {
-        colind[i] = A->s.csr.colind[i];
-    }
+    memcpy_loop (rowptr, A->s.csr.rowptr, A->shape[0] + 1);
+    memcpy_loop (colind, A->s.csr.colind, A->s.csr.nnz);
 
     int singularity;
     if (A->type == SPARSE_MATRIX_TYPE_FLOAT)
