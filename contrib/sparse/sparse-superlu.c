@@ -48,9 +48,12 @@ sparse_superlu_solve (SparseSolver *solver,
 
     StatInit (&stat);
 
-    if (A->solver_storage == NULL)
+    if (A->solver_storage_owner != solver)
     {
-        A->solver_storage = calloc (A->shape[0] + A->shape[1], sizeof (int));
+        sparse_matrix_set_solver_storage (A,
+                                          calloc (A->shape[0] + A->shape[1], sizeof (int)),
+                                          free,
+                                          solver);
     }
 
     int *rowperm = A->solver_storage;

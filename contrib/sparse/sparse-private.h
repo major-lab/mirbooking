@@ -17,4 +17,17 @@ struct _SparseSolver
     SparseSolverStatistics statistics;
 };
 
+static inline void
+sparse_matrix_set_solver_storage (SparseMatrix *M, void *solver_storage, void (*solver_storage_destroy) (void*), void *owner)
+{
+    if (M->solver_storage_destroy)
+    {
+        M->solver_storage_destroy (M->solver_storage);
+    }
+
+    M->solver_storage_owner = owner;
+    M->solver_storage = solver_storage;
+    M->solver_storage_destroy = solver_storage_destroy;
+}
+
 #endif /* __SPARSE_PRIVATE_H__ */

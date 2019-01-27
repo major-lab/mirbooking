@@ -101,9 +101,12 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
         goto cleanup;
     }
 
-    if (A->solver_storage == NULL)
+    if (A->solver_storage_owner != solver)
     {
-        A->solver_storage = calloc (A->shape[0], sizeof (MKL_INT));
+        sparse_matrix_set_solver_storage (A,
+                                          calloc (A->shape[0], sizeof (MKL_INT)),
+                                          free,
+                                          solver);
     }
 
     rowperm = A->solver_storage;

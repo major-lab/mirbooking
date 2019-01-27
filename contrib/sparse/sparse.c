@@ -60,7 +60,10 @@ sparse_matrix_init (SparseMatrix        *matrix,
     /* storage */
     matrix->data = calloc (nnz, _size_for_type (matrix->type));
 
+    /* solver-specific storage */
+    matrix->solver_storage_owner = NULL;
     matrix->solver_storage = NULL;
+    matrix->solver_storage_destroy = NULL;
 }
 
 void
@@ -69,8 +72,10 @@ sparse_matrix_clear (SparseMatrix *matrix)
     free (matrix->s.csr.colind);
     free (matrix->data);
     free (matrix->s.csr.rowptr);
-    if (matrix->solver_storage)
-        free (matrix->solver_storage);
+    if (matrix->solver_storage_destroy)
+    {
+        matrix->solver_storage_destroy (matrix->solver_storage);
+    }
 }
 
 /**

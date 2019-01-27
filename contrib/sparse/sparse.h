@@ -43,7 +43,9 @@ typedef struct _SparseMatrix
     } default_data;
     void *data;
     /* solver-specific data */
+    void *solver_storage_owner;
     void *solver_storage;
+    void (*solver_storage_destroy) (void*);
 } SparseMatrix;
 
 void   sparse_matrix_init      (SparseMatrix *matrix, SparseMatrixStorage storage, SparseMatrixType type, size_t shape[2], size_t nnz);
@@ -83,6 +85,7 @@ typedef struct _SparseSolverStatistics
 SparseSolver *         sparse_solver_new            (SparseSolverMethod solver_method);
 int                    sparse_solver_solve          (SparseSolver *solver, SparseMatrix *A, void *x, void *b);
 SparseSolverStatistics sparse_solver_get_statistics (SparseSolver *solver);
+void                   sparse_solver_set_verbose    (SparseSolver *solver, int verbose);
 void                   sparse_solver_free           (SparseSolver *solver);
 
 #endif /* __SPARSE_H__ */
