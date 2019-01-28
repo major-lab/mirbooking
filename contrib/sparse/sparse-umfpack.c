@@ -77,10 +77,6 @@ sparse_umfpack_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
     if (A->solver_storage_owner != solver)
     {
         solver_storage = calloc (1, sizeof (SolverStorage));
-        sparse_matrix_set_solver_storage (A,
-                                          solver_storage,
-                                          free_solver_storage,
-                                          solver);
 
         umfpack_dl_symbolic (A->shape[0],
                              A->shape[1],
@@ -93,9 +89,14 @@ sparse_umfpack_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
 
         if (info[UMFPACK_STATUS] != UMFPACK_OK)
         {
+            free_solver_storage (solver_storage);
             goto cleanup;
         }
 
+        sparse_matrix_set_solver_storage (A,
+                                          solver_storage,
+                                          free_solver_storage,
+                                          solver);
     }
 
     void *numeric;
