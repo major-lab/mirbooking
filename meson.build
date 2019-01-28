@@ -35,8 +35,13 @@ if get_option('with_mkl')
     endif
     mkl_core = meson.get_compiler('c').find_library('mkl_core', dirs: mkl_libdir)
 
-    if get_option('with_openmp')
-        mkl_thread = meson.get_compiler('c').find_library('mkl_gnu_thread', dirs: mkl_libdir)
+    if get_option('with_mkl_tbb')
+        tbb = meson.get_compiler('c').find_library('tbb')
+        mkl_tbb_thread = meson.get_compiler('c').find_library('mkl_tbb_thread', dirs: mkl_libdir)
+        mkl_thread = declare_dependency(dependencies: [mkl_tbb_thread, tbb_dep])
+    elif get_option('with_openmp')
+        mkl_gnu_thread = meson.get_compiler('c').find_library('mkl_gnu_thread', dirs: mkl_libdir)
+        mkl_thread = declare_dependency(dependencies: [mkl_gnu_thread, openmp_dep])
     else
         mkl_thread = meson.get_compiler('c').find_library('mkl_sequential', dirs: mkl_libdir)
     endif
@@ -56,7 +61,7 @@ if get_option('with_mkl')
     mkl_dl = meson.get_compiler('c').find_library('dl')
     mkl_dep = declare_dependency(compile_args: ['-m64', '-I@0@'.format(join_paths(mkl_root, 'include'))],
                                  link_args: ['-Wl,--no-as-needed'],
-                                 dependencies: [mkl_interface, mkl_thread, mkl_core, mkl_blacs, mpi_dep, openmp_dep, mkl_pthread, mkl_m, mkl_dl])
+                                 dependencies: [mkl_interface, mkl_thread, mkl_core, mkl_blacs, mpi_dep, mkl_pthread, mkl_m, mkl_dl])
 else
     warning('MKL is recommended for solving sparse systems efficiently.')
 endif
