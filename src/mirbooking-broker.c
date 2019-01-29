@@ -237,6 +237,8 @@ mirbooking_broker_finalize (GObject *object)
     {
         g_free (self->priv->y);
         g_free (self->priv->F);
+        g_free (self->priv->ktr);
+        g_free (self->priv->kdeg);
         odeint_integrator_free (self->priv->integrator);
     }
 
