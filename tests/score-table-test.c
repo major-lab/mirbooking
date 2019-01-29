@@ -146,6 +146,12 @@ test_score_table_compute_seed_scores ()
 static void
 test_score_table_mcff ()
 {
+    if (g_find_program_in_path ("mcff") == NULL)
+    {
+        g_test_skip ("'mcff' is not found in the path.");
+        return;
+    }
+
     g_autoptr (MirbookingMcffScoreTable) score_table = mirbooking_mcff_score_table_new ();
     g_assert_nonnull (score_table);
 
