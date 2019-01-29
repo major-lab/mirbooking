@@ -365,7 +365,8 @@ compute_positions (MirbookingScoreTable  *score_table,
     {
         if ((sparse_matrix_get_float (&self->priv->seed_scores, i, j) < INFINITY || is_g_bulge (target, p)) &&
             mirbooking_target_get_accessibility_score (target, p) < INFINITY                                &&
-            (self->priv->filter == NULL || self->priv->filter (self, mirna, target, p, self->priv->filter_user_data)))
+            (self->priv->filter == NULL || self->priv->filter (self, mirna, target, p, self->priv->filter_user_data)) &&
+            mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (self), mirna, target, p, NULL) < INFINITY)
         {
             _positions = g_realloc (_positions, (k + 1) * sizeof (gsize));
             _positions[k++] = p;

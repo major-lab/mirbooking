@@ -137,7 +137,7 @@ test_score_table_compute_seed_scores ()
                                                         &error));
 
     g_assert_nonnull (positions);
-    g_assert_cmpint (positions_len, ==, 19);
+    g_assert_cmpint (positions_len, ==, 2);
     g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[0], NULL), ==, 1e12 * exp ((-19.0f - 5.43f) / (R * T)));
     g_assert_cmpfloat (mirbooking_score_table_compute_score (score_table, mirna, target, positions[1], NULL), ==, 1e12 * exp ((-20.0f - 5.43f - 0.56f) / (R * T)));
     g_assert_null (error);
