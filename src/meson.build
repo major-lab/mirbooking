@@ -12,7 +12,7 @@ mirbooking_headers = [
     'mirbooking-target.h',
     'mirbooking-target-site.h']
 
-install_headers(mirbooking_headers, subdir: 'mirbooking-1.0')
+install_headers(mirbooking_headers, subdir: 'mirbooking-2.0')
 
 mirbooking_sources = [
     'mirbooking-broker.c',
@@ -25,7 +25,7 @@ mirbooking_sources = [
     'mirbooking-sequence.c',
     'mirbooking-target.c']
 
-mirbooking_lib = library('mirbooking-1.0', mirbooking_sources,
+mirbooking_lib = library('mirbooking-2.0', mirbooking_sources,
                          dependencies: [glib_dep, gobject_dep, gio_dep, m_dep, pb_dep, openmp_dep, mpi_dep, odeint_dep, sparse_dep],
                          install: true)
 
@@ -38,7 +38,7 @@ if get_option('with_introspection')
     mirbooking_gir = gnome.generate_gir(mirbooking_lib,
                                         sources: mirbooking_headers + mirbooking_sources,
                                         namespace: 'Mirbooking',
-                                        nsversion: '1.0',
+                                        nsversion: '2.0',
                                         includes: ['GLib-2.0', 'GObject-2.0', 'Gio-2.0'],
                                         install: true)
 
@@ -47,7 +47,7 @@ if get_option('with_introspection')
                  install_dir: join_paths(import('python3').sysconfig_path('purelib'), 'gi/overrides'))
 
     if get_option('with_vapi')
-        gnome.generate_vapi('mirbooking-1.0',
+        gnome.generate_vapi('mirbooking-2.0',
                             sources: mirbooking_gir[0],
                             packages: ['glib-2.0', 'gobject-2.0', 'gio-2.0'],
                             install: true)
@@ -61,5 +61,5 @@ pkgconfig.generate(name: meson.project_name(),
                    requires: ['glib-2.0', 'gobject-2.0', 'gio-2.0'],
                    libraries: mirbooking_lib,
                    libraries_private: '-lm',
-                   filebase: 'mirbooking-1.0',
-                   subdirs: 'mirbooking-1.0')
+                   filebase: 'mirbooking-2.0',
+                   subdirs: 'mirbooking-2.0')
