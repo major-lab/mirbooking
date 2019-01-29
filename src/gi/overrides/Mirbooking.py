@@ -22,11 +22,11 @@ class Broker(Mirbooking.Broker):
                     yield [target_site.target.get_accession(),
                            target_site.target.get_name(),
                            target_quantity,
-                           target_site.position,
+                           target_site.position + 1,
                            occupant.mirna.get_accession(),
                            occupant.mirna.get_name(),
                            self.get_sequence_quantity(occupant.mirna),
-                           self.get_score_table().compute_score(occupant.mirna, target_site.target, target_site.position),
+                           self.get_score_table().compute_enzymatic_score(occupant.mirna, target_site.target, target_site.position),
                            self.get_occupant_quantity(occupant)]
         columns = ['target_accession',
                    'target_name',
