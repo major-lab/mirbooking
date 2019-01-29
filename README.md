@@ -16,10 +16,11 @@ mirbooking --targets GCF_000001405.37_GRCh38.p11_rna.fna
            --mirnas mature.fa
            --seed-scores scores-7mer-3mismatch-ending
            [--accessibility-scores accessibility-scores[.gz]]
+           [--supplementary-model yan-et-al-2018]
            [--supplementary-scores scores-3mer]
            [--input stdin]
            [--output stdout]
-           [--output-format tsv|gff3]
+           [--output-format tsv]
            [--sparse-solver superlu]
            [--tolerance 1e-8]
            [--max-iterations 100]
@@ -43,7 +44,7 @@ The command line program expects a number of inputs:
    contribution (or penalty) on the targets
  - `--supplementary-scores` contains either 4mer or 3mer
  - `--input`, a quantity file mapping target and mirna accessions to
-   expressed quantity in pM
+   expressed quantity in picomolars
 
 The `--cutoff` parameter can exploit a known upper bound on the complex
 concentration to adjust the granularity of the model. Only interaction that can
@@ -62,6 +63,9 @@ The output is a TSV with the following columns:
 | mirna_quantity   | Total miRNA concentration in picomolars                |
 | score            | Michalis-Menten constant of the miRNA::MRE duplex      |
 | quantity         | miRNA::MRE duplex concentration this target position   |
+
+The GFF3 output can be used with `--output-format=gff3`. The score will
+indicate the complex concentration.
 
 ## Installation
 
@@ -91,10 +95,25 @@ careful not to enable this as a default because of the GPL license covering
 this dependency.
 
 OpenMP can be optionally used to parallelize the evaluation of partial
-derivatives by specifying `-Dwith_openmp=true`.
+derivatives and some supported solvers by specifying `-Dwith_openmp=true`.
 
 MPI can be optionally used to distribute the computation across multiple
 machine on supported solvers (i.e. `mkl-cluster`) by specifying `-Dwith_mpi=true`.
+
+| Solver      | Build Options                                                                    |
+| --------    | -------------------------------------------------------------------------------- |
+| SuperLU     | -Dwith_superlu=true                                                              |
+| UMFPACK     | -Dwith_umfpack=true                                                              |
+| cuSOLVER    | -Dcuda_root=<path to cuda> -Dwith_cusolver=true                                  |
+| MKL DSS     | -Dwith_mkl-true -Dmkl_root=<path to mkl> -Dwith_mkl_dss=true                     |
+| MKL Cluster | -Dwith_mpi=true -Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_cluster=true |
+
+MKL DSS and MKL Cluster can benefit from [TBB](https://www.threadingbuildingblocks.org/)
+instead of OpenMP, which can be enabled with `-Dwith_mkl_tbb=true`.
+
+MKL DSS and MKL Cluster can be used with the 64 bit interface, allowing much
+larger systems to be solved with `-Dwith_mkl_ilp64=true`. However, this will
+break other solvers as it will load a 64 bit BLAS.
 
 ## Numerical integration
 
