@@ -35,7 +35,7 @@ static gchar                         *supplementary_scores_file = NULL;
 static gchar                         *accessibility_scores_file = NULL;
 static gchar                         *input_file                = NULL;
 static gchar                         *output_file               = NULL;
-static gboolean                       output_format             = MIRBOOKING_OUTPUT_FORMAT_TSV;
+static MirbookingOutputFormat         output_format             = MIRBOOKING_OUTPUT_FORMAT_TSV;
 static MirbookingBrokerSparseSolver   sparse_solver             = MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER;
 static gdouble                        tolerance                 = MIRBOOKING_DEFAULT_TOLERANCE;
 static guint64                        max_iterations            = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
@@ -43,6 +43,30 @@ static gsize                          prime5_footprint          = MIRBOOKING_BRO
 static gsize                          prime3_footprint          = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
 static gdouble                        cutoff                    = MIRBOOKING_DEFAULT_CUTOFF;
 static gboolean                       verbose                   = FALSE;
+
+static MirbookingDefaultScoreTableSupplementaryModel supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL;
+
+static gboolean
+set_supplementary_model (const gchar   *key,
+                         const gchar   *value,
+                         gpointer       data,
+                         GError      **error)
+{
+    if (g_strcmp0 (value, "zamore-et-al-2012") == 0)
+    {
+        supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_ZAMORE_ET_AL_2012;
+    }
+    else if (g_strcmp0 (value, "yan-et-al-2018") == 0)
+    {
+        supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
 
 static gboolean
 set_output_format (const gchar   *key,
@@ -95,12 +119,13 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"targets",              0, 0, G_OPTION_ARG_FILENAME_ARRAY, &targets_files,             "Targets FASTA files",                                                                                       NULL},
     {"mirnas",               0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirnas_files,              "miRNA FASTA files",                                                                                         NULL},
     {"seed-scores",          0, 0, G_OPTION_ARG_FILENAME,       &seed_scores_file,          "Precomputed seed::MRE Gibbs free energy duplex table as a row-major big-endian float matrix file",          "FILE"},
+    {"supplementary-model",  0, 0, G_OPTION_ARG_CALLBACK,       &set_supplementary_model,   "",                                                                                                          "yan-et-al-2018"},
     {"supplementary-scores", 0, 0, G_OPTION_ARG_FILENAME,       &supplementary_scores_file, "Precomputed supplementary::MRE Gibbs free energy duplex table as a row-major big-endian float matrix file", "FILE"},
     {"accessibility-scores", 0, 0, G_OPTION_ARG_FILENAME,       &accessibility_scores_file, "Accessibility scores as a variable columns (accession, positions...) TSV file",                             "FILE"},
     {"input",                0, 0, G_OPTION_ARG_FILENAME,       &input_file,                "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)",           "FILE"},
     {"output",               0, 0, G_OPTION_ARG_FILENAME,       &output_file,               "Output destination file (defaults to stdout)",                                                              "FILE"},
     {"output-format",        0, 0, G_OPTION_ARG_CALLBACK,       &set_output_format,         "Output format (i.e. 'tsv', 'gff3')",                                                                        "tsv"},
-    {"sparse-solver",        0, 0, G_OPTION_ARG_CALLBACK,       &set_sparse_solver,         "Sparse solver implementation to use",                                                                       G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER)},
+    {"sparse-solver",        0, 0, G_OPTION_ARG_CALLBACK,       &set_sparse_solver,         "Sparse solver implementation to use",                                                                       "superlu"},
     {"tolerance",            0, 0, G_OPTION_ARG_DOUBLE,         &tolerance,                 "Absolute tolerance for the system norm to declare convergence",                                             G_STRINGIFY (MIRBOOKING_DEFAULT_TOLERANCE)},
     {"max-iterations",       0, 0, G_OPTION_ARG_INT,            &max_iterations,            "Maximum number of iterations",                                                                              G_STRINGIFY (MIRBOOKING_DEFAULT_MAX_ITERATIONS)},
     {"5prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime5_footprint,          "Footprint in the MRE's 5' direction",                                                                       G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
@@ -470,7 +495,7 @@ main (gint argc, gchar **argv)
     }
 
     g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (seed_scores_map_bytes,
-                                                                                              MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL,
+                                                                                              supplementary_model,
                                                                                               supplementary_scores_map_bytes);
 
     mirbooking_default_score_table_set_filter (score_table,

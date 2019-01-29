@@ -111,7 +111,7 @@ test_score_table_compute_seed_scores ()
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
     g_autoptr (GBytes) supplementary_scores = g_bytes_new_static (&SUPPLEMENTARY_SCORES_4, sizeof (SUPPLEMENTARY_SCORES_4));
     g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_3PRIME,
+                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_ZAMORE_ET_AL_2012,
                                                                                                                supplementary_scores));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM");
@@ -186,7 +186,7 @@ test_score_table_wee_et_al_2012 ()
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
     g_autoptr (GBytes) supplementary_scores = g_bytes_new_static (&SUPPLEMENTARY_SCORES_4, sizeof (SUPPLEMENTARY_SCORES_4));
     g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_3PRIME,
+                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_ZAMORE_ET_AL_2012,
                                                                                                                supplementary_scores));
 
     // siRNA
@@ -326,7 +326,7 @@ test_score_table_solomon_et_al_2016 ()
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
     g_autoptr (GBytes) supplementary_scores = g_bytes_new_static (&SUPPLEMENTARY_SCORES_4, sizeof (SUPPLEMENTARY_SCORES_4));
     g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_3PRIME,
+                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_ZAMORE_ET_AL_2012,
                                                                                                                supplementary_scores));
 
     // Complete
@@ -373,7 +373,7 @@ test_score_table_schirle_et_al_2015 ()
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
     g_autoptr (GBytes) supplementary_scores = g_bytes_new_static (&SUPPLEMENTARY_SCORES_4, sizeof (SUPPLEMENTARY_SCORES_4));
     g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_3PRIME,
+                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_ZAMORE_ET_AL_2012,
                                                                                                                supplementary_scores));
 
     // A
@@ -531,7 +531,7 @@ test_score_table_chi_et_al_2012 ()
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
     g_autoptr (GBytes) supplementary_scores = g_bytes_new_static (&SUPPLEMENTARY_SCORES_4, sizeof (SUPPLEMENTARY_SCORES_4));
     g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                                          MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_3PRIME,
+                                                                                                                          MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_ZAMORE_ET_AL_2012,
                                                                                                                           supplementary_scores));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("");

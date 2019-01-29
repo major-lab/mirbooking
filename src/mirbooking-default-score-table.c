@@ -236,23 +236,19 @@ compute_score (MirbookingScoreTable *score_table,
     }
 
     gfloat supplementary_score = 0;
-    if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_3PRIME)
+    if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_ZAMORE_ET_AL_2012)
     {
         if (self->priv->supplementary_scores_bytes != NULL)
         {
-            gint bulge;
-            for (bulge = 0; bulge < 5; bulge++)
-            {
-                gfloat supplementary_score_ = _get_subsequence_score (&self->priv->supplementary_scores,
-                                                                      mirna,
-                                                                      target,
-                                                                      position,
-                                                                      4 - bulge,
-                                                                      SEED_OFFSET + SEED_LENGTH + 4,
-                                                                      4);
+            gfloat supplementary_score_ = _get_subsequence_score (&self->priv->supplementary_scores,
+                                                                  mirna,
+                                                                  target,
+                                                                  position,
+                                                                  4,
+                                                                  SEED_OFFSET + SEED_LENGTH + 4,
+                                                                  4);
 
-                supplementary_score = MIN (supplementary_score, supplementary_score_);
-            }
+            supplementary_score = MIN (supplementary_score, supplementary_score_);
         }
     }
     else if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018)
