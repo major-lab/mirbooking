@@ -1390,8 +1390,8 @@ mirbooking_broker_get_target_sites (MirbookingBroker *self)
 /**
  * mirbooking_broker_get_target_occupants_pmf:
  * @target: The #MirbookingTarget for which we are retrieving the silencing
- * @pmf: The probability mass function of the number of bound miRISC complexes
- * @n: The length of the PMF
+ * @pmf: (array length=n) (out): The probability mass function of the number of bound miRISC complexes
+ * @n: (out): The length of the PMF
  *
  * Compute the probability mass function of the number of occupied target sites
  * on a given target by modeling them with a Poisson-Binomial distribution.
