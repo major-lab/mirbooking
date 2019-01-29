@@ -394,35 +394,6 @@ gpointer_from_gfloat (gfloat flt)
 gfloat
 mirbooking_broker_get_sequence_quantity (MirbookingBroker *self, MirbookingSequence *sequence)
 {
-    if (self->priv->init)
-    {
-        if (MIRBOOKING_IS_MIRNA (sequence))
-        {
-            gint i;
-            for (i = 0; i < self->priv->mirnas->len; i++)
-            {
-                if (g_ptr_array_index (self->priv->mirnas, i) == sequence)
-                {
-                    return self->priv->E[i];
-                }
-            }
-        }
-        else
-        {
-            gint i;
-            for (i = 0; i < self->priv->targets->len; i++)
-            {
-                if (g_ptr_array_index (self->priv->targets, i) == sequence)
-                {
-                    return self->priv->S[i];
-                }
-            }
-        }
-
-        g_assert_not_reached ();
-    }
-
-    // [S]_0
     return gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
 }
 
@@ -453,9 +424,8 @@ mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSeque
                 if (g_ptr_array_index (self->priv->mirnas, i) == sequence)
                 {
                     gdouble E0 = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
-                    g_assert_cmpfloat (self->priv->E[i] + E0 + quantity, >=, 0);
                     self->priv->E[i] += quantity - E0;
-                    return;
+                    break;
                 }
             }
         }
@@ -467,19 +437,14 @@ mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSeque
                 if (g_ptr_array_index (self->priv->targets, i) == sequence)
                 {
                     gdouble S0 = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
-                    g_assert_cmpfloat (self->priv->S[i] + S0 + quantity, >=, 0);
                     self->priv->S[i] += quantity - S0;
-                    return;
+                    break;
                 }
             }
         }
-
-        g_assert_not_reached ();
     }
 
-    if (g_hash_table_insert (self->priv->quantification,
-                             sequence,
-                             gpointer_from_gfloat (quantity)));
+    if (!g_hash_table_contains (self->priv->quantification, sequence))
     {
         if (MIRBOOKING_IS_MIRNA (sequence))
         {
@@ -492,6 +457,10 @@ mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSeque
                              g_object_ref (sequence));
         }
     }
+
+    g_hash_table_insert (self->priv->quantification,
+                         sequence,
+                         gpointer_from_gfloat (quantity));
 }
 
 gdouble
