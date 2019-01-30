@@ -134,7 +134,7 @@ mirbooking_broker_set_property (GObject *object, guint property_id, const GValue
             self->priv->prime3_footprint = g_value_get_uint (value);
             break;
         case PROP_SCORE_TABLE:
-            mirbooking_broker_set_score_table (self, g_value_dup_object (value));
+            mirbooking_broker_set_score_table (self, g_value_get_object (value));
             break;
         case PROP_SPARSE_SOLVER:
             mirbooking_broker_set_sparse_solver (self, g_value_get_enum (value));
@@ -360,9 +360,12 @@ mirbooking_broker_get_score_table (MirbookingBroker *self)
 void
 mirbooking_broker_set_score_table (MirbookingBroker *self, MirbookingScoreTable *score_table)
 {
+    g_return_if_fail (!self->priv->init);
+
     if (score_table != self->priv->score_table)
     {
-        self->priv->score_table = score_table;
+        g_clear_object (&self->priv->score_table);
+        self->priv->score_table = g_object_ref (score_table);
         g_object_notify (G_OBJECT (self), "score-table");
     }
 }

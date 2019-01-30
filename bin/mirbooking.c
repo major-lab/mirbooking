@@ -510,7 +510,7 @@ main (gint argc, gchar **argv)
                                                g_object_unref);
 
     mirbooking_broker_set_score_table (mirbooking,
-                                       MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
+                                       MIRBOOKING_SCORE_TABLE (score_table));
 
     g_autoptr (FILE) input_f = NULL;
     g_autoptr (FILE) output_f = NULL;
