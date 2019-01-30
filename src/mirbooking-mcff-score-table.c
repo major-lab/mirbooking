@@ -30,8 +30,8 @@ compute_score (MirbookingScoreTable *score_table,
     gchar mirna_seq[9]  = {0};
     gchar target_seq[9] = {0};
 
-    strncpy (mirna_seq + 1, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), 1, 7), 7);
-    strncpy (target_seq, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position, position + 7), 7);
+    memcpy (mirna_seq + 1, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), 1, 7), 7);
+    memcpy (target_seq, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position, position + 7), 7);
 
     // dangling end
     target_seq[7] = 'A';

@@ -7,9 +7,10 @@ typedef struct
 {
     gchar       *accession;
     gchar       *name;
-    const gchar *sequence;
+    const guint8 *sequence;
     gsize        sequence_len;
     GPtrArray   *sequence_skips; /* all the pointers in 'sequence' to skip (i.e. line feeds) */
+    gboolean     sequence_is_owned;
 } MirbookingSequencePrivate;
 
 enum
@@ -40,9 +41,9 @@ mirbooking_sequence_set_property (GObject *object, guint property_id, const GVal
             priv->name = g_value_dup_string (value);
             break;
         case PROP_SEQUENCE:
-            mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (object),
-                                                  g_value_dup_string (value),
-                                                  strlen (g_value_get_string (value)));
+            mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (object),
+                                              g_value_dup_string (value));
+            priv->sequence_is_owned = TRUE;
             break;
         default:
             g_assert_not_reached ();
@@ -63,7 +64,7 @@ mirbooking_sequence_get_property (GObject *object, guint property_id, GValue *va
             g_value_set_string (value, priv->name);
             break;
         case PROP_SEQUENCE:
-            g_value_set_string (value, priv->sequence);
+            g_value_take_string (value, mirbooking_sequence_get_sequence (MIRBOOKING_SEQUENCE (object)));
             break;
         default:
             g_assert_not_reached ();
@@ -77,6 +78,9 @@ mirbooking_sequence_finalize (GObject *object)
 
     g_free (priv->accession);
     g_ptr_array_unref (priv->sequence_skips);
+
+    if (priv->sequence_is_owned)
+        g_free ((guint8*) priv->sequence);
 
     G_OBJECT_CLASS (mirbooking_sequence_parent_class)->finalize (object);
 }
@@ -124,11 +128,13 @@ mirbooking_sequence_get_name (MirbookingSequence *self)
  *
  * Obtain the internal representation of the sequence, which corresponds to
  * what has been set previsouly via #mirbooking_sequence_set_raw_sequence.
+ *
+ * Returns: (array length=sequence_len) (transfer none): A view over the internal sequence.
  */
-const gchar *
+const guint8 *
 mirbooking_sequence_get_raw_sequence (MirbookingSequence *self, gsize *sequence_len)
 {
-MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
 
     if (sequence_len)
     {
@@ -149,26 +155,65 @@ MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self
  * live for as long as this object does.
  */
 void
-mirbooking_sequence_set_raw_sequence (MirbookingSequence *self, const gchar *sequence, gssize sequence_len)
+mirbooking_sequence_set_raw_sequence (MirbookingSequence *self, const guint8 *sequence, gssize sequence_len)
 {
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
 
-    priv->sequence     = sequence;
-    priv->sequence_len = sequence_len == -1 ? strlen (sequence) : sequence_len;
-
-    if (priv->sequence_skips)
+    if (sequence != priv->sequence)
     {
-        g_ptr_array_unref (priv->sequence_skips);
+        if (priv->sequence_is_owned)
+            g_free ((guint8*) priv->sequence);
+
+        priv->sequence_is_owned = FALSE;
+
+        priv->sequence     = sequence;
+        priv->sequence_len = sequence_len == -1 ? strlen ((gchar*) sequence) : sequence_len;
+
+        if (priv->sequence_skips)
+        {
+            g_ptr_array_unref (priv->sequence_skips);
+        }
+
+        priv->sequence_skips = g_ptr_array_sized_new (sequence_len / 80); // line feed every 80 characters
+
+        const guint8* seq = sequence;
+        while ((seq = memchr (seq, '\n', sequence_len - (seq - sequence))))
+        {
+            g_ptr_array_add (priv->sequence_skips, (gpointer) seq);
+            seq++; // jump right after the line feed
+        }
+
+        g_object_notify (G_OBJECT (self), "sequence");
+    }
+}
+
+gchar *
+mirbooking_sequence_get_sequence (MirbookingSequence *self)
+{
+    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+
+    int i, j = 0;
+    gchar *ret;
+
+    ret = g_new0 (gchar, priv->sequence_len + 1);
+
+    for (i = 0; i < priv->sequence_len; i++)
+    {
+        if (priv->sequence[i] != '\n')
+        {
+            ret[j++] = priv->sequence[i];
+        }
     }
 
-    priv->sequence_skips = g_ptr_array_sized_new (sequence_len / 80); // line feed every 80 characters
+    return ret;
+}
 
-    const gchar* seq = sequence;
-    while ((seq = memchr (seq, '\n', sequence_len - (seq - sequence))))
-    {
-        g_ptr_array_add (priv->sequence_skips, (gpointer) seq);
-        seq++; // jump right after the line feed
-    }
+void
+mirbooking_sequence_set_sequence (MirbookingSequence *self, const gchar *sequence)
+{
+    mirbooking_sequence_set_raw_sequence (self,
+                                          (guint8*) sequence,
+                                          strlen (sequence));
 }
 
 /**
@@ -195,17 +240,17 @@ mirbooking_sequence_get_sequence_length (MirbookingSequence *self)
  *
  * Note that this function is thread-safe, but not always reentrant.
  *
- * Returns: (transfer none): A view of the sequence with line feed characters
+ * Returns: (array zero-terminated=1) (transfer none): A view of the sequence with line feed characters
  * trimmed
  */
-const gchar*
+const guint8*
 mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence_offset, gsize subsequence_len)
 {
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
 
-    const gchar *subsequence = priv->sequence + subsequence_offset;
+    const guint8 *subsequence = priv->sequence + subsequence_offset;
 
-    static __thread gchar subsequence_buffer[64];
+    static __thread guint8 subsequence_buffer[64];
     gsize subsequence_buffer_offset = 0;
 
     g_return_val_if_fail (subsequence_offset + subsequence_len <= priv->sequence_len - priv->sequence_skips->len, NULL);
@@ -214,7 +259,7 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
     gint i;
     for (i = 0; i < priv->sequence_skips->len; i++)
     {
-        const gchar *linefeed = g_ptr_array_index (priv->sequence_skips, i);
+        const guint8 *linefeed = g_ptr_array_index (priv->sequence_skips, i);
         if (linefeed <= subsequence)
         {
             subsequence++; // move the subsequence right
@@ -251,7 +296,7 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
 }
 
 static gssize
-sequence_index (const gchar *seq, gsize seq_len)
+sequence_index (const guint8 *seq, gsize seq_len)
 {
     gint i;
     gsize index = 0;

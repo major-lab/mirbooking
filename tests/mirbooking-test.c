@@ -120,8 +120,8 @@ test_mirbooking ()
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
 
-    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), "GCACACA", strlen ("GCACACA"));
-    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GCACACA");
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE);
 
     gdouble E0 = 4e6;
     gdouble S0 = 6e5;
@@ -208,8 +208,8 @@ test_mirbooking_bad_seed_range ()
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
 
-    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE, 6);
-    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), (guint8*) TARGET_SEQUENCE, 6);
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE);
 
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
@@ -239,8 +239,8 @@ test_mirbooking_numerical_integration ()
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
 
-    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE, strlen (TARGET_SEQUENCE));
-    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE);
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE);
 
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
@@ -294,8 +294,8 @@ test_mirbooking_solve_and_integrate ()
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
 
-    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE, strlen (TARGET_SEQUENCE));
-    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE, strlen (MIRNA_SEQUENCE));
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE);
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE);
 
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);

@@ -242,7 +242,7 @@ read_sequences_from_fasta (FILE        *file,
             g_mapped_file_ref (mapped_file);
 
             mirbooking_sequence_set_raw_sequence (sequence,
-                                                  seq,
+                                                  (guint8*) seq,
                                                   seq_len);
 
             g_hash_table_insert (sequences_hash,
