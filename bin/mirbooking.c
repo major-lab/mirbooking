@@ -221,7 +221,8 @@ read_sequences_from_fasta (FILE        *file,
                 name = strtok (NULL, "\n");
             }
 
-            seq = g_mapped_file_get_contents (mapped_file) + ftell (file);
+            gsize offset = ftell (file);
+            seq = g_mapped_file_get_contents (mapped_file) + offset;
 
             gsize remaining = g_mapped_file_get_length (mapped_file) - ftell (file);
             gchar *next_seq = memchr (seq, '>', remaining);
@@ -242,8 +243,7 @@ read_sequences_from_fasta (FILE        *file,
             g_mapped_file_ref (mapped_file);
 
             mirbooking_sequence_set_raw_sequence (sequence,
-                                                  (guint8*) seq,
-                                                  seq_len);
+                                                  g_bytes_new_from_bytes (g_mapped_file_get_bytes (mapped_file), offset, seq_len));
 
             g_hash_table_insert (sequences_hash,
                                  g_strdup (accession),

@@ -18,10 +18,9 @@ const gchar * mirbooking_sequence_get_name              (MirbookingSequence *sel
 gchar       * mirbooking_sequence_get_sequence          (MirbookingSequence *self);
 void          mirbooking_sequence_set_sequence          (MirbookingSequence *self,
                                                          const gchar *sequence);
-const guint8 * mirbooking_sequence_get_raw_sequence     (MirbookingSequence *self, gsize *sequence_len);
-void           mirbooking_sequence_set_raw_sequence     (MirbookingSequence *self,
-                                                         const guint8       *sequence,
-                                                         gsize               sequence_len);
+GBytes      * mirbooking_sequence_get_raw_sequence      (MirbookingSequence *self);
+void          mirbooking_sequence_set_raw_sequence      (MirbookingSequence *self,
+                                                         GBytes *sequence);
 gsize          mirbooking_sequence_get_sequence_length  (MirbookingSequence *self);
 const guint8 * mirbooking_sequence_get_subsequence      (MirbookingSequence *self,
                                                          gsize               subsequence_offset,

@@ -208,7 +208,7 @@ test_mirbooking_bad_seed_range ()
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
 
-    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), (guint8*) TARGET_SEQUENCE, 6);
+    mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (target), g_bytes_new_static (TARGET_SEQUENCE, 6));
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE);
 
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
@@ -224,7 +224,7 @@ test_mirbooking_bad_seed_range ()
 
     g_test_trap_subprocess (NULL, 0, 0);
     g_test_trap_assert_failed ();
-    g_test_trap_assert_stderr ("*offset + len <= priv->sequence_len - priv->sequence_skips->len*");
+    g_test_trap_assert_stderr ("*offset + len <= g_bytes_get_size (priv->sequence) - priv->sequence_skips->len*");
 }
 
 static void
