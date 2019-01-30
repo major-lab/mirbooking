@@ -148,14 +148,13 @@ mirbooking_sequence_get_raw_sequence (MirbookingSequence *self, gsize *sequence_
  * mirbooking_sequence_set_raw_sequence:
  * @self: A #MirbookingSequence
  * @sequence: (array length=sequence_len): A sequence of nucleotides
- * @sequence_len: The length of the passed sequence or -1 for a null-terminated
- * string
+ * @sequence_len: The length of the passed sequence
  *
  * Note that the passed sequence is not copied internally and thus, it must
  * live for as long as this object does.
  */
 void
-mirbooking_sequence_set_raw_sequence (MirbookingSequence *self, const guint8 *sequence, gssize sequence_len)
+mirbooking_sequence_set_raw_sequence (MirbookingSequence *self, const guint8 *sequence, gsize sequence_len)
 {
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
 
@@ -167,7 +166,7 @@ mirbooking_sequence_set_raw_sequence (MirbookingSequence *self, const guint8 *se
         priv->sequence_is_owned = FALSE;
 
         priv->sequence     = sequence;
-        priv->sequence_len = sequence_len == -1 ? strlen ((gchar*) sequence) : sequence_len;
+        priv->sequence_len = sequence_len;
 
         if (priv->sequence_skips)
         {
