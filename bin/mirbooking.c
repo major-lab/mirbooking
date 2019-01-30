@@ -538,54 +538,60 @@ main (gint argc, gchar **argv)
 
     // precondition all sequences
     gchar **cur_sequences_file = NULL;
-    for (cur_sequences_file = targets_files; *cur_sequences_file != NULL; cur_sequences_file++)
+    if (targets_files != NULL)
     {
-        g_autoptr (FILE) seq_f = g_fopen (*cur_sequences_file, "r");
-
-        if (seq_f == NULL)
+        for (cur_sequences_file = targets_files; *cur_sequences_file != NULL; cur_sequences_file++)
         {
-            g_printerr ("Could not open the sequences file '%s': %s.\n", *cur_sequences_file, g_strerror (errno));
-            return EXIT_FAILURE;
+            g_autoptr (FILE) seq_f = g_fopen (*cur_sequences_file, "r");
+
+            if (seq_f == NULL)
+            {
+                g_printerr ("Could not open the sequences file '%s': %s.\n", *cur_sequences_file, g_strerror (errno));
+                return EXIT_FAILURE;
+            }
+
+            g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (fileno (seq_f), FALSE, &error);
+
+            if (seq_map == NULL)
+            {
+                g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+                return EXIT_FAILURE;
+            }
+
+            read_sequences_from_fasta (seq_f,
+                                       seq_map,
+                                       detect_fasta_format (*cur_sequences_file),
+                                       sequences_hash,
+                                       FALSE);
         }
-
-        g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (fileno (seq_f), FALSE, &error);
-
-        if (seq_map == NULL)
-        {
-            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-            return EXIT_FAILURE;
-        }
-
-        read_sequences_from_fasta (seq_f,
-                                   seq_map,
-                                   detect_fasta_format (*cur_sequences_file),
-                                   sequences_hash,
-                                   FALSE);
     }
 
-    for (cur_sequences_file = mirnas_files; *cur_sequences_file != NULL; cur_sequences_file++)
+    if (mirnas_files != NULL)
     {
-        g_autoptr (FILE) seq_f = g_fopen (*cur_sequences_file, "r");
-
-        if (seq_f == NULL)
+        for (cur_sequences_file = mirnas_files; *cur_sequences_file != NULL; cur_sequences_file++)
         {
-            g_printerr ("Could not open the sequences file '%s': %s.\n", *cur_sequences_file, g_strerror (errno));
-            return EXIT_FAILURE;
+            g_autoptr (FILE) seq_f = g_fopen (*cur_sequences_file, "r");
+
+            if (seq_f == NULL)
+            {
+                g_printerr ("Could not open the sequences file '%s': %s.\n", *cur_sequences_file, g_strerror (errno));
+                return EXIT_FAILURE;
+            }
+
+            g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (fileno (seq_f), FALSE, &error);
+
+            if (seq_map == NULL)
+            {
+                g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+                return EXIT_FAILURE;
+            }
+
+            read_sequences_from_fasta (seq_f,
+                                       seq_map,
+                                       detect_fasta_format (*cur_sequences_file),
+                                       sequences_hash,
+                                       TRUE);
         }
-
-        g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (fileno (seq_f), FALSE, &error);
-
-        if (seq_map == NULL)
-        {
-            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-            return EXIT_FAILURE;
-        }
-
-        read_sequences_from_fasta (seq_f,
-                                   seq_map,
-                                   detect_fasta_format (*cur_sequences_file),
-                                   sequences_hash,
-                                   TRUE);
     }
 
     gchar line[1024];
