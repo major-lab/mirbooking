@@ -397,6 +397,18 @@ gpointer_from_gfloat (gfloat flt)
 gfloat
 mirbooking_broker_get_sequence_quantity (MirbookingBroker *self, MirbookingSequence *sequence)
 {
+    g_return_val_if_fail (g_hash_table_contains (self->priv->quantification, sequence), 0.0);
+
+    if (self->priv->init && MIRBOOKING_IS_TARGET (sequence))
+    {
+        guint i;
+        if (g_ptr_array_find_with_equal_func (self->priv->targets, sequence, (GEqualFunc) mirbooking_sequence_equal, &i))
+        {
+            return self->priv->S[i];
+
+        }
+    }
+
     return gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
 }
 
@@ -421,28 +433,20 @@ mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSeque
     {
         if (MIRBOOKING_IS_MIRNA (sequence))
         {
-            gint i;
-            for (i = 0; i < self->priv->mirnas->len; i++)
+            guint i;
+            if (g_ptr_array_find_with_equal_func (self->priv->mirnas, sequence, (GEqualFunc) mirbooking_sequence_equal, &i))
             {
-                if (g_ptr_array_index (self->priv->mirnas, i) == sequence)
-                {
-                    gdouble E0 = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
-                    self->priv->E[i] += quantity - E0;
-                    break;
-                }
+                gdouble E0 = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
+                self->priv->E[i] += quantity - E0;
             }
         }
         else
         {
-            gint i;
-            for (i = 0; i < self->priv->targets->len; i++)
+            guint i;
+            if (g_ptr_array_find_with_equal_func (self->priv->targets, sequence, (GEqualFunc) mirbooking_sequence_equal, &i))
             {
-                if (g_ptr_array_index (self->priv->targets, i) == sequence)
-                {
-                    gdouble S0 = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
-                    self->priv->S[i] += quantity - S0;
-                    break;
-                }
+                gdouble S0 = gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
+                self->priv->S[i] += quantity - S0;
             }
         }
     }
