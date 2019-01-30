@@ -78,7 +78,7 @@ else
 endif
 
 python3_bin = import('python3').find_python()
-python3_module_deps = ['numpy', 'pandas', 'Bio', 'tqdm']
+python3_module_deps = []
 
 if get_option('with_introspection')
     python3_module_deps += ['gi']
