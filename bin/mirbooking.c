@@ -21,6 +21,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 #define MIRBOOKING_DEFAULT_TOLERANCE      1e-8
 #define MIRBOOKING_DEFAULT_MAX_ITERATIONS 100
 #define MIRBOOKING_DEFAULT_CUTOFF         100 // pM
+#define MIRBOOKING_DEFAULT_REL_CUTOFF     0.0
 
 typedef enum _MirbookingOutputFormat
 {
@@ -42,6 +43,7 @@ static guint64                        max_iterations            = MIRBOOKING_DEF
 static gsize                          prime5_footprint          = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
 static gsize                          prime3_footprint          = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
 static gdouble                        cutoff                    = MIRBOOKING_DEFAULT_CUTOFF;
+static gdouble                        rel_cutoff                = MIRBOOKING_DEFAULT_REL_CUTOFF;
 
 static MirbookingDefaultScoreTableSupplementaryModel supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL;
 
@@ -138,6 +140,7 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"5prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime5_footprint,          "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
     {"3prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime3_footprint,          "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
     {"cutoff",               0, 0, G_OPTION_ARG_DOUBLE,         &cutoff,                    "Cutoff on the duplex concentration",                                                              G_STRINGIFY (MIRBOOKING_DEFAULT_CUTOFF)},
+    {"relative-cutoff",      0, 0, G_OPTION_ARG_DOUBLE,         &rel_cutoff,                "Relative cutoff on the bound fraction",                                                           G_STRINGIFY (MIRBOOKING_DEFAULT_REL_CUTOFF)},
     {NULL}
 };
 
@@ -421,7 +424,9 @@ filter (MirbookingDefaultScoreTable *score_table,
 
     gdouble Z = E0 + S0 + Km;
 
-    return ((Z - sqrt (pow (Z, 2) - 4 * E0 * S0)) / 2.0) >= cutoff;
+    gdouble ES = ((Z - sqrt (pow (Z, 2) - 4 * E0 * S0)) / 2.0);
+
+    return ES >= cutoff && ((ES / S0) >= rel_cutoff);
 }
 
 int
