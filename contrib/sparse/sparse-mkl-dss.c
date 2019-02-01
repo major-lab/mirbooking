@@ -29,7 +29,7 @@ void
 free_solver_storage (void *ptr)
 {
     SolverStorage *solver_storage = ptr;
-    int delete_opt = 0;
+    MKL_INT delete_opt = 0;
     dss_delete (solver_storage->handle, delete_opt);
     if (sizeof (MKL_INT) != sizeof (size_t))
     {
