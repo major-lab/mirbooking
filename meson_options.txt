@@ -14,6 +14,7 @@ option('mkl_arch', type: 'string', value: 'intel64')
 option('with_mkl', type: 'boolean', value: false)
 option('with_mkl_ilp64', type: 'boolean', value: false)
 option('with_mkl_tbb', type: 'boolean', value: false)
+option('with_mkl_fftw3', type: 'boolean', value: false)
 
 # NVIDIA CUDA
 option('cuda_root', type: 'string', value: '/usr/local/cuda')

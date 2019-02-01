@@ -66,10 +66,11 @@ else
     warning('MKL is recommended for solving sparse systems efficiently.')
 endif
 
-if get_option('with_mkl') and get_option('with_fftw3')
+if get_option('with_mkl') and get_option('with_mkl_fftw3')
     add_project_arguments('-DHAVE_FFTW3', language: 'c')
     fftw3_dep = declare_dependency(include_directories: include_directories(join_paths(mkl_root, 'include/fftw')),
                                    dependencies: mkl_dep)
+    message('MKL FFTW3 will be used.')
 elif get_option('with_fftw3')
     add_project_arguments('-DHAVE_FFTW3', language: 'c')
     fftw3_dep = dependency('fftw3')

@@ -92,7 +92,8 @@ generate Vala bindings, use `meson -Dwith_vapi=true`.
 FFTW can be optionally used to compute more accurate silencing by specifying
 `meson -Dwith_fftw3=true`. If you redistribute miRBooking source code, be
 careful not to enable this as a default because of the GPL license covering
-this dependency.
+this dependency. If you have access to Intel MKL, you can alternatively use its
+FFTW3 implementation via `-Dwith_mkl_fftw3=true`.
 
 OpenMP can be optionally used to parallelize the evaluation of partial
 derivatives and some supported solvers by specifying `-Dwith_openmp=true`.
