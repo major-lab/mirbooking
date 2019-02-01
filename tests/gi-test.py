@@ -137,6 +137,10 @@ class MirbookingBrokerTestCase(unittest.TestCase):
                 self.assertTrue(mirbooking.get_occupant_quantity(occupant) > 0)
 
     def test_get_target_sites_as_dataframe(self):
+        try:
+            import pandas
+        except ImportError:
+            return unittest.skip('Pandas is not available.')
         mirbooking = Mirbooking.Broker(score_table=SimpleScoreTable())
         mirbooking.set_sequence_quantity(target, 5.0)
         mirbooking.set_sequence_quantity(mirna, 5.0)
