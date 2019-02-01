@@ -1,7 +1,11 @@
 #include "sparse.h"
 #include "sparse-private.h"
 
+#if HAVE_SUPERLU_LOWERCASE_INCDIR
+#include <superlu/slu_ddefs.h>
+#else
 #include <SuperLU/slu_ddefs.h>
+#endif
 #include <assert.h>
 #include <limits.h>
 
