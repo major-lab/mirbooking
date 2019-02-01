@@ -390,6 +390,25 @@ gpointer_from_gfloat (gfloat flt)
     return ptr.p;
 }
 
+#if !GLIB_CHECK_VERSION(2,54,0)
+static gboolean
+g_ptr_array_find_with_equal_func (GPtrArray *array, gconstpointer elem, GEqualFunc equal_func, guint *index)
+{
+    guint i;
+    for (i = 0; i < array->len; i++)
+    {
+        if (equal_func (g_ptr_array_index (array, i), elem))
+        {
+            if (index)
+                *index = i;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+#endif
+
 /**
  * mirbooking_get_sequence_quantity:
  * @sequence: A #MirbookingSequence to retrieve quantity
