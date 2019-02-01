@@ -30,4 +30,14 @@ sparse_matrix_set_solver_storage (SparseMatrix *M, void *solver_storage, void (*
     M->solver_storage_destroy = solver_storage_destroy;
 }
 
+#define memcpy_loop(to, from, n) \
+{                                \
+    size_t i;                    \
+    for (i = 0; i < (n); i++)    \
+    {                            \
+        (to)[i] = (from)[i];     \
+                                 \
+    }                            \
+}
+
 #endif /* __SPARSE_PRIVATE_H__ */

@@ -9,16 +9,6 @@
 #include <assert.h>
 #include <limits.h>
 
-#define memcpy_loop(to, from, n) \
-{                                \
-    int i;                       \
-    for (i = 0; i < (n); i++)    \
-    {                            \
-        (to)[i] = (from)[i];     \
-                                 \
-    }                            \
-}
-
 void
 sparse_superlu_init (SparseSolver *solver)
 {

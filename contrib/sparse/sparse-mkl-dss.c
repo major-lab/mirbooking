@@ -6,16 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define memcpy_loop(to, from, n) \
-{                                \
-    int i;                       \
-    for (i = 0; i < (n); i++)    \
-    {                            \
-        (to)[i] = (from)[i];     \
-                                 \
-    }                            \
-}
-
 void
 sparse_mkl_dss_init (SparseSolver *solver)
 {

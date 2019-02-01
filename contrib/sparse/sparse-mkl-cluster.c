@@ -11,16 +11,6 @@
 #define cluster_sparse_solver cluster_sparse_solver_64
 #endif
 
-#define memcpy_loop(to, from, n) \
-{                                \
-    int i;                       \
-    for (i = 0; i < (n); i++)    \
-    {                            \
-        (to)[i] = (from)[i];     \
-                                 \
-    }                            \
-}
-
 void
 sparse_mkl_cluster_init (SparseSolver *solver)
 {

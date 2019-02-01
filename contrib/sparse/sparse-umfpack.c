@@ -4,16 +4,6 @@
 #include <math.h>
 #include <assert.h>
 
-#define memcpy_loop(to, from, n) \
-{                                \
-    int i;                       \
-    for (i = 0; i < (n); i++)    \
-    {                            \
-        (to)[i] = (from)[i];     \
-                                 \
-    }                            \
-}
-
 void
 sparse_umfpack_init (SparseSolver *solver)
 {

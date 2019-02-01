@@ -1,4 +1,5 @@
 #include "sparse.h"
+#include "sparse-private.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,16 +8,6 @@
 #include <cuda_device_runtime_api.h>
 #include <cuda_runtime_api.h>
 #include <limits.h>
-
-#define memcpy_loop(to, from, n) \
-{                                \
-    int i;                       \
-    for (i = 0; i < (n); i++)    \
-    {                            \
-        (to)[i] = (from)[i];     \
-                                 \
-    }                            \
-}
 
 void
 sparse_cusolver_init (SparseSolver *solver)
