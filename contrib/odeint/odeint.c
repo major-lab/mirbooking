@@ -218,8 +218,8 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         y_norm = sqrt (y_norm);
 
         assert (isfinite (y_norm));
-        assert (y_norm > 0);
 
+        // if the has no curvature whatsoever, the step size will be infinite,
         self->h = sqrt (2.0) * pow (self->atol, 1.0 / (self->integrator_meta->order + 1)) / sqrt (y_norm);
     }
 
