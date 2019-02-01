@@ -28,7 +28,6 @@ mirbooking --targets GCF_000001405.37_GRCh38.p11_rna.fna
            [--3prime-footprint 7]
            [--cutoff 100]
            [--relative-cutoff 0]
-           [--verbose]
 ```
 
 To obtain detailed usage and options, launch `mirbooking --help`.
