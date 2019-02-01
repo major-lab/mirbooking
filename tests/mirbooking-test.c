@@ -174,10 +174,9 @@ test_mirbooking ()
     gdouble ES_eq = (z - sqrt (pow (z, 2) - 4 * pow (kf, 2) * E0 * S0)) / (2 * kf);
     g_assert_cmpfloat (fabs (ES_eq - ES), <, 1e-8);
 
-    g_autofree gdouble *pmf;
-    gsize n;
-    mirbooking_broker_get_target_occupants_pmf (mirbooking, target, &pmf, &n);
-    g_assert_cmpint (n, ==, 1);
+    gsize pmf_len;
+    g_autofree gdouble *pmf = mirbooking_broker_get_target_occupants_pmf (mirbooking, target, &pmf_len);
+    g_assert_cmpint (pmf_len, ==, 2);
     g_assert_cmpfloat (fabs (pmf[0] - (1 - (ES_eq / S0))), <=, 1e-12);
     g_assert_cmpfloat (fabs (pmf[1] - (ES_eq / S0)), <=, 1e-12);
 }

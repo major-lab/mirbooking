@@ -1416,21 +1416,26 @@ mirbooking_broker_get_target_sites (MirbookingBroker *self)
 /**
  * mirbooking_broker_get_target_occupants_pmf:
  * @target: The #MirbookingTarget for which we are retrieving the silencing
- * @pmf: (array length=n) (out): The probability mass function of the number of bound miRISC complexes
- * @n: (out): The length of the PMF
+ * @pmf_len: (out): Length of the PMF which correspond to the number
+ * of occupied sites plus one
  *
  * Compute the probability mass function of the number of occupied target sites
  * on a given target by modeling them with a Poisson-Binomial distribution.
+ *
+ * Returns: (array length=pmf_len): The probability mass function of the number
+ * of bound miRISC complexes or %NULL if it cannot be computed
  */
-void
-mirbooking_broker_get_target_occupants_pmf (MirbookingBroker *self, MirbookingTarget *target, gdouble **pmf, gsize *n)
+gdouble *
+mirbooking_broker_get_target_occupants_pmf (MirbookingBroker *self, MirbookingTarget *target, gsize *pmf_len)
 {
-    MirbookingTargetSite *target_site = g_hash_table_lookup (self->priv->target_sites_by_target, target);
+    g_return_val_if_fail (self->priv->init, NULL);
+    g_return_val_if_fail (g_hash_table_contains (self->priv->quantification, target), NULL);
+
     gfloat target_quantity = mirbooking_broker_get_sequence_quantity (self, MIRBOOKING_SEQUENCE (target));
 
-    g_return_if_fail (target_site != NULL);
-
     g_autoptr (GArray) probability_by_position = g_array_new (FALSE, FALSE, sizeof (gdouble));
+
+    MirbookingTargetSite *target_site = g_hash_table_lookup (self->priv->target_sites_by_target, target);
     while (target_site < &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len) &&
            target_site->target == target)
     {
@@ -1444,15 +1449,18 @@ mirbooking_broker_get_target_occupants_pmf (MirbookingBroker *self, MirbookingTa
         ++target_site;
     }
 
-    // TODO: compute the joint probability with footprint
     PoissonBinomial pb;
     pb_init (&pb,
              (gdouble*) probability_by_position->data,
              probability_by_position->len);
 
-    *pmf = g_new (gdouble, 1 + probability_by_position->len);
-    memcpy (*pmf, pb.pmf, (1 + probability_by_position->len) * sizeof (gdouble));
-    *n   = probability_by_position->len;
+    gdouble* pmf = g_new (gdouble, 1 + probability_by_position->len);
+    memcpy (pmf, pb.pmf, (1 + probability_by_position->len) * sizeof (gdouble));
+
+    if (pmf_len)
+        *pmf_len = 1 + probability_by_position->len;
 
     pb_destroy (&pb);
+
+    return pmf;
 }
