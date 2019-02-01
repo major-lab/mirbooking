@@ -27,6 +27,7 @@ mirbooking --targets GCF_000001405.37_GRCh38.p11_rna.fna
            [--5prime-footprint 9]
            [--3prime-footprint 7]
            [--cutoff 100]
+           [--relative-cutoff 0]
            [--verbose]
 ```
 
@@ -46,9 +47,19 @@ The command line program expects a number of inputs:
  - `--input`, a quantity file mapping target and mirna accessions to
    expressed quantity in picomolars
 
+Tables for seed and supplementary scores are provided in the `data` folder.
+These were computed with RNAcofold binding energy from ViennaRNA package.
+
+Note that Yan et al. (`--supplementary-model=yan-et-al-2018`) model requires
+a 3mer table whereas Zamore et al. (`--supplementary-model=zamore-et-al-2012`)
+require a 4mer table.
+
 The `--cutoff` parameter can exploit a known upper bound on the complex
 concentration to adjust the granularity of the model. Only interaction that can
 ideally reach the specified picomolar concentration will be modeled.
+
+The `--relative-cutoff` parameter is similar, but instead filter based on the
+ideal substrate bound fraction.
 
 The output is a TSV with the following columns:
 
@@ -79,7 +90,7 @@ ninja
 ninja install
 ```
 
-To generate fast code, configure with `CFLAGS='-Ofast -march=native meson'`.
+To generate fast code, configure with `meson -Doptimization=s`.
 
 You can perform a local installation using `meson --prefix=$HOME/.local`, but
 you'll need `LD_LIBRARY_PATH` set accordingly since the `mirbooking` program
@@ -93,7 +104,7 @@ FFTW can be optionally used to compute more accurate silencing by specifying
 `meson -Dwith_fftw3=true`. If you redistribute miRBooking source code, be
 careful not to enable this as a default because of the GPL license covering
 this dependency. If you have access to Intel MKL, you can alternatively use its
-FFTW3 implementation via `-Dwith_mkl_fftw3=true`.
+FFTW3 implementation with `-Dwith_mkl_fftw3=true`.
 
 OpenMP can be optionally used to parallelize the evaluation of partial
 derivatives and some supported solvers by specifying `-Dwith_openmp=true`.
@@ -127,23 +138,13 @@ In addition to the `mirbooking` binary, this package ship a number of
 utilities.
 
 Te `mirbooking-generate-score-table` compute a hybridization energy table for
-the given seed size and upper bound on the number of mismatches.
-[MC-Flashfold](https://major.iric.ca/mc-tools/) is required.
+a given seed mask. [MC-Flashfold](https://major.iric.ca/mc-tools/) is required.
 
 The number of workers can be tuned by setting `OMP_NUM_THREADS` environment
 variable.
 
 ```bash
 mirbooking-generate-score-table [--mcff=mcff]
-                                [--mask=....xxx]
-                                --output scores
-```
-
-To use `RNAcofold` instead from ViennaRNA package, a `mcff-ViennaRNA` script is
-provided to perform the conversion:
-
-```bash
-mirbooking-generate-score-table --mcff=scripts/mcff-ViennaRNA
                                 [--mask=....xxx]
                                 --output scores
 ```
@@ -157,8 +158,9 @@ experimentation session is:
  2. create some sequence objects with `mirbooking_target_new` and `mirbooking_mirna_new`
  3. setup quantities via `mirbooking_broker_set_sequence_quantity`
  4. call `mirbooking_broker_evaluate` and `mirbooking_broker_step` repeatedly
-    to perform a full hybridization
+    to perform a full hybridization or numerical integration
  5. retrieve and inspect the microtargetome with `mirbooking_broker_get_target_sites`
 
-For a more detailed usage and code example, the [program source](https://github.com/major-lab/mirbooking/blob/master/bin/mirbooking.c)
-is very explicit as it perform a full session and fully output the target sites.
+For a more detailed usage and code example, the main program source in
+`bin/mirbooking.c` is very explicit as it perform a full session and fully
+output the target sites.
