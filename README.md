@@ -111,13 +111,13 @@ derivatives and some supported solvers by specifying `-Dwith_openmp=true`.
 MPI can be optionally used to distribute the computation across multiple
 machine on supported solvers (i.e. `mkl-cluster`) by specifying `-Dwith_mpi=true`.
 
-| Solver      | Build Options                                                                    |
-| --------    | -------------------------------------------------------------------------------- |
-| SuperLU     | -Dwith_superlu=true                                                              |
-| UMFPACK     | -Dwith_umfpack=true                                                              |
-| cuSOLVER    | -Dcuda_root=<path to cuda> -Dwith_cusolver=true                                  |
-| MKL DSS     | -Dwith_mkl-true -Dmkl_root=<path to mkl> -Dwith_mkl_dss=true                     |
-| MKL Cluster | -Dwith_mpi=true -Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_cluster=true |
+| Solver      | Build Options                                                                      |
+| --------    | ---------------------------------------------------------------------------------- |
+| SuperLU     | `-Dwith_superlu=true`                                                              |
+| UMFPACK     | `-Dwith_umfpack=true`                                                              |
+| cuSOLVER    | `-Dcuda_root=<path to cuda> -Dwith_cusolver=true`                                  |
+| MKL DSS     | `-Dwith_mkl-true -Dmkl_root=<path to mkl> -Dwith_mkl_dss=true`                     |
+| MKL Cluster | `-Dwith_mpi=true -Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_cluster=true` |
 
 MKL DSS and MKL Cluster can benefit from [TBB](https://www.threadingbuildingblocks.org/)
 instead of OpenMP, which can be enabled with `-Dwith_mkl_tbb=true`.
