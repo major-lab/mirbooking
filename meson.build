@@ -76,6 +76,7 @@ elif get_option('with_fftw3')
     add_project_arguments('-DHAVE_FFTW3', language: 'c')
     fftw3_dep = dependency('fftw3')
 else
+    fftw3_dep = []
     warning('FFTW3 is recommended to compute accurate target silencing.')
 endif
 
