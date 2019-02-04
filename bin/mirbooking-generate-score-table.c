@@ -85,7 +85,7 @@ main (gint argc, gchar **argv)
 
     gsize n   = pow4 (seed_length);
     gsize nnz = 1;
-    gint z;
+    gsize z;
     for (z = 0; z < seed_length; z++)
     {
         switch (mask[z])
@@ -97,7 +97,7 @@ main (gint argc, gchar **argv)
                 nnz *= 16;
                 break;
             default:
-                g_printerr ("Unknown symbol '%c' in mask at position %d.", mask[z], z);
+                g_printerr ("Unknown symbol '%c' in mask at position %lu.", mask[z], z);
                 return EXIT_FAILURE;
         }
     }
@@ -159,7 +159,7 @@ main (gint argc, gchar **argv)
             gchar mir_seed[16];
             gchar mre_seed[16];
 
-            gint z;
+            gsize z;
             for (z = 0; z < seed_length; z++)
             {
                 mir_seed[seed_length - z - 1] = nt[(i & (3 << 2 * z)) >> (2 * z)];

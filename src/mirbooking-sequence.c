@@ -46,7 +46,7 @@ mirbooking_sequence_set_property (GObject *object, guint property_id, const GVal
                                                   g_bytes_new (seq, strlen (seq)));
             break;
         default:
-            g_assert_not_reached ();
+            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     }
 }
 
@@ -67,7 +67,7 @@ mirbooking_sequence_get_property (GObject *object, guint property_id, GValue *va
             g_value_take_string (value, mirbooking_sequence_get_sequence (MIRBOOKING_SEQUENCE (object)));
             break;
         default:
-            g_assert_not_reached ();
+            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     }
 }
 
@@ -183,7 +183,7 @@ mirbooking_sequence_get_sequence (MirbookingSequence *self)
 {
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
 
-    int i, j = 0;
+    gsize i, j = 0;
     gchar *ret;
 
     gsize seq_len;
@@ -249,7 +249,7 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
     g_return_val_if_fail (subsequence_offset + subsequence_len <= g_bytes_get_size (priv->sequence) - priv->sequence_skips->len, NULL);
     g_return_val_if_fail (subsequence_len <= sizeof (subsequence_buffer), NULL);
 
-    gint i;
+    guint i;
     for (i = 0; i < priv->sequence_skips->len; i++)
     {
         const guint8 *linefeed = g_ptr_array_index (priv->sequence_skips, i);
@@ -291,7 +291,7 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
 static gssize
 sequence_index (const guint8 *seq, gsize seq_len)
 {
-    gint i;
+    gsize i;
     gsize index = 0;
 
     // note: 4**i = 2**2i = 1 << 2*i

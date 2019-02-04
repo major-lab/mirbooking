@@ -25,12 +25,12 @@ pb_compute_pmf (PoissonBinomial *pb)
                                  FFTW_ESTIMATE);
 
     // initialize
-    int n;
+    size_t n;
     for (n = 0; n < N; n++)
     {
         in[n] = 1.0;
 
-        int k;
+        size_t k;
         for (k = 0; k < pb->n; k++)
         {
             in[n] *= pb->p[k] * cexp (-I * 2.0 * M_PI * n / N) + (1 - pb->p[k]);

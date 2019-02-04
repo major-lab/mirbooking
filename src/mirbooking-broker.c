@@ -1,6 +1,5 @@
 #include "mirbooking-broker.h"
 
-#define _GNU_SOURCE
 #include <stdlib.h>
 #include <math.h>
 #include <pb.h>
@@ -607,7 +606,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
     g_return_val_if_fail (self->priv->score_table != NULL, FALSE);
     g_return_val_if_fail (self->priv->solver != NULL, FALSE);
 
-    gint i;
+    guint i;
     #pragma omp parallel for reduction(+:target_sites_len)
     for (i = 0; i < self->priv->targets->len; i++)
     {
@@ -672,7 +671,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
 
     // compute scores
     gsize occupants_len = 0;
-    gint j;
+    guint j;
     #pragma omp parallel for collapse(2) reduction(+:occupants_len)
     for (i = 0; i < self->priv->targets->len; i++)
     {
@@ -730,7 +729,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
 
             seed_positions->occupants = g_ptr_array_sized_new (seed_positions->positions_len);
 
-            gint p;
+            guint p;
             for (p = 0; p < seed_positions->positions_len; p++)
             {
                 MirbookingTargetSite *target_site = &target_sites[seed_positions->positions[p]];
@@ -844,7 +843,7 @@ _compute_F (double t, const double *y, double *F, void *user_data)
     memset (F, 0, sizeof (gdouble) * self->priv->y_len);
 
     // basic transcription and degradation
-    gint i;
+    guint i;
     #pragma omp parallel for
     for (i = 0; i < self->priv->targets->len; i++)
     {
@@ -852,7 +851,7 @@ _compute_F (double t, const double *y, double *F, void *user_data)
         self->priv->dPdt[i] = -self->priv->kdeg[i];
     }
 
-    gint j;
+    guint j;
     #pragma omp parallel for collapse(2)
     for (i = 0; i < self->priv->targets->len; i++)
     {
@@ -873,7 +872,7 @@ _compute_F (double t, const double *y, double *F, void *user_data)
                                                                         MirbookingTargetPositions,
                                                                         self->priv->mirnas->len * i + j);
 
-            gint p;
+            guint p;
             for (p = 0; p < seed_positions->positions_len; p++)
             {
                 MirbookingOccupant *occupant = g_ptr_array_index (seed_positions->occupants, p);
@@ -903,13 +902,13 @@ _compute_F (double t, const double *y, double *F, void *user_data)
 
                 gdouble kother = 0;
                 {
-                    gint j;
+                    guint j;
                     for (j = 0; j < self->priv->mirnas->len; j++)
                     {
                         // all the position of the other microrna
                         MirbookingTargetPositions *tss = &g_array_index (self->priv->target_positions, MirbookingTargetPositions, self->priv->mirnas->len * i + j);
 
-                        gint q;
+                        guint q;
                         for (q = 0; q < tss->positions_len; q++)
                         {
                             if (abs (tss->positions[q] - seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
@@ -943,7 +942,7 @@ _prepare_J (MirbookingBroker *self)
 
     // count nnz entries in the Jacobian
     gsize nnz = 0;
-    gint i, j;
+    guint i, j;
     #pragma omp parallel for collapse(2) reduction(+:nnz)
     for (i = 0; i < self->priv->targets->len; i++)
     {
@@ -955,11 +954,11 @@ _prepare_J (MirbookingBroker *self)
                                                                        MirbookingTargetPositions,
                                                                        i * self->priv->mirnas->len + j);
 
-            gint p;
+            guint p;
             for (p = 0; p < seed_scores->positions_len; p++)
             {
                 // substitute targets
-                gint z;
+                guint z;
                 for (z = 0; z < self->priv->targets->len; z++)
                 {
                     MirbookingTargetPositions *alternative_seed_scores = &g_array_index (self->priv->target_positions,
@@ -997,7 +996,7 @@ _prepare_J (MirbookingBroker *self)
                                                                        MirbookingTargetPositions,
                                                                        i * self->priv->mirnas->len + j);
 
-            gint p;
+            guint p;
             for (p = 0; p < seed_scores->positions_len; p++)
             {
                 // footprint interactions
@@ -1008,14 +1007,14 @@ _prepare_J (MirbookingBroker *self)
                 gsize row_nnz = 0;
 
                 // substitute target
-                gint z;
+                guint z;
                 for (z = 0; z < self->priv->targets->len; z++)
                 {
                     MirbookingTargetPositions *alternative_seed_scores = &g_array_index (self->priv->target_positions,
                                                                                            MirbookingTargetPositions,
                                                                                            z * self->priv->mirnas->len + j);
 
-                    gint w;
+                    guint w;
                     for (w = 0; w < alternative_seed_scores->occupants->len; w++)
                     {
                         MirbookingOccupant *other_occupant = g_ptr_array_index (alternative_seed_scores->occupants,
@@ -1064,7 +1063,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
     gsize prime5_footprint = self->priv->prime5_footprint;
     gsize prime3_footprint = self->priv->prime3_footprint;
 
-    gint i, j;
+    guint i, j;
     #pragma omp parallel for collapse(2)
     for (i = 0; i < self->priv->targets->len; i++)
     {
@@ -1085,7 +1084,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                                                                         MirbookingTargetPositions,
                                                                         self->priv->mirnas->len * i + j);
 
-            gint p;
+            guint p;
             for (p = 0; p < seed_positions->positions_len; p++)
             {
                 MirbookingOccupant *occupant = g_ptr_array_index (seed_positions->occupants, p);
@@ -1117,13 +1116,13 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                                                                                  ES);
 
                 // substitute target for the microRNA
-                gint z;
+                guint z;
                 for (z = 0; z < self->priv->targets->len; z++)
                 {
                     MirbookingTargetPositions *alternative_seed_positions = &g_array_index (self->priv->target_positions,
                                                                                             MirbookingTargetPositions,
                                                                                             z * self->priv->mirnas->len + j);
-                    gint w;
+                    guint w;
                     for (w = 0; w < alternative_seed_positions->occupants->len; w++)
                     {
                         MirbookingOccupant *other_occupant = g_ptr_array_index (alternative_seed_positions->occupants, w);
@@ -1135,13 +1134,13 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                         gdouble kother = 0;
                         if (occupant == other_occupant)
                         {
-                            gint j;
+                            guint j;
                             for (j = 0; j < self->priv->mirnas->len; j++)
                             {
                                 // all the position of the other microrna
                                 MirbookingTargetPositions *tss = &g_array_index (self->priv->target_positions, MirbookingTargetPositions, self->priv->mirnas->len * i + j);
 
-                                gint q;
+                                guint q;
                                 for (q = 0; q < tss->positions_len; q++)
                                 {
                                     if (abs (tss->positions[q] - seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
@@ -1152,7 +1151,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                                 }
                             }
                         }
-                        else if (i == z && ABS (seed_positions->positions[p] - alternative_seed_positions->positions[w]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
+                        else if (i == z && ABS ((gssize) seed_positions->positions[p] - (gssize) alternative_seed_positions->positions[w]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
                         {
                             /*
                              * Here, we account for the kother if a microRNA is
@@ -1187,13 +1186,13 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                     gdouble kother = 0;
                     if (occupant == other_occupant)
                     {
-                        gint j;
+                        guint j;
                         for (j = 0; j < self->priv->mirnas->len; j++)
                         {
                             // all the position of the other microrna
                             MirbookingTargetPositions *tss = &g_array_index (self->priv->target_positions, MirbookingTargetPositions, self->priv->mirnas->len * i + j);
 
-                            gint q;
+                            guint q;
                             for (q = 0; q < tss->positions_len; q++)
                             {
                                 if (abs (tss->positions[q] - seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
@@ -1252,7 +1251,7 @@ mirbooking_broker_evaluate (MirbookingBroker          *self,
     if (norm)
     {
         gdouble _norm = 0;
-        gint i;
+        gsize i;
         #pragma omp parallel for reduction(+:_norm)
         for (i = 0; i < self->priv->y_len; i++)
         {
@@ -1326,7 +1325,7 @@ mirbooking_broker_step (MirbookingBroker         *self,
         g_debug ("reorder-time: %fs factor-time: %fs solve-time: %fs flops: %f", stats.reorder_time, stats.factor_time, stats.solve_time, stats.flops);
 
         // apply the update
-        gint i, j;
+        guint i, j;
         #pragma omp parallel for collapse(2)
         for (i = 0; i < self->priv->targets->len; i++)
         {
@@ -1347,7 +1346,7 @@ mirbooking_broker_step (MirbookingBroker         *self,
                                                                             MirbookingTargetPositions,
                                                                             self->priv->mirnas->len * i + j);
 
-                gint p;
+                guint p;
                 for (p = 0; p < seed_positions->positions_len; p++)
                 {
                     MirbookingOccupant *occupant = g_ptr_array_index (seed_positions->occupants, p);
@@ -1372,7 +1371,7 @@ mirbooking_broker_step (MirbookingBroker         *self,
                     self);
 
         {
-            gint i;
+            guint i;
             #pragma omp parallel for
             for (i = 0; i < self->priv->targets->len; i++)
             {

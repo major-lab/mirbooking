@@ -132,6 +132,12 @@ mirbooking_default_score_table_finalize (GObject *object)
     G_OBJECT_CLASS (mirbooking_default_score_table_parent_class)->finalize (object);
 }
 
+static gsize
+_pow4 (gsize n)
+{
+    return 1 << (2 * n);
+}
+
 static gfloat
 _get_subsequence_score (SparseMatrix     *scores,
                         MirbookingMirna  *mirna,
@@ -141,7 +147,7 @@ _get_subsequence_score (SparseMatrix     *scores,
                         gsize             subsequence_offset,
                         gsize             subsequence_len)
 {
-    g_return_val_if_fail ((1 << (2 * subsequence_len)) == scores->shape[0], INFINITY);
+    g_return_val_if_fail (_pow4 (subsequence_len) == scores->shape[0], INFINITY);
 
     // the subsequence does not fit in the target
     if (position + mirna_position_offset - subsequence_offset + subsequence_len > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)))
@@ -155,8 +161,8 @@ _get_subsequence_score (SparseMatrix     *scores,
         return INFINITY;
     }
 
-    gsize subsequence_i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), subsequence_offset, subsequence_len);
-    gsize subsequence_j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position + mirna_position_offset - subsequence_offset, subsequence_len);
+    gssize subsequence_i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), subsequence_offset, subsequence_len);
+    gssize subsequence_j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position + mirna_position_offset - subsequence_offset, subsequence_len);
 
     if (subsequence_i == -1 || subsequence_j == -1)
     {
@@ -362,7 +368,7 @@ compute_positions (MirbookingScoreTable  *score_table,
         if ((sparse_matrix_get_float (&self->priv->seed_scores, i, j) < INFINITY || is_g_bulge (target, p)) &&
             mirbooking_target_get_accessibility_score (target, p) < INFINITY                                &&
             (self->priv->filter == NULL || self->priv->filter (self, mirna, target, p, self->priv->filter_user_data)) &&
-            mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (self), mirna, target, p, NULL) < INFINITY)
+            mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (self), mirna, target, p, error) < INFINITY)
         {
             _positions = g_realloc (_positions, (k + 1) * sizeof (gsize));
             _positions[k++] = p;
@@ -370,8 +376,8 @@ compute_positions (MirbookingScoreTable  *score_table,
 
         if (p < seq_len - SEED_LENGTH)
         {
-            gsize out = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p, 1);
-            gsize in  = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p+SEED_LENGTH, 1);
+            gssize out = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p, 1);
+            gssize in  = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p+SEED_LENGTH, 1);
 
             if (in == -1)
             {
@@ -414,7 +420,7 @@ mirbooking_default_score_table_get_property (GObject *object, guint property_id,
         case PROP_SUPPLEMENTARY_SCORES:
             g_value_set_boxed (value, MIRBOOKING_DEFAULT_SCORE_TABLE (object)->priv->supplementary_scores_bytes);
         default:
-                g_assert_not_reached ();
+            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     }
 }
 
@@ -439,7 +445,7 @@ mirbooking_default_score_table_set_property (GObject *object, guint property_id,
             self->priv->supplementary_scores_bytes = score_table == NULL ? NULL : g_bytes_ref (score_table);
             break;
         default:
-            g_assert_not_reached ();
+            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     }
 }
 
