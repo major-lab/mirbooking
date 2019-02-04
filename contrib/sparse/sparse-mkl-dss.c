@@ -29,8 +29,13 @@ void
 free_solver_storage (void *ptr)
 {
     SolverStorage *solver_storage = ptr;
-    MKL_INT delete_opt = 0;
-    dss_delete (solver_storage->handle, delete_opt);
+
+    if (solver_storage->handle)
+    {
+        MKL_INT delete_opt = 0;
+        dss_delete (solver_storage->handle, delete_opt);
+    }
+
     if (sizeof (MKL_INT) != sizeof (size_t))
     {
         free (solver_storage->rowptr);
@@ -53,17 +58,17 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
     SolverStorage *solver_storage = A->solver_storage;
     if (A->solver_storage_owner != solver)
     {
-        solver_storage = malloc (sizeof (SolverStorage));
+        solver_storage = calloc (1, sizeof (SolverStorage));
 
         if (sizeof (MKL_INT) == sizeof (size_t))
         {
-            solver_storage->rowptr  = (MKL_INT*) A->s.csr.rowptr;
-            solver_storage->colind  = (MKL_INT*) A->s.csr.colind;
+            solver_storage->rowptr = (MKL_INT*) A->s.csr.rowptr;
+            solver_storage->colind = (MKL_INT*) A->s.csr.colind;
         }
         else
         {
-            solver_storage->rowptr  = malloc ((A->shape[0] + 1) * sizeof (MKL_INT));
-            solver_storage->colind  = malloc (A->s.csr.nnz * sizeof (MKL_INT));
+            solver_storage->rowptr = malloc ((A->shape[0] + 1) * sizeof (MKL_INT));
+            solver_storage->colind = malloc (A->s.csr.nnz * sizeof (MKL_INT));
             memcpy_loop (solver_storage->rowptr, A->s.csr.rowptr, A->shape[0] + 1);
             memcpy_loop (solver_storage->colind, A->s.csr.colind, A->s.csr.nnz);
         }
