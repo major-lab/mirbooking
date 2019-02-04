@@ -1057,11 +1057,6 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
 {
     MirbookingBroker *self = user_data;
 
-    if (self->priv->J == NULL)
-    {
-        _prepare_J (self);
-    }
-
     const gdouble *E  = y;
     const gdouble *S  = y + self->priv->mirnas->len;
     const gdouble *ES = S + self->priv->targets->len;
@@ -1174,7 +1169,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                         gdouble dSdES  = (z == i && seed_positions->positions[p] == alternative_seed_positions->positions[w]) ? -Stp / (self->priv->S[i] - _mirbooking_broker_get_target_site_occupants_quantity (self, target_site, ES)) : 0;
                         gdouble dESdES = kf * (E[j] * dSdES + Stp * dEdES) - (kr + kcat) * (occupant == other_occupant ? 1 : 0) - kother;
 
-                        sparse_matrix_set_double (self->priv->J,
+                        sparse_matrix_set_double (J,
                                                   k,
                                                   other_k,
                                                   -dESdES);
@@ -1214,7 +1209,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                     gdouble dSdES  = -Stp / (self->priv->S[i] - _mirbooking_broker_get_target_site_occupants_quantity (self, target_site, ES));
                     gdouble dESdES = kf * (E[j] * dSdES + Stp * dEdES) - (kr + kcat) * (occupant == other_occupant ? 1 : 0) - kother;
 
-                    sparse_matrix_set_double (self->priv->J,
+                    sparse_matrix_set_double (J,
                                               k,
                                               other_k,
                                               -dESdES);
@@ -1300,6 +1295,11 @@ mirbooking_broker_step (MirbookingBroker         *self,
                         self->priv->y,
                         self->priv->F,
                         self);
+
+            if (self->priv->J == NULL)
+            {
+                _prepare_J (self);
+            }
 
             _compute_J (self->priv->t,
                         self->priv->y,
