@@ -20,8 +20,8 @@ default_compute_positions (MirbookingScoreTable *self,
 {
     g_autofree gsize *_positions = NULL;
 
-    gint i;
-    gint j = 0;
+    gsize i;
+    gsize j = 0;
     for (i = 0; i < mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)); i++)
     {
         gdouble score = mirbooking_score_table_compute_score (self, mirna, target, i, error);
@@ -97,7 +97,6 @@ mirbooking_score_table_compute_score (MirbookingScoreTable *self,
     g_return_val_if_fail (self != NULL, INFINITY);
     g_return_val_if_fail (mirna != NULL, INFINITY);
     g_return_val_if_fail (target != NULL, INFINITY);
-    g_return_val_if_fail (position >= 0, INFINITY);
     g_return_val_if_fail (position < mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)), INFINITY);
 
     MirbookingScoreTableClass *klass = MIRBOOKING_SCORE_TABLE_GET_CLASS (self);

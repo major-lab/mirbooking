@@ -53,12 +53,14 @@ const OdeIntMeta INTEGRATOR_META[] =
 {
     {"euler", 1, 0, 0,
         {0.0},
-        {},
-        {1.0}, 1},
+        {0},
+        {1.0}, 1,
+        {0},   0},
     {"heuns", 2, 0, 0,
         {0.0,     1.0},
         {1.0},
-        {1.0/2.0, 1.0/2.0}, 2},
+        {1.0/2.0, 1.0/2.0}, 2,
+        {0},                0},
     {"heuns-euler", 2, 0, 1,
         {0.0,     1.0},
         {1.0},
@@ -76,7 +78,8 @@ const OdeIntMeta INTEGRATOR_META[] =
         {1.0/2.0,
          0.0,     1.0/2.0,
          0.0,     0.0,     1.0},
-        {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0}, 4},
+        {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0}, 4,
+        {0},                                  0},
     {"runge-kutta-fehlberg", 6, 0, 1,
         {0.0,           1.0/4.0,        3.0/8.0,        12.0/13.0,       1.0,       1.0/2.0},
         {1.0/4.0,
@@ -198,7 +201,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         func (t0, self->y, self->F, user_data);
 
         /* simple Euler step */
-        int i;
+        size_t i;
         #pragma omp parallel for
         for (i = 0; i < self->n; i++)
         {
@@ -242,7 +245,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         for (step = 0; step < self->integrator_meta->steps; step++)
         {
             /* restore state at the beginning of the step */
-            int i;
+            size_t i;
             #pragma omp parallel for
             for (i = 0; i < self->n; i++)
             {
@@ -262,7 +265,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         // final update
         if (!self->integrator_meta->last_step_is_update)
         {
-            int i;
+            size_t i;
             #pragma omp parallel for
             for (i = 0; i < self->n; i++)
             {
@@ -281,7 +284,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         {
             double error_ = 0;
             double ye_norm_ = 0;
-            int i;
+            size_t i;
             #pragma omp parallel for reduction(+:error_) reduction(+:ye_norm_)
             for (i = 0; i < self->n; i++)
             {

@@ -18,7 +18,7 @@ struct _MirbookingMcffScoreTable
     MirbookingScoreTable parent_instance;
 };
 
-G_DEFINE_TYPE (MirbookingMcffScoreTable, mirbooking_mcff_score_table, MIRBOOKING_TYPE_SCORE_TABLE);
+G_DEFINE_TYPE (MirbookingMcffScoreTable, mirbooking_mcff_score_table, MIRBOOKING_TYPE_SCORE_TABLE)
 
 static gdouble
 compute_score (MirbookingScoreTable *score_table,

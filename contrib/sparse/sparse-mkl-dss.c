@@ -97,9 +97,9 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
         MKL_INT n = A->shape[1];
         MKL_INT nnz = A->s.csr.nnz;
 
-        assert (m == A->shape[0]);
-        assert (n == A->shape[1]);
-        assert (nnz == A->s.csr.nnz);
+        assert (m == (MKL_INT) A->shape[0]);
+        assert (n == (MKL_INT) A->shape[1]);
+        assert (nnz == (MKL_INT) A->s.csr.nnz);
 
         if (A->hints & SPARSE_MATRIX_HINT_SYMMETRIC)
         {

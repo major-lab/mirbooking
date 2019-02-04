@@ -224,12 +224,14 @@ read_sequences_from_fasta (FILE        *file,
                 name = strtok (NULL, "\n");
             }
 
-            gsize offset = ftell (file);
+            glong offset = ftell (file);
+            g_return_if_fail (offset != -1);
+
             seq = g_mapped_file_get_contents (mapped_file) + offset;
 
-            gsize remaining = g_mapped_file_get_length (mapped_file) - ftell (file);
+            gsize remaining = g_mapped_file_get_length (mapped_file) - offset;
             gchar *next_seq = memchr (seq, '>', remaining);
-            gsize seq_len = next_seq == NULL ? remaining - 1 : next_seq - seq - 1;
+            gsize seq_len = next_seq == NULL ? remaining - 1 : (gsize) (next_seq - seq) - 1;
 
             MirbookingSequence *sequence;
 
@@ -555,7 +557,10 @@ main (gint argc, gchar **argv)
                 return EXIT_FAILURE;
             }
 
-            g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (fileno (seq_f), FALSE, &error);
+            gint seq_fileno = fileno (seq_f);
+            g_return_val_if_fail (seq_fileno != -1, EXIT_FAILURE);
+
+            g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (seq_fileno, FALSE, &error);
 
             if (seq_map == NULL)
             {
@@ -583,7 +588,10 @@ main (gint argc, gchar **argv)
                 return EXIT_FAILURE;
             }
 
-            g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (fileno (seq_f), FALSE, &error);
+            gint seq_fileno = fileno (seq_f);
+            g_return_val_if_fail (seq_fileno != -1, EXIT_FAILURE);
+
+            g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (seq_fileno, FALSE, &error);
 
             if (seq_map == NULL)
             {

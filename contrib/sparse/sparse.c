@@ -194,8 +194,8 @@ _sparse_matrix_reserve_index (SparseMatrix *matrix, size_t i, size_t j)
         {
             // insertion
             memmove (&matrix->s.csr.colind[k + 1], &matrix->s.csr.colind[k], (matrix->s.csr.rowptr[i+1] - 1 - k) * sizeof (size_t));
-            memmove (matrix->data + (k + 1) * _size_for_type (matrix->type),
-                     matrix->data + k * _size_for_type (matrix->type),
+            memmove ((char*) matrix->data + (k + 1) * _size_for_type (matrix->type),
+                     (char*) matrix->data + k * _size_for_type (matrix->type),
                      (matrix->s.csr.rowptr[i+1] - 1 - k) * _size_for_type (matrix->type));
         }
 
