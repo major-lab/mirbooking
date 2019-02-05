@@ -105,6 +105,10 @@ sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
         {
             define_opt |= MKL_DSS_SYMMETRIC;
         }
+        else if (A->hints & SPARSE_MATRIX_HINT_SYMMETRIC_STRUCTURE)
+        {
+            define_opt |= MKL_DSS_SYMMETRIC_STRUCTURE;
+        }
         else
         {
             define_opt |= MKL_DSS_NON_SYMMETRIC;

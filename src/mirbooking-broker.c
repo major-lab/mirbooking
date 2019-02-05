@@ -982,6 +982,9 @@ _prepare_J (MirbookingBroker *self)
                         shape,
                         nnz);
 
+    self->priv->J->hints |= SPARSE_MATRIX_HINT_SYMMETRIC_STRUCTURE;
+    self->priv->J->hints |= SPARSE_MATRIX_HINT_POSITIVE_DEFINITE;
+
     // initialize the sparse slots beforehand because it is not thread-safe and
     // we want to keep the in order for fast access
     // TODO: find a way to remove the ordered clause

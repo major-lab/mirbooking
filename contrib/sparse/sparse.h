@@ -16,8 +16,9 @@ typedef enum _SparseMatrixType
 
 typedef enum _SparseMatrixHint
 {
-    SPARSE_MATRIX_HINT_SYMMETRIC         = 1 << 0, /* only the upper triangle is necessary */
-    SPARSE_MATRIX_HINT_POSITIVE_DEFINITE = 1 << 1
+    SPARSE_MATRIX_HINT_SYMMETRIC_STRUCTURE = 1 << 0, /* full matrix is necessary */
+    SPARSE_MATRIX_HINT_SYMMETRIC           = 1 << 1, /* only the upper triangle is necessary */
+    SPARSE_MATRIX_HINT_POSITIVE_DEFINITE   = 1 << 2
 } SparseMatrixHint;
 
 typedef struct _SparseMatrix
