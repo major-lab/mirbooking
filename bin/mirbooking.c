@@ -257,11 +257,12 @@ read_sequences_from_fasta (FILE        *file,
     }
 }
 
-void
+gboolean
 read_sequence_accessibility (GInputStream     *in,
                              GHashTable       *sequences_hash,
-                             MirbookingBroker *broker)
+                             GError          **error)
 {
+    g_autoptr (GError) err = NULL;
     g_autoptr (GDataInputStream) data_in = g_data_input_stream_new (in);
 
     while (TRUE)
@@ -271,25 +272,46 @@ read_sequence_accessibility (GInputStream     *in,
                                                                      1,
                                                                      NULL,
                                                                      NULL,
-                                                                     NULL);
+                                                                     &err);
+
+        if (accession == NULL && err)
+        {
+            g_propagate_error (error, err);
+            return FALSE;
+        }
 
         if (accession == NULL)
         {
-            return; /* done */
+            return TRUE; /* done */
         }
 
         MirbookingSequence *sequence = g_hash_table_lookup (sequences_hash,
                                                             accession);
 
-        if (sequence && mirbooking_broker_get_sequence_quantity (broker, sequence) > 0)
+        if (sequence)
         {
             gsize sequence_len = mirbooking_sequence_get_sequence_length (sequence);
             gsize position;
             for (position = 0; position < sequence_len; position++)
             {
-                g_return_if_fail (g_data_input_stream_read_byte (data_in, NULL, NULL) == '\t');
+                guchar ret = g_data_input_stream_read_byte (data_in, NULL, &err);
+                if (!ret && err)
+                {
+                    g_propagate_error (error, err);
+                    return FALSE;
+                }
 
-                g_autofree gchar *score_str = g_data_input_stream_read_upto (data_in, "\t", 1, NULL, NULL, NULL);
+                g_return_val_if_fail (ret == '\t', FALSE);
+
+                g_autofree gchar *score_str = g_data_input_stream_read_upto (data_in, "\t", 1, NULL, NULL, &err);
+
+                if (score_str == NULL && err)
+                {
+                    g_propagate_error (error, err);
+                    return FALSE;
+                }
+
+                g_return_val_if_fail (score_str != NULL, FALSE);
 
                 gfloat score;
                 if (*score_str == '\0')
@@ -301,15 +323,20 @@ read_sequence_accessibility (GInputStream     *in,
                     sscanf (score_str, "%f", &score);
                 }
 
-                // FIXME: have prefix instead of suffix positions
                 mirbooking_target_set_accessibility_score (MIRBOOKING_TARGET (sequence),
-                                                           (position - 7) % sequence_len,
+                                                           position,
                                                            score);
             }
         }
 
         // consume the rest of the line
-        g_autofree gchar *remaining = g_data_input_stream_read_line (data_in, NULL, NULL, NULL);
+        g_autofree gchar *remaining = g_data_input_stream_read_line (data_in, NULL, NULL, &err);
+
+        if (remaining == NULL && err)
+        {
+            g_propagate_error (error, err);
+            return FALSE;
+        }
     }
 }
 
@@ -641,6 +668,12 @@ main (gint argc, gchar **argv)
                                                      sequence,
                                                      quantity);
         }
+        else
+        {
+            // clear unused entries immediatly for reducing the work
+            // of read_sequence_accessibility
+            g_hash_table_remove (sequences_hash, sequence);
+        }
     }
 
     // mark targets with  scores
@@ -667,9 +700,14 @@ main (gint argc, gchar **argv)
         guint64 accessibility_read_begin = g_get_monotonic_time ();
 
         // update sequence
-        read_sequence_accessibility (G_INPUT_STREAM (accessibility_scores_in),
-                                     sequences_hash,
-                                     mirbooking);
+        if (!read_sequence_accessibility (G_INPUT_STREAM (accessibility_scores_in),
+                                          sequences_hash,
+                                          &error))
+
+        {
+            g_printerr ("Could not parse accessibility scores: %s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
+        }
 
         g_debug ("Done reading accessibility scores in %lums", 1000 * (g_get_monotonic_time () - accessibility_read_begin) / G_USEC_PER_SEC);
     }
