@@ -3,6 +3,7 @@
 typedef struct _MirbookingTargetPrivate
 {
     gfloat *accessibility_scores; /* accessibility of each position */
+    GBytes *accessibility_scores_seq; /* a ptr */
 } MirbookingTargetPrivate;
 
 struct _MirbookingTarget
@@ -27,6 +28,7 @@ mirbooking_target_finalize (GObject *object)
     if (self->priv->accessibility_scores)
     {
         g_free (self->priv->accessibility_scores);
+        g_bytes_unref (self->priv->accessibility_scores_seq);
     }
     g_free (self->priv);
 
@@ -56,7 +58,14 @@ gfloat
 mirbooking_target_get_accessibility_score (MirbookingTarget *self,
                                            gsize             position)
 {
-    return self->priv->accessibility_scores ? self->priv->accessibility_scores[position] : 0;
+    if (mirbooking_sequence_get_raw_sequence (MIRBOOKING_SEQUENCE (self)) == self->priv->accessibility_scores_seq)
+    {
+        return self->priv->accessibility_scores[position];
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 void
@@ -64,9 +73,17 @@ mirbooking_target_set_accessibility_score (MirbookingTarget *self,
                                            gsize             position,
                                            gfloat            score)
 {
-    if (self->priv->accessibility_scores == NULL)
+    if (mirbooking_sequence_get_raw_sequence (MIRBOOKING_SEQUENCE (self)) != self->priv->accessibility_scores_seq)
     {
+        if (self->priv->accessibility_scores_seq)
+        {
+            g_free (self->priv->accessibility_scores);
+            g_bytes_unref (self->priv->accessibility_scores_seq);
+        }
+
+        self->priv->accessibility_scores_seq = g_bytes_ref (mirbooking_sequence_get_raw_sequence (MIRBOOKING_SEQUENCE (self)));
         self->priv->accessibility_scores = g_new0 (gfloat, mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (self)));
     }
+
     self->priv->accessibility_scores[position] = score;
 }

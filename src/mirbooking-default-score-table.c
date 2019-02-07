@@ -23,7 +23,11 @@
  * In addition, the seed setup experiment in both experiments had 'A', which
  * shoudld account for a -0.56 kcal/mol additional contribution (Schirle et al. 2015).
  *
- * We thus the latest value and impute the -5.43 kcal/mol gap to AGO2 entropic
+ * Using RNAup, we folded the reporter with the seed-only sequence which
+ * yielded a 0.466 kcal/mol penalty to "open" a 17 nucleotides window around
+ * the seed.
+ *
+ * We thus the latest value and impute the -5.90 kcal/mol gap to AGO2 entropic
  * contribution.
  *
  * Reference:
@@ -36,7 +40,7 @@
  * 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
  */
 
-#define AGO2_SCORE (-5.43f)
+#define AGO2_SCORE (-5.90f)
 
 typedef struct
 {
