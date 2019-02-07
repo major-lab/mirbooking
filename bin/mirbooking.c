@@ -672,7 +672,7 @@ main (gint argc, gchar **argv)
         {
             // clear unused entries immediatly for reducing the work
             // of read_sequence_accessibility
-            g_hash_table_remove (sequences_hash, sequence);
+            g_hash_table_remove (sequences_hash, accession);
         }
     }
 
@@ -705,7 +705,14 @@ main (gint argc, gchar **argv)
                                           &error))
 
         {
-            g_printerr ("Could not parse accessibility scores: %s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            if (error)
+            {
+                g_printerr ("Could not parse accessibility scores: %s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            }
+            else
+            {
+                g_printerr ("Could not parse accessibility scores.\n");
+            }
             return EXIT_FAILURE;
         }
 
