@@ -518,14 +518,13 @@ _mirbooking_broker_get_footprint_window (MirbookingBroker            *self,
                                          const MirbookingTargetSite **from_target_site,
                                          const MirbookingTargetSite **to_target_site)
 {
-    gsize window = prime5_footprint + prime3_footprint;
     const MirbookingTargetSite *_to_target_site;
 
     // find the lower target site
-    *from_target_site = target_site - MIN (window, target_site->position);
+    *from_target_site = target_site - MIN (prime5_footprint, target_site->position);
 
     // find the upper target site
-    _to_target_site = MIN (target_site + window,
+    _to_target_site = MIN (target_site + prime3_footprint,
                            &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len - 1));
 
     // we might overlap preceeding or following target sites
@@ -560,8 +559,6 @@ _mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
                                             gdouble                     St,
                                             const gdouble              *ES)
 {
-    gdouble vacancy = 1;
-
     const MirbookingTargetSite *from_target_site, *to_target_site;
     _mirbooking_broker_get_footprint_window (self,
                                              target_site,
@@ -571,16 +568,14 @@ _mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
                                              &to_target_site);
 
     // minimize vacancy around the footprint
+    gdouble quantity = 0;
     const MirbookingTargetSite *nearby_target_site;
     for (nearby_target_site = from_target_site; nearby_target_site <= to_target_site; nearby_target_site++)
     {
-        vacancy *= 1 - (_mirbooking_broker_get_target_site_occupants_quantity (self, nearby_target_site, ES) / St);
+        quantity += _mirbooking_broker_get_target_site_occupants_quantity (self, nearby_target_site, ES);
     }
 
-    // g_assert_cmpfloat (vacancy, >=, 0);
-    // g_assert_cmpfloat (vacancy, <=, 1);
-
-    return vacancy;
+    return 1 - (quantity / St);
 }
 
 typedef struct _MirbookingScoredTargetSite
@@ -1168,7 +1163,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                         }
 
                         gdouble dEdES  = -1; // always
-                        gdouble dSdES  = (z == i && seed_positions->positions[p] == alternative_seed_positions->positions[w]) ? -Stp / (self->priv->S[i] - _mirbooking_broker_get_target_site_occupants_quantity (self, target_site, ES)) : 0;
+                        gdouble dSdES  = (z == i && seed_positions->positions[p] == alternative_seed_positions->positions[w]) ? -1 : 0;
                         gdouble dESdES = kf * (E[j] * dSdES + Stp * dEdES) - (kr + kcat) * (occupant == other_occupant ? 1 : 0) - kother;
 
                         sparse_matrix_set_double (J,
@@ -1208,7 +1203,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                     }
 
                     gdouble dEdES  = occupant->mirna == other_occupant->mirna ? -1 : 0;
-                    gdouble dSdES  = -Stp / (self->priv->S[i] - _mirbooking_broker_get_target_site_occupants_quantity (self, target_site, ES));
+                    gdouble dSdES  = -1;
                     gdouble dESdES = kf * (E[j] * dSdES + Stp * dEdES) - (kr + kcat) * (occupant == other_occupant ? 1 : 0) - kother;
 
                     sparse_matrix_set_double (J,
