@@ -658,7 +658,6 @@ main (gint argc, gchar **argv)
         if (sequence == NULL)
         {
             g_printerr ("Unknown sequence with accession '%s'.\n", accession);
-            continue;
             return EXIT_FAILURE;
         }
 
