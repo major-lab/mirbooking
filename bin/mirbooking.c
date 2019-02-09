@@ -233,7 +233,7 @@ read_sequences_from_fasta (FILE        *file,
             gchar *next_seq = memchr (seq, '>', remaining);
             gsize seq_len = next_seq == NULL ? remaining - 1 : (gsize) (next_seq - seq) - 1;
 
-            MirbookingSequence *sequence;
+            g_autoptr (MirbookingSequence) sequence = NULL;
 
             if (is_mirna)
             {
@@ -252,7 +252,7 @@ read_sequences_from_fasta (FILE        *file,
 
             g_hash_table_insert (sequences_hash,
                                  g_strdup (accession),
-                                 sequence);
+                                 g_steal_pointer (&sequence));
         }
     }
 }
@@ -282,13 +282,13 @@ read_sequence_accessibility (GInputStream     *in,
 
         if (accession == NULL)
         {
-            return TRUE; /* done */
+            break; /* done */
         }
 
         MirbookingSequence *sequence = g_hash_table_lookup (sequences_hash,
                                                             accession);
 
-        if (sequence)
+        if (sequence != NULL)
         {
             gsize sequence_len = mirbooking_sequence_get_sequence_length (sequence);
             gsize position;
@@ -338,6 +338,8 @@ read_sequence_accessibility (GInputStream     *in,
             return FALSE;
         }
     }
+
+    return TRUE;
 }
 
 #define COALESCE(x,d) (x == NULL ? (d) : (x))
@@ -671,6 +673,8 @@ main (gint argc, gchar **argv)
         {
             // clear unused entries immediatly for reducing the work
             // of read_sequence_accessibility
+            // however, this does not clean sequences that were not quantified
+            // in the first place
             g_hash_table_remove (sequences_hash, accession);
         }
     }
