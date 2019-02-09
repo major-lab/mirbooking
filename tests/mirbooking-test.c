@@ -162,7 +162,7 @@ test_mirbooking ()
 
     MirbookingOccupant *occupant = target_site.occupants->data;
 
-    g_assert_cmpfloat (occupant->score, ==, 1e12 * exp ((-9.0f - 5.43f) / (R*T)));
+    g_assert_cmpfloat (occupant->score, ==, 1e12 * exp ((-9.0f - 5.90f) / (R*T)));
 
     /* analytical solution for a single reaction */
     gdouble kf = MIRBOOKING_SCORE_TABLE_DEFAULT_KF;
