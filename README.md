@@ -142,14 +142,18 @@ utilities.
 Te `mirbooking-generate-score-table` compute a hybridization energy table for
 a given seed mask. [MC-Flashfold](https://major.iric.ca/mc-tools/) is required.
 
-The number of workers can be tuned by setting `OMP_NUM_THREADS` environment
-variable.
-
 ```bash
 mirbooking-generate-score-table [--mcff=mcff]
-                                [--mask=....xxx]
+                                [--mask=||||...]
                                 --output scores
 ```
+
+The seed mask defines constraints on the target with `|` for a canonical match,
+`x` for a canonical mismatch and `.` for no constraint. It also determines the
+seed length.
+
+The number of workers can be tuned by setting `OMP_NUM_THREADS` environment
+variable.
 
 ## C API
 

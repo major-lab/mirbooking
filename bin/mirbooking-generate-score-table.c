@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <string.h>
+#include <omp.h>
 
 #include <sparse.h>
 
@@ -20,7 +21,7 @@ static gchar *nt = "ACGT";
 static const GOptionEntry MIRBOOKING_GENERATE_SCORE_TABLE_OPTIONS[] =
 {
     {"mcff",   0, 0, G_OPTION_ARG_FILENAME, &mcff,   NULL, "mcff"},
-    {"mask",   0, 0, G_OPTION_ARG_STRING,   &mask,   NULL, "....xxx"},
+    {"mask",   0, 0, G_OPTION_ARG_STRING,   &mask,   NULL, "||||..."},
     {"output", 0, 0, G_OPTION_ARG_FILENAME, &output, NULL, "FILE"},
     {NULL}
 };
@@ -90,11 +91,14 @@ main (gint argc, gchar **argv)
     {
         switch (mask[z])
         {
-            case '.':
-                nnz *= 4;
+            case '|':
+                nnz *= 4; /* canonical match */
                 break;
             case 'x':
-                nnz *= 16;
+                nnz *= 12; /* canonical mismatch */
+                break;
+            case '.':
+                nnz *= 16; /* no constraint */
                 break;
             default:
                 g_printerr ("Unknown symbol '%c' in mask at position %lu.", mask[z], z);
@@ -125,6 +129,9 @@ main (gint argc, gchar **argv)
 
     g_return_val_if_fail (seed_length < 16, EXIT_FAILURE);
 
+    // shorthand to avoid aliasing
+    gfloat* data = (gfloat*) (table + 2 + n + 1 + nnz);
+
     SparseMatrix sm;
     sm.storage        = SPARSE_MATRIX_STORAGE_CSR;
     sm.type           = SPARSE_MATRIX_TYPE_FLOAT;
@@ -134,7 +141,7 @@ main (gint argc, gchar **argv)
     sm.s.csr.rowptr   = table + 2;
     sm.s.csr.colind   = table + 2 + n + 1;
     sm.default_data.f = INFINITY;
-    sm.data           = (gfloat*) (table + 2 + n + 1 + nnz);
+    sm.data           = data;
 
     table[0] = n;
     table[1] = nnz;
@@ -147,6 +154,8 @@ main (gint argc, gchar **argv)
     {
         sm.s.csr.rowptr[i] = i * (nnz / n);
     }
+
+    guint64 begin = g_get_monotonic_time ();
 
     gsize completed = 0;
     #pragma omp parallel for
@@ -174,18 +183,23 @@ main (gint argc, gchar **argv)
             gint distance = 0;
             for (z = 0; z < seed_length; z++)
             {
-                if (mask[z] == '.')
+                switch (mask[z])
                 {
-                    distance += mir_seed[z] != rc(mre_seed[seed_length - z - 1]);
+                    case '|':
+                        distance += mir_seed[z] != rc(mre_seed[seed_length - z - 1]);
+                        break;
+                    case 'x':
+                        distance += mir_seed[z] == rc(mre_seed[seed_length - z - 1]);
+                        break;
                 }
             }
 
-            if (distance == 0)
+            if (distance <= 0)
             {
                 gfloat mfe;
                 gchar *mcff_argv[] = {mcff, "-seq", mre_seed, "-zzd", mir_seed, NULL};
-                gchar *standard_output;
-                gchar *standard_error;
+                g_autofree gchar *standard_output;
+                g_autofree gchar *standard_error;
                 gint exit_status;
                 GError *err = NULL;
                 if (!g_spawn_sync (NULL,
@@ -215,8 +229,8 @@ main (gint argc, gchar **argv)
                     exit (EXIT_FAILURE);
                 }
 
-                sm.s.csr.colind[sm.s.csr.rowptr[i] + k]     = j;
-                ((gfloat*)sm.data) [sm.s.csr.rowptr[i] + k] = mfe;
+                sm.s.csr.colind[sm.s.csr.rowptr[i] + k] = j;
+                data[sm.s.csr.rowptr[i] + k]            = mfe;
 
                 ++k;
             }
@@ -224,10 +238,13 @@ main (gint argc, gchar **argv)
             #pragma omp atomic
             ++completed;
 
-            if (completed % n == 0)
+            if (omp_get_thread_num() == 0 && completed % n == 0)
             {
-                #pragma omp critical
-                g_print ("Completed %f%% (%lu/%lu)\n", 100.0 * (gdouble) completed / pow (n, 2), completed, n * n);
+                g_print ("\rCompleted %f%% (%lu/%lu) %f it/sec",
+                         100.0 * (gdouble) completed / pow (n, 2),
+                         completed,
+                         n * n,
+                         completed / ((gdouble) (g_get_monotonic_time () - begin) / (gdouble) G_USEC_PER_SEC));
             }
         }
     }
