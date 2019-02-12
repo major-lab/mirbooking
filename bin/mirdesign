@@ -142,6 +142,7 @@ def work(candidates, pb, designs_out):
                     succ.append(s)
                     candidates.put((successor_score, counter, s))
                     counter += 1
+                pb.update()
 
             # terminal design
             if not succ:
@@ -156,7 +157,6 @@ def work(candidates, pb, designs_out):
             continue
         finally:
             candidates.task_done()
-            pb.update()
 
 with tqdm() as pb, open(args.designs_output, 'w') as f:
     candidates = PriorityQueue()
@@ -172,6 +172,7 @@ with tqdm() as pb, open(args.designs_output, 'w') as f:
                          for i, seq in enumerate(candidate.split(','))]
         candidates.put((evaluate(candidate), counter, candidate))
         counter += 1
+        pb.update()
 
     # wait until all workers are done
     candidates.join()
