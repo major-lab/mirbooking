@@ -24,9 +24,14 @@ default_compute_positions (MirbookingScoreTable *self,
     gsize j = 0;
     for (i = 0; i < mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)); i++)
     {
-        gdouble score = mirbooking_score_table_compute_score (self, mirna, target, i, error);
+        GError *err = NULL;
+        gdouble score = mirbooking_score_table_compute_score (self, mirna, target, i, &err);
 
-        // g_return_val_if_fail (error == NULL, FALSE);
+        if (err != NULL)
+        {
+            g_propagate_error (error, err);
+            return INFINITY;
+        }
 
         if (score < INFINITY)
         {
@@ -84,8 +89,8 @@ mirbooking_score_table_class_init (MirbookingScoreTableClass *klass)
  * The score correspond to the dissociation constant (Kd) expressed in
  * nanomolars units (nM).
  *
- * Returns: The corresponding score as a #gdouble or %0.0f and %error will be
- * set, unless the score was really zero.
+ * Returns: The corresponding score or %INFINITY and %error will be set, unless
+ * the score was really %INFINITY.
  */
 gdouble
 mirbooking_score_table_compute_score (MirbookingScoreTable *self,
