@@ -56,6 +56,12 @@ compute_score (MirbookingScoreTable *score_table,
         return INFINITY;
     }
 
+    if (!g_spawn_check_exit_status (exit_status,
+                                    error))
+    {
+        return INFINITY;
+    }
+
     gfloat mfe;
     sscanf (standard_output, "%f", &mfe);
 
