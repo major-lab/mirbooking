@@ -17,6 +17,7 @@ import random
 from queue import PriorityQueue, Empty
 from threading import Thread, Lock
 import os
+from os.path import join
 import numpy as np
 from functools import partial
 from scipy.stats.mstats import gmean
@@ -29,7 +30,7 @@ parser.add_argument('--initial-candidate', action='append', help='Initial candid
 parser.add_argument('--workers', type=int, default=2, help='Number of workers spawning processes')
 parser.add_argument('--threads-per-worker', type=int, default=1, help='Number of threads per worker')
 parser.add_argument('--max-sequences', type=int, default=1, help='Maximum number of sequences per design')
-parser.add_argument('--designs-output')
+parser.add_argument('--designs-output-dir')
 
 parser.add_argument('--mirbooking', default='mirbooking', help='Location of miRBooking binary')
 parser.add_argument('--input', required=True, help=argparse.SUPPRESS)
@@ -149,6 +150,9 @@ def work(candidates, pb, designs_out):
                 if candidate_score < best_score:
                     best_candidate = candidate
                     best_score = candidate_score
+
+                run_mirbooking(candidate, quantities).to_csv(join(args.designs_output_dir, '-'.join(str(c.seq) for c in candidate)), sep='\t')
+
                 with print_design_lock:
                     print(*[str(c.seq) for c in candidate], candidate_score, sep='\t', file=designs_out, flush=True)
         except Exception as err:
@@ -158,7 +162,7 @@ def work(candidates, pb, designs_out):
         finally:
             candidates.task_done()
 
-with tqdm() as pb, open(args.designs_output, 'w') as f:
+with tqdm() as pb, open(join(args.designs_output_dir, 'designs.tsv'), 'w') as f:
     candidates = PriorityQueue()
 
     # prepare workers
