@@ -89,7 +89,7 @@ ninja
 ninja install
 ```
 
-To generate fast code, configure with `meson -Doptimization=s`.
+To generate fast code, configure with `meson -Doptimization=3`.
 
 You can perform a local installation using `meson --prefix=$HOME/.local`, but
 you'll need `LD_LIBRARY_PATH` set accordingly since the `mirbooking` program
