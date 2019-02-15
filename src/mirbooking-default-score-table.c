@@ -9,6 +9,26 @@
 #define SEED_OFFSET 1
 #define SEED_LENGTH 7
 
+/**
+ * MIRBOOKING_SCORE_TABLE_DEFAULT_KF:
+ *
+ * Forward rate constant for the [E] + [S] -> [ES] reaction, which is
+ * indistinguishable from seed types or supplementary bindings (Wee et al. 2012
+ * and Salomon et al. 2015). We picked the value from the latest publication
+ * for the seed-only setup.
+ *
+ * Reference:
+ * Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into Domains
+ * with Distinct Functions and RNA-Binding Properties,” Cell 151, no. 5
+ * (November 21, 2012): 1055–67, https://doi.org/10.1016/j.cell.2012.10.036.
+ *
+ * William E. Salomon et al., “Single-Molecule Imaging Reveals That Argonaute
+ * Reshapes the Binding Properties of Its Nucleic Acid Guides,” Cell 162, no. 1
+ * (July 2, 2015): 84–95, https://doi.org/10.1016/j.cell.2015.06.029.
+ */
+#define KF   2.4e-4 // pM^-1s^-1
+#define KCAT 3.6e-2 // s^-1
+
 /*
  * For the duplex: 'CUACCUC&GAGGUAG', ViennaRNA reports a binding energy of
  * -9.37 kcal/mol.
@@ -180,12 +200,6 @@ _get_subsequence_score (SparseMatrix     *scores,
     return score;
 }
 
-static gdouble
-_compute_Kd (gdouble deltaG)
-{
-    return 1e12 * exp (deltaG / (R * T));
-}
-
 static gboolean
 is_g_bulge (MirbookingTarget *target, gsize position)
 {
@@ -193,11 +207,12 @@ is_g_bulge (MirbookingTarget *target, gsize position)
         *mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + 3, 1) == 'G';
 }
 
-static gdouble
+static gboolean
 compute_score (MirbookingScoreTable *score_table,
                MirbookingMirna      *mirna,
                MirbookingTarget     *target,
                gsize                 position,
+               MirbookingScore      *score,
                GError              **error)
 {
     MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
@@ -326,7 +341,12 @@ compute_score (MirbookingScoreTable *score_table,
         }
     }
 
-    return _compute_Kd (A_score + seed_score + supplementary_score + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE);
+    gdouble Kd = 1e12 * exp ((A_score + seed_score + supplementary_score + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE) / (R * T));
+
+    MirbookingScore ret = {KF, KF * Kd, KCAT};
+    *score = ret;
+
+    return TRUE;
 }
 
 static gboolean
@@ -371,11 +391,15 @@ compute_positions (MirbookingScoreTable  *score_table,
     {
         if ((sparse_matrix_get_float (&self->priv->seed_scores, i, j) < INFINITY || is_g_bulge (target, p)) &&
             mirbooking_target_get_accessibility_score (target, p) < INFINITY                                &&
-            (self->priv->filter == NULL || self->priv->filter (self, mirna, target, p, self->priv->filter_user_data)) &&
-            mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (self), mirna, target, p, error) < INFINITY)
+            (self->priv->filter == NULL || self->priv->filter (self, mirna, target, p, self->priv->filter_user_data)))
         {
-            _positions = g_realloc (_positions, (k + 1) * sizeof (gsize));
-            _positions[k++] = p;
+            MirbookingScore score;
+            mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (self), mirna, target, p, &score, NULL);
+            if (MIRBOOKING_SCORE_KM (score) < INFINITY)
+            {
+                _positions = g_realloc (_positions, (k + 1) * sizeof (gsize));
+                _positions[k++] = p;
+            }
         }
 
         if (p < seq_len - SEED_LENGTH)

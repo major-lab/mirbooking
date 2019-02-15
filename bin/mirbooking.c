@@ -389,7 +389,7 @@ write_output_to_tsv (MirbookingBroker *mirbooking,
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
                        mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna)),
-                       occupant->enzymatic_score,
+                       MIRBOOKING_SCORE_KM (occupant->score),
                        mirbooking_broker_get_occupant_quantity (mirbooking, occupant));
         }
     }
@@ -446,11 +446,14 @@ filter (MirbookingDefaultScoreTable *score_table,
     }
     else
     {
-        Km = mirbooking_score_table_compute_enzymatic_score (MIRBOOKING_SCORE_TABLE (score_table),
-                                                             mirna,
-                                                             target,
-                                                             position,
-                                                             NULL);
+        MirbookingScore score;
+        mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
+                                              mirna,
+                                              target,
+                                              position,
+                                              &score,
+                                              NULL);
+         Km = MIRBOOKING_SCORE_KM (score);
     }
 
     gdouble Z = E0 + S0 + Km;

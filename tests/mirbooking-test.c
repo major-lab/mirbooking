@@ -171,14 +171,14 @@ test_mirbooking ()
 
     MirbookingOccupant *occupant = target_site.occupants->data;
 
-    g_assert_cmpfloat (occupant->score, ==, 1e12 * exp ((-9.0f - 5.90f) / (R*T)));
-
-    gdouble ES = mirbooking_broker_get_occupant_quantity (mirbooking, occupant);
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (occupant->score), ==, 1e12 * exp ((-9.0f - 5.90f) / (R*T)));
 
     /* analytical solution for a single reaction */
-    gdouble Z = E0 + S0 + occupant->enzymatic_score;
-    gdouble ES_eq = (Z - sqrt (pow (Z, 2) - 4 * E0 * S0)) / 2;
-    g_assert_cmpfloat (fabs (ES_eq - ES), <, 1e-6);
+    gdouble z = occupant->score.kf * (E0 + S0) + occupant->score.kr + occupant->score.kcat;
+
+    gdouble ES = mirbooking_broker_get_occupant_quantity (mirbooking, occupant);
+    gdouble ES_eq = (z - sqrt (pow (z, 2) - 4 * pow (occupant->score.kf, 2) * E0 * S0)) / (2 * occupant->score.kf);
+    g_assert_cmpfloat (fabs (ES_eq - ES), <, 1e-8);
 
     gsize pmf_len;
     g_autofree gdouble *pmf = mirbooking_broker_get_target_occupants_pmf (mirbooking, target, &pmf_len);
@@ -419,7 +419,7 @@ test_mirbooking_set_occupant_quantity ()
 
     // ensure that we converge to the same equilibrium point
     gdouble ES = mirbooking_broker_get_occupant_quantity (broker, occupant);
-    gdouble Z = 10 + 10 + occupant->enzymatic_score;
+    gdouble Z = 10 + 10 + MIRBOOKING_SCORE_KM (occupant->score);
     gdouble ES_eq = (Z - sqrt (pow (Z, 2) - 4 * 10 * 10)) / 2;
 
     g_assert_cmpfloat (fabs (ES - ES_eq), <=, 1e-6);

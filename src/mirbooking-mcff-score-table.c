@@ -7,6 +7,9 @@
 #define R 1.987203611e-3
 #define T 310.15
 
+#define KF   2.4e-4 // pM^-1s^-1
+#define KCAT 3.6e-2 // s^-1
+
 /*
  * See @MirbookingDefaultScoreTable for the detail of the computation. Here,
  * mcff returned -19.765 kcal/mol.
@@ -20,12 +23,13 @@ struct _MirbookingMcffScoreTable
 
 G_DEFINE_TYPE (MirbookingMcffScoreTable, mirbooking_mcff_score_table, MIRBOOKING_TYPE_SCORE_TABLE)
 
-static gdouble
-compute_score (MirbookingScoreTable *score_table,
-               MirbookingMirna      *mirna,
-               MirbookingTarget     *target,
-               gsize                 position,
-               GError              **error)
+static gboolean
+compute_score (MirbookingScoreTable  *score_table,
+               MirbookingMirna       *mirna,
+               MirbookingTarget      *target,
+               gsize                  position,
+               MirbookingScore       *score,
+               GError               **error)
 {
     gchar mirna_seq[9]  = {0};
     gchar target_seq[9] = {0};
@@ -53,19 +57,22 @@ compute_score (MirbookingScoreTable *score_table,
                        &exit_status,
                        error))
     {
-        return INFINITY;
+        return FALSE;
     }
 
     if (!g_spawn_check_exit_status (exit_status,
                                     error))
     {
-        return INFINITY;
+        return FALSE;
     }
 
     gfloat mfe;
     sscanf (standard_output, "%f", &mfe);
 
-    return 1e12 * exp ((mfe + AGO2_SCORE) / (R * T));
+    MirbookingScore ret = {KF, KF * (1e12 * exp ((mfe + AGO2_SCORE) / (R * T))), KCAT};
+    *score = ret;
+
+    return TRUE;
 }
 
 static void

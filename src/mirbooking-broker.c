@@ -170,14 +170,12 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
 }
 
 static void
-mirbooking_occupant_init (MirbookingOccupant* self, MirbookingTarget *target, MirbookingMirna *mirna, gdouble score, gdouble enzymatic_score)
+mirbooking_occupant_init (MirbookingOccupant* self, MirbookingTarget *target, MirbookingMirna *mirna, MirbookingScore score)
 {
     self->target = g_object_ref (target);
     self->mirna = g_object_ref (mirna);
     self->score = score;
-    self->enzymatic_score = enzymatic_score;
 }
-
 
 static void
 mirbooking_occupant_clear (MirbookingOccupant *self)
@@ -633,7 +631,7 @@ _mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
 typedef struct _MirbookingScoredTargetSite
 {
     MirbookingTargetSite *target_site;
-    gfloat                score;
+    MirbookingScore       score;
 } MirbookingScoredTargetSite;
 
 static gint
@@ -781,23 +779,18 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
             {
                 MirbookingTargetSite *target_site = &target_sites[seed_positions->positions[p]];
 
-                gdouble score = mirbooking_score_table_compute_score (self->priv->score_table,
-                                                                      mirna,
-                                                                      target_site->target,
-                                                                      seed_positions->positions[p],
-                                                                      NULL);
-
-                gdouble enzymatic_score = mirbooking_score_table_compute_enzymatic_score (self->priv->score_table,
-                                                                                          mirna,
-                                                                                          target_site->target,
-                                                                                          seed_positions->positions[p],
-                                                                                          NULL);
+                MirbookingScore score;
+                mirbooking_score_table_compute_score (self->priv->score_table,
+                                                      mirna,
+                                                      target_site->target,
+                                                      seed_positions->positions[p],
+                                                      &score,
+                                                      NULL);
 
                 mirbooking_occupant_init (&occupants[_k + p],
                                           target_site->target,
                                           mirna,
-                                          score,
-                                          enzymatic_score);
+                                          score);
 
                 /*
                  * Multiple microRNA might share this target site and prepended
@@ -932,14 +925,9 @@ _compute_F (double t, const double *y, double *F, void *user_data)
                 g_assert_cmpint (target_site->position, ==, seed_positions->positions[p]);
                 g_assert (occupant->mirna == mirna);
 
-                // The dissociation constant is derived from the duplex's Gibbs
-                // free energy
-                gdouble Kd = occupant->score;
-                gdouble Km = occupant->enzymatic_score;
-
-                gdouble kf   = MIRBOOKING_SCORE_TABLE_DEFAULT_KF;
-                gdouble kr   = kf * Kd;
-                gdouble kcat = kf * (Km - Kd);
+                gdouble kf   = occupant->score.kf;
+                gdouble kr   = occupant->score.kr;
+                gdouble kcat = occupant->score.kcat;
 
                 gdouble Stp = S[i] * _mirbooking_broker_get_target_site_vacancy (self,
                                                                                  target_site,
@@ -961,8 +949,8 @@ _compute_F (double t, const double *y, double *F, void *user_data)
                         {
                             if (abs (tss->positions[q] - seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
                             {
-                                // kcat is universal
-                                kother += kcat * (_mirbooking_broker_get_occupant_quantity (self, g_ptr_array_index (tss->occupants, q), ES) / S[i]);
+                                MirbookingOccupant *occupant_q = g_ptr_array_index (tss->occupants, q);
+                                kother += occupant_q->score.kcat * (_mirbooking_broker_get_occupant_quantity (self, occupant_q, ES) / S[i]);
                             }
                         }
                     }
@@ -1147,17 +1135,9 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                 g_assert_cmpint (target_site->position, ==, seed_positions->positions[p]);
                 g_assert (occupant->mirna == mirna);
 
-                // The dissociation constant is derived from the duplex's Gibbs
-                // free energy
-                gdouble Kd = occupant->score;
-                gdouble Km = occupant->enzymatic_score;
-
-                g_assert_cmpfloat (Kd, >=, 0);
-                g_assert_cmpfloat (Km, >=, 0);
-
-                gdouble kf   = MIRBOOKING_SCORE_TABLE_DEFAULT_KF;
-                gdouble kr   = kf * Kd;
-                gdouble kcat = kf * (Km - Kd);
+                gdouble kf   = occupant->score.kf;
+                gdouble kr   = occupant->score.kr;
+                gdouble kcat = occupant->score.kcat;
 
                 gdouble Stp = S[i] * _mirbooking_broker_get_target_site_vacancy (self,
                                                                                  target_site,
@@ -1196,8 +1176,8 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                                 {
                                     if (abs (tss->positions[q] - seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
                                     {
-                                        // kcat is universal
-                                        kother += kcat * (ES[_mirbooking_broker_get_occupant_index (self, g_ptr_array_index (tss->occupants, q))] / S[i]);
+                                        MirbookingOccupant *occupant_q = g_ptr_array_index (tss->occupants, q);
+                                        kother += occupant_q->score.kcat * (ES[_mirbooking_broker_get_occupant_index (self, occupant_q)] / S[i]);
                                     }
                                 }
                             }
@@ -1248,8 +1228,8 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                             {
                                 if (abs (tss->positions[q] - seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
                                 {
-                                    // kcat is universal
-                                    kother += kcat * (ES[_mirbooking_broker_get_occupant_index (self, g_ptr_array_index (tss->occupants, q))] / S[i]);
+                                    MirbookingOccupant *occupant_q = g_ptr_array_index (tss->occupants, q);
+                                    kother += occupant->score.kcat * (ES[_mirbooking_broker_get_occupant_index (self, occupant_q)] / S[i]);
                                 }
                             }
                         }

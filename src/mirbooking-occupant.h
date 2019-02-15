@@ -3,6 +3,7 @@
 
 #include "mirbooking-mirna.h"
 #include "mirbooking-target.h"
+#include "mirbooking-score-table.h"
 
 #include <glib.h>
 
@@ -12,8 +13,7 @@ typedef struct _MirbookingOccupant
 {
     MirbookingTarget *target;
     MirbookingMirna *mirna;
-    gdouble          score;
-    gdouble          enzymatic_score;
+    MirbookingScore  score;
 } MirbookingOccupant;
 
 G_END_DECLS

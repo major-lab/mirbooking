@@ -95,18 +95,23 @@ RT = 1.987203611e-3 * 310.15
 
 class SimpleScoreTable(Mirbooking.ScoreTable):
     def do_compute_score(self, mirna, target, position):
+        score = Mirbooking.Score()
+        score.kf = 1
+        score.kr = float('inf')
+        score.kcat = 0
+
         # simple hamming distance
         if position > target.get_sequence_length() - 7:
-            return float('inf')
+            return True, score
 
         d = sum(1 if a == b else 0
                 for a, b in zip(reverse_complement(mirna.get_subsequence (1, 7)), target.get_subsequence (position, 7)))
 
         # at most 2 mismatch
         if d >= 5:
-            return 1e12 * exp(-d/RT)
-        else:
-            return float('inf')
+            score.kr = 1e12 * exp(-d/RT)
+
+        return True, score
 
 class MirbookingScoreTableTestCase(unittest.TestCase):
     def test_simple_score_table(self):
@@ -114,7 +119,7 @@ class MirbookingScoreTableTestCase(unittest.TestCase):
         ret, positions = score_table.compute_positions(mirna, target)
         self.assertTrue(ret)
         for p in positions:
-            self.assertTrue(score_table.compute_score(mirna, target, p) < float('inf'))
+            self.assertTrue(score_table.compute_score(mirna, target, p)[1].kr < float('inf'))
 
 class MirbookingBrokerTestCase(unittest.TestCase):
     def test_run(self):
