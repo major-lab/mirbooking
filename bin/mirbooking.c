@@ -722,6 +722,29 @@ main (gint argc, gchar **argv)
         g_debug ("Done reading accessibility scores in %lums", 1000 * (g_get_monotonic_time () - accessibility_read_begin) / G_USEC_PER_SEC);
     }
 
+    mirbooking_broker_evaluate (mirbooking, NULL, NULL);
+
+    // initialize the system using the 1D solution
+    GArray *occupants = mirbooking_broker_get_occupants (mirbooking);
+
+    guint i;
+    for (i = 0; i < occupants->len; i++)
+    {
+        const MirbookingOccupant *occupant = &g_array_index (occupants, MirbookingOccupant, i);
+
+        gdouble E0 = mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna));
+        gdouble S0 = mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->target));
+        gdouble Km = occupant->enzymatic_score;
+
+        gdouble Z = E0 + S0 + Km;
+
+        gdouble ES = ((Z - sqrt (pow (Z, 2) - 4 * E0 * S0)) / 2.0);
+
+        mirbooking_broker_set_occupant_quantity (mirbooking,
+                                                 occupant,
+                                                 ES);
+    }
+
     guint64 iteration = 0;
     guint64 iteration_begin, iteration_end, evaluate_begin, evaluate_end, step_begin, step_end;
     gdouble norm;

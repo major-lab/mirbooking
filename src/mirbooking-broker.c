@@ -169,8 +169,9 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
 }
 
 static void
-mirbooking_occupant_init (MirbookingOccupant* self, MirbookingMirna *mirna, gdouble score, gdouble enzymatic_score)
+mirbooking_occupant_init (MirbookingOccupant* self, MirbookingTarget *target, MirbookingMirna *mirna, gdouble score, gdouble enzymatic_score)
 {
+    self->target = g_object_ref (target);
     self->mirna = g_object_ref (mirna);
     self->score = score;
     self->enzymatic_score = enzymatic_score;
@@ -180,6 +181,7 @@ mirbooking_occupant_init (MirbookingOccupant* self, MirbookingMirna *mirna, gdou
 static void
 mirbooking_occupant_clear (MirbookingOccupant *self)
 {
+    g_object_unref (self->target);
     g_object_unref (self->mirna);
 }
 
@@ -198,7 +200,36 @@ _mirbooking_broker_get_occupant_quantity (MirbookingBroker *self, const Mirbooki
 gdouble
 mirbooking_broker_get_occupant_quantity (MirbookingBroker *self, const MirbookingOccupant *occupant)
 {
+    g_return_val_if_fail (self->priv->init, 0.0);
     return _mirbooking_broker_get_occupant_quantity (self, occupant, self->priv->ES);
+}
+
+/**
+ * mirbooking_broker_set_occupant_quantity:
+ * @self: A #MirbookingBroker
+ * @occupant: A #MirbookingOccupant previously obtained from #mirbooking_broker_get_target_sites
+ * @quantity: The new quantity of that occupant
+ *
+ * Set the concentration of an occupant to the given value and adjust the
+ * amount of free species accordingly.
+ */
+void
+mirbooking_broker_set_occupant_quantity (MirbookingBroker *self, const MirbookingOccupant *occupant, gdouble quantity)
+{
+    g_return_if_fail (self->priv->init);
+
+    guint i;
+    if (!g_ptr_array_find_with_equal_func (self->priv->mirnas, occupant->mirna, (GEqualFunc) mirbooking_sequence_equal, &i))
+    {
+        return;
+    }
+
+    gsize k = _mirbooking_broker_get_occupant_index (self, occupant);
+
+    // transfer the free microrna
+    gdouble diff = quantity - self->priv->ES[k];
+    self->priv->E[i] -= diff;
+    self->priv->ES[k] = quantity;
 }
 
 static void
@@ -435,8 +466,11 @@ mirbooking_broker_get_sequence_quantity (MirbookingBroker *self, MirbookingSeque
  * @sequence: A #MirbookingSequence being quantified for the
  * upcoming execution
  *
- * Note that no new sequence can be added once #mirbooking_broker_evaluate has
- * been called.
+ * Set the total concentration of a sequence to the given value and adjust the
+ * amount of free species in the system.
+ *
+ * Note that no new sequence can be added this way once
+ * #mirbooking_broker_evaluate has been called.
  */
 void
 mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSequence *sequence, gfloat quantity)
@@ -742,6 +776,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                                                                                           NULL);
 
                 mirbooking_occupant_init (&occupants[_k + p],
+                                          target_site->target,
                                           mirna,
                                           score,
                                           enzymatic_score);
@@ -1408,6 +1443,22 @@ mirbooking_broker_get_target_sites (MirbookingBroker *self)
     g_return_val_if_fail (self->priv->target_sites != NULL, NULL);
 
     return self->priv->target_sites;
+}
+
+/**
+ * mirbooking_broker_get_occupants:
+ *
+ * This is much faster to manipulate if the intent is to traverse all the
+ * complexes regardless of their actual location.
+ *
+ * Returns: (element-type MirbookingOccupant) (transfer none): A view over the
+ * occupants
+ */
+GArray *
+mirbooking_broker_get_occupants (MirbookingBroker *self)
+{
+    g_return_val_if_fail (self->priv->init, NULL);
+    return self->priv->occupants;
 }
 
 /**
