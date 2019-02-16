@@ -1434,7 +1434,7 @@ mirbooking_broker_step (MirbookingBroker         *self,
  * Returns: (element-type MirbookingTargetSite) (transfer none): A view of the
  * computed #MirbookingTargetSite
  */
-GArray *
+const GArray *
 mirbooking_broker_get_target_sites (MirbookingBroker *self)
 {
     g_return_val_if_fail (self != NULL, NULL);
@@ -1452,7 +1452,7 @@ mirbooking_broker_get_target_sites (MirbookingBroker *self)
  * Returns: (element-type MirbookingOccupant) (transfer none): A view over the
  * occupants
  */
-GArray *
+const GArray *
 mirbooking_broker_get_occupants (MirbookingBroker *self)
 {
     g_return_val_if_fail (self->priv->init, NULL);

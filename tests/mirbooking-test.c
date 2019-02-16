@@ -144,7 +144,7 @@ test_mirbooking ()
         g_assert_cmpfloat (norm, <=, last_norm);
         last_norm = norm;
 
-        GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
+        const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
         MirbookingTargetSite target_site = g_array_index (target_sites, MirbookingTargetSite, 0);
         MirbookingOccupant *occupant = target_site.occupants->data;
         gdouble ES = mirbooking_broker_get_occupant_quantity (mirbooking, occupant);
@@ -153,7 +153,7 @@ test_mirbooking ()
     }
     while (norm > 1e-6);
 
-    GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
+    const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
     MirbookingTargetSite target_site = g_array_index (target_sites, MirbookingTargetSite, 0);
 
@@ -249,7 +249,7 @@ test_mirbooking_numerical_integration ()
     g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
     g_assert (isfinite (norm));
 
-    GArray *target_sites = mirbooking_broker_get_target_sites (broker);
+    const GArray *target_sites = mirbooking_broker_get_target_sites (broker);
 
     MirbookingTargetSite target_site = g_array_index (target_sites, MirbookingTargetSite, 0);
 
@@ -304,7 +304,7 @@ test_mirbooking_solve_and_integrate ()
     g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
     g_assert (isfinite (norm));
 
-    GArray *target_sites = mirbooking_broker_get_target_sites (broker);
+    const GArray *target_sites = mirbooking_broker_get_target_sites (broker);
 
     MirbookingTargetSite target_site = g_array_index (target_sites, MirbookingTargetSite, 0);
 

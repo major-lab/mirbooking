@@ -358,7 +358,7 @@ write_output_to_tsv (MirbookingBroker *mirbooking,
                          "score\t"
                          "quantity\n");
 
-    GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
+    const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
     gfloat target_quantity = 0;
 
@@ -400,7 +400,7 @@ write_output_to_gff3 (MirbookingBroker *mirbooking, FILE *output_f)
 {
     g_fprintf (output_f, "##gff-version 3\n");
 
-    GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
+    const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
     gint i = 1;
 
