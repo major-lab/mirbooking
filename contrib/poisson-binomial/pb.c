@@ -49,21 +49,21 @@ pb_compute_pmf (PoissonBinomial *pb)
     fftw_free (in);
 #else
     pb->pmf[0] = 1;
-    int i;
+    size_t i;
     for (i = 0; i < pb->n; i++)
     {
         pb->pmf[0] *= (1 - pb->p[i]);
     }
 
-    int k;
+    size_t k;
     for (k = 1; k < pb->n + 1; k++)
     {
         double pk = 0;
-        int i;
+        size_t i;
         for (i = 0; i < k; i++)
         {
             double ti = 0;
-            int j;
+            size_t j;
             for (j = 0; j < pb->n; j++)
             {
                 ti += pow (pb->p[j] / (1 - pb->p[j]), i + 1);

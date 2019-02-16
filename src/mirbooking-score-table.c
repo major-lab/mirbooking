@@ -30,7 +30,7 @@ default_compute_positions (MirbookingScoreTable *self,
         if (err != NULL)
         {
             g_propagate_error (error, err);
-            return INFINITY;
+            return FALSE;
         }
 
         if (score < INFINITY)

@@ -419,8 +419,10 @@ mirbooking_default_score_table_get_property (GObject *object, guint property_id,
             break;
         case PROP_SUPPLEMENTARY_SCORES:
             g_value_set_boxed (value, MIRBOOKING_DEFAULT_SCORE_TABLE (object)->priv->supplementary_scores_bytes);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+            break;
     }
 }
 
