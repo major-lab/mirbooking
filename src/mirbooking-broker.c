@@ -452,11 +452,22 @@ mirbooking_broker_get_sequence_quantity (MirbookingBroker *self, MirbookingSeque
         if (g_ptr_array_find_with_equal_func (self->priv->targets, sequence, (GEqualFunc) mirbooking_sequence_equal, &i))
         {
             return self->priv->S[i];
-
         }
     }
 
     return gfloat_from_gpointer (g_hash_table_lookup (self->priv->quantification, sequence));
+}
+
+/**
+ * mirbooking_broker_get_product_quantity:
+ */
+gdouble
+mirbooking_broker_get_product_quantity (MirbookingBroker *self, MirbookingTarget *target)
+{
+    g_return_val_if_fail (self->priv->init, 0.0);
+    guint i;
+    g_return_val_if_fail (g_ptr_array_find_with_equal_func (self->priv->targets, target, (GEqualFunc) mirbooking_sequence_equal, &i), 0.0);
+    return self->priv->P[i];
 }
 
 /**
@@ -520,6 +531,15 @@ mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSeque
                          gpointer_from_gfloat (quantity));
 }
 
+/**
+ * mirbooking_broker_get_time:
+ *
+ * Get the time in seconds of the system.
+ *
+ * This is much more accurate to retrieve the time this way than to keep an
+ * external counter because of some numerical errors that can accumulate when
+ * stepping.
+ */
 gdouble
 mirbooking_broker_get_time (MirbookingBroker *self)
 {
@@ -1424,6 +1444,42 @@ mirbooking_broker_step (MirbookingBroker         *self,
     }
 
     return TRUE;
+}
+
+/**
+ * mirbooking_broker_get_target_transcription_rate:
+ *
+ * Get the rate of transcription of the given #MirbookingTarget.
+ *
+ * This is resolved when stepping with @MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE
+ * using the steady-state assumption.
+ */
+gdouble
+mirbooking_broker_get_target_transcription_rate (MirbookingBroker *self,
+                                                 MirbookingTarget *target)
+{
+    g_return_val_if_fail (self->priv->init, 0.0);
+    guint i;
+    g_return_val_if_fail (g_ptr_array_find_with_equal_func (self->priv->targets, target, (GEqualFunc) mirbooking_sequence_equal, &i), 0);
+    return self->priv->ktr[i];
+}
+
+/**
+ * mirbooking_broker_get_product_degradation_rate:
+ *
+ * Get the rate of product degradation.
+ *
+ * This is resolved when stepping with @MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE
+ * using the steady-state assumption.
+ */
+gdouble
+mirbooking_broker_get_product_degradation_rate (MirbookingBroker *self,
+                                                MirbookingTarget *target)
+{
+    g_return_val_if_fail (self->priv->init, 0.0);
+    guint i;
+    g_return_val_if_fail (g_ptr_array_find_with_equal_func (self->priv->targets, target, (GEqualFunc) mirbooking_sequence_equal, &i), 0);
+    return self->priv->kdeg[i];
 }
 
 /**

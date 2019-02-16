@@ -90,6 +90,13 @@ gdouble *              mirbooking_broker_get_target_occupants_pmf (MirbookingBro
                                                                    MirbookingTarget  *target,
                                                                    gsize             *pmf_len);
 
+gdouble                mirbooking_broker_get_product_quantity          (MirbookingBroker *self,
+                                                                        MirbookingTarget *target);
+gdouble                mirbooking_broker_get_target_transcription_rate (MirbookingBroker *self,
+                                                                        MirbookingTarget *target);
+gdouble                mirbooking_broker_get_product_degradation_rate  (MirbookingBroker *self,
+                                                                        MirbookingTarget *target);
+
 G_END_DECLS
 
 #endif /* __MIRBOOKING_BROKER_H__ */

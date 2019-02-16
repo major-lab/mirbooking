@@ -153,6 +153,15 @@ test_mirbooking ()
     }
     while (norm > 1e-6);
 
+    // at steady-state, the system is closed so we get equal incoming,
+    // catalyzing and outgoing product
+    gdouble ktr = mirbooking_broker_get_target_transcription_rate (mirbooking, target);
+    gdouble kdeg = mirbooking_broker_get_product_degradation_rate (mirbooking, target);
+    g_assert_cmpfloat (ktr, >, 0);
+    g_assert_cmpfloat (kdeg, >, 0);
+    g_assert_cmpfloat (ktr, ==, kdeg);
+    g_assert_cmpfloat (mirbooking_broker_get_product_quantity (mirbooking, target), ==, 0);
+
     const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
     MirbookingTargetSite target_site = g_array_index (target_sites, MirbookingTargetSite, 0);
@@ -164,15 +173,12 @@ test_mirbooking ()
 
     g_assert_cmpfloat (occupant->score, ==, 1e12 * exp ((-9.0f - 5.90f) / (R*T)));
 
-    /* analytical solution for a single reaction */
-    gdouble kf = MIRBOOKING_SCORE_TABLE_DEFAULT_KF;
-    gdouble kr = kf * occupant->score;
-    gdouble kcat = MIRBOOKING_SCORE_TABLE_DEFAULT_KCAT;
-    gdouble z = kf * (E0 + S0) + kr + kcat;
-
     gdouble ES = mirbooking_broker_get_occupant_quantity (mirbooking, occupant);
-    gdouble ES_eq = (z - sqrt (pow (z, 2) - 4 * pow (kf, 2) * E0 * S0)) / (2 * kf);
-    g_assert_cmpfloat (fabs (ES_eq - ES), <, 1e-8);
+
+    /* analytical solution for a single reaction */
+    gdouble Z = E0 + S0 + occupant->enzymatic_score;
+    gdouble ES_eq = (Z - sqrt (pow (Z, 2) - 4 * E0 * S0)) / 2;
+    g_assert_cmpfloat (fabs (ES_eq - ES), <, 1e-6);
 
     gsize pmf_len;
     g_autofree gdouble *pmf = mirbooking_broker_get_target_occupants_pmf (mirbooking, target, &pmf_len);
@@ -323,18 +329,31 @@ test_mirbooking_solve_and_integrate ()
     while (norm > 1e-6);
 
     gdouble ES = mirbooking_broker_get_occupant_quantity (broker, occupant);
+    g_assert_cmpfloat (ES, >=, 0);
+    g_assert_cmpfloat (ES, <=, 10);
 
-    g_assert_cmpfloat (ES, >, 0);
+    // integrating at steady-state must preserve the steady-state
+    gdouble ktr = mirbooking_broker_get_target_transcription_rate (broker, target);
+    gdouble kdeg = mirbooking_broker_get_product_degradation_rate (broker, target);
+    g_assert_cmpfloat (ktr, >, 0);
+    g_assert_cmpfloat (kdeg, >, 0);
+    g_assert_cmpfloat (ktr, ==, kdeg);
+    g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 1.0, &error));
+    g_assert_cmpfloat (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna)), ==, 10);
+    g_assert_cmpfloat (fabs (mirbooking_broker_get_occupant_quantity (broker, occupant) - ES), <=, 1e-4);
+    mirbooking_broker_evaluate (broker, &norm, &error);
+    g_assert_cmpfloat (norm, <=, 1e-3);
 
-    // over-expression of MIMAT (10 -> 20)
+    // over-expression of MIMAT0000001 (10 -> 20)
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 20);
+    g_assert_cmpfloat (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna)), ==, 20);
 
     mirbooking_broker_evaluate (broker, &norm, &error);
     g_assert_cmpfloat (norm, >, 1e-6);
 
     gint i;
     gdouble step_size = 1;
-    for (i = 0; i < 10; i++)
+    for (i = 1; i < 10; i++)
     {
         g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
         g_assert_null (error);
@@ -348,8 +367,62 @@ test_mirbooking_solve_and_integrate ()
 
         gdouble ES = mirbooking_broker_get_occupant_quantity (broker, occupant);
 
-        g_assert_cmpfloat (ES, <, 20);
+        g_assert_cmpfloat (ES, >=, 0);
+        g_assert_cmpfloat (ES, <=, 10);
     }
+
+    // some of the substrate will have degraded
+    gdouble S = mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target));
+    gdouble P = mirbooking_broker_get_product_quantity (broker, target);
+    g_assert_cmpfloat (P, >, 0);
+    g_assert_cmpfloat (S, <, 10);
+    g_assert_cmpfloat (fabs(S + P - 10.0), <=, 1e-6);
+}
+
+static void
+test_mirbooking_set_occupant_quantity ()
+{
+    g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
+
+    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
+    mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
+
+    g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
+    g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
+
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GCACACA");
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE);
+
+    mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
+    mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
+
+    gdouble norm;
+    GError *error = NULL;
+    g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
+    g_assert (isfinite (norm));
+
+    const GArray *occupants = mirbooking_broker_get_occupants (broker);
+    MirbookingOccupant *occupant = &g_array_index (occupants, MirbookingOccupant, 0);
+
+    mirbooking_broker_set_occupant_quantity (broker, occupant, 10);
+    g_assert_cmpfloat (mirbooking_broker_get_occupant_quantity (broker, occupant), ==, 10);
+
+    do
+    {
+        mirbooking_broker_evaluate (broker, &norm, &error);
+        g_assert_null (error);
+        mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1.0, &error);
+        g_assert_null (error);
+    }
+    while (norm > 1e-6);
+
+    // ensure that we converge to the same equilibrium point
+    gdouble ES = mirbooking_broker_get_occupant_quantity (broker, occupant);
+    gdouble Z = 10 + 10 + occupant->enzymatic_score;
+    gdouble ES_eq = (Z - sqrt (pow (Z, 2) - 4 * 10 * 10)) / 2;
+
+    g_assert_cmpfloat (fabs (ES - ES_eq), <=, 1e-6);
 }
 
 gint
@@ -362,6 +435,7 @@ main (gint argc, gchar **argv)
     g_test_add_func ("/mirbooking/bad-seed-range", test_mirbooking_bad_seed_range);
     g_test_add_func ("/mirbooking/numerical-integration", test_mirbooking_numerical_integration);
     g_test_add_func ("/mirbooking/solve-and-integrate", test_mirbooking_solve_and_integrate);
+    g_test_add_func ("/mirbooking/set-occupant-quantity", test_mirbooking_set_occupant_quantity);
 
     return g_test_run ();
 }
