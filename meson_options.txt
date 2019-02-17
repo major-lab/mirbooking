@@ -7,6 +7,7 @@ option('with_superlu_mt', type: 'boolean', value: false)
 option('with_umfpack', type: 'boolean', value: false)
 option('with_mkl_dss', type: 'boolean', value: false)
 option('with_mkl_cluster', type: 'boolean', value: false)
+option('with_pardiso', type: 'boolean', value: false)
 
 # Intel MKL
 option('mkl_root', type: 'string')

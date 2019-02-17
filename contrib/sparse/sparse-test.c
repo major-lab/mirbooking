@@ -21,7 +21,7 @@ main (void)
     double x[2] = {0, 0};
     double b[2] = {1, 1};
 
-    SparseSolver *solver = sparse_solver_new (SPARSE_SOLVER_METHOD_SUPERLU);
+    SparseSolver *solver = sparse_solver_new (SPARSE_SOLVER_METHOD_PARDISO);
     assert (solver);
     assert (sparse_solver_solve (solver,
                                  &J,

@@ -118,6 +118,7 @@ machine on supported solvers (i.e. `mkl-cluster`) by specifying `-Dwith_mpi=true
 | cuSOLVER    | `-Dcuda_root=<path to cuda> -Dwith_cusolver=true`                                  |
 | MKL DSS     | `-Dwith_mkl-true -Dmkl_root=<path to mkl> -Dwith_mkl_dss=true`                     |
 | MKL Cluster | `-Dwith_mpi=true -Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_cluster=true` |
+| PARDISO     | `-Dwith_pardiso=true`                                                              |
 
 MKL DSS and MKL Cluster can benefit from [TBB](https://www.threadingbuildingblocks.org/)
 instead of OpenMP, which can be enabled with `-Dwith_mkl_tbb=true`.
@@ -125,6 +126,8 @@ instead of OpenMP, which can be enabled with `-Dwith_mkl_tbb=true`.
 MKL DSS and MKL Cluster can be used with the 64 bit interface, allowing much
 larger systems to be solved with `-Dwith_mkl_ilp64=true`. However, this will
 break other solvers as it will load a 64 bit BLAS.
+
+PARDISO cannot be used along with MKL DSS because they define common symbols.
 
 ## Numerical integration
 

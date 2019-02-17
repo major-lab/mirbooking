@@ -14,6 +14,7 @@ mirbooking_broker_sparse_solver_get_type (void)
             {3, "MKL_DSS",  "mkl-dss"},
             {4, "MKL_CLUSTER", "mkl-cluster"},
             {5, "CUSOLVER", "cusolver"},
+            {6, "PARDISO",  "pardiso"},
             {0, NULL,       NULL}
         };
 

@@ -22,6 +22,7 @@ DECLARE_SOLVER(umfpack)
 DECLARE_SOLVER(mkl_dss)
 DECLARE_SOLVER(mkl_cluster)
 DECLARE_SOLVER(cusolver)
+DECLARE_SOLVER(pardiso)
 
 static size_t
 _size_for_type (SparseMatrixType type)
@@ -264,16 +265,19 @@ sparse_solver_new (SparseSolverMethod method)
             PREPARE_SOLVER(SUPERLU_MT,superlu_mt)
 #endif
 #if HAVE_UMFPACK
-            PREPARE_SOLVER(UMFPACK,umfpack);
+            PREPARE_SOLVER(UMFPACK,umfpack)
 #endif
 #if HAVE_MKL_DSS
-            PREPARE_SOLVER(MKL_DSS,mkl_dss);
+            PREPARE_SOLVER(MKL_DSS,mkl_dss)
 #endif
 #if HAVE_MKL_CLUSTER
-            PREPARE_SOLVER(MKL_CLUSTER,mkl_cluster);
+            PREPARE_SOLVER(MKL_CLUSTER,mkl_cluster)
 #endif
 #if HAVE_CUSOLVER
             PREPARE_SOLVER(CUSOLVER,cusolver)
+#endif
+#if HAVE_PARDISO
+            PREPARE_SOLVER(PARDISO,pardiso)
 #endif
         default:
             return NULL;

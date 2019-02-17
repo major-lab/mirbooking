@@ -55,6 +55,16 @@ if get_option('with_cusolver')
     sparse_solvers_deps += cusolver_dep
 endif
 
+if get_option('with_pardiso')
+    pardiso_openmp_dep = dependency('openmp')
+    gfortran_lib = meson.get_compiler('c').find_library('gfortran')
+    pardiso_lib = meson.get_compiler('c').find_library('pardiso')
+    pardiso_dep = declare_dependency(dependencies: [gfortran_lib, pardiso_lib, pardiso_openmp_dep])
+    sparse_solvers_sources += 'sparse-pardiso.c'
+    sparse_solvers_deps += pardiso_dep
+    sparse_solvers_compile_args += ['-DHAVE_PARDISO']
+endif
+
 sparse_lib = static_library('sparse', ['sparse.c'] + sparse_solvers_sources,
                      c_args: sparse_solvers_compile_args,
                      dependencies: sparse_solvers_deps)
