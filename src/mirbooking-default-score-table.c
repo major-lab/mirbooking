@@ -314,7 +314,15 @@ compute_score (MirbookingScoreTable *score_table,
                                             SEED_OFFSET + SEED_LENGTH + 6,
                                             3);
 
-            // TODO: D box (remaining nucleotides)
+            // D box
+            // TODO: consider all remaining nucleotides
+            D_box = _get_subsequence_score (&self->priv->supplementary_scores,
+                                            mirna,
+                                            target,
+                                            position,
+                                            5,
+                                            SEED_OFFSET + SEED_LENGTH + 9,
+                                            3);
 
             // AAA::UUU
             gfloat mismatch_threshold = -1e-8; // sparse_matrix_get_float (&self->priv->supplementary_scores, 0, 63);
