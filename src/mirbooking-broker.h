@@ -79,6 +79,8 @@ gboolean               mirbooking_broker_step                    (MirbookingBrok
                                                                   gdouble                    step_size,
                                                                   GError                   **error);
 const GArray *         mirbooking_broker_get_target_sites        (MirbookingBroker *self);
+const GPtrArray *      mirbooking_broker_get_mirnas              (MirbookingBroker *self);
+const GPtrArray *      mirbooking_broker_get_targets             (MirbookingBroker *self);
 const GArray *         mirbooking_broker_get_occupants           (MirbookingBroker *self);
 gdouble                mirbooking_broker_get_occupant_quantity   (MirbookingBroker         *self,
                                                                   const MirbookingOccupant *occupant);

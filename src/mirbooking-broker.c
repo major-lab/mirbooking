@@ -1480,6 +1480,28 @@ mirbooking_broker_get_target_sites (MirbookingBroker *self)
 }
 
 /**
+ * mirbooking_broker_get_mirnas:
+ *
+ * Returns: (element-type MirbookingMirna) (transfer none):
+ */
+const GPtrArray *
+mirbooking_broker_get_mirnas (MirbookingBroker *self)
+{
+    return self->priv->mirnas;
+}
+
+/**
+ * mirbooking_broker_get_targets:
+ *
+ * Returns: (element-type MirbookingTarget) (transfer none):
+ */
+const GPtrArray *
+mirbooking_broker_get_targets (MirbookingBroker *self)
+{
+    return self->priv->mirnas;
+}
+
+/**
  * mirbooking_broker_get_occupants:
  *
  * This is much faster to manipulate if the intent is to traverse all the
