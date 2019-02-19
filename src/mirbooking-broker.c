@@ -1498,7 +1498,7 @@ mirbooking_broker_get_mirnas (MirbookingBroker *self)
 const GPtrArray *
 mirbooking_broker_get_targets (MirbookingBroker *self)
 {
-    return self->priv->mirnas;
+    return self->priv->targets;
 }
 
 /**
