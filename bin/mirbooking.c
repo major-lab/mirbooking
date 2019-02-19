@@ -725,8 +725,6 @@ main (gint argc, gchar **argv)
         g_debug ("Done reading accessibility scores in %lums", 1000 * (g_get_monotonic_time () - accessibility_read_begin) / G_USEC_PER_SEC);
     }
 
-    mirbooking_broker_evaluate (mirbooking, NULL, NULL);
-
     guint64 iteration = 0;
     guint64 iteration_begin, iteration_end, evaluate_begin, evaluate_end, step_begin, step_end;
     gdouble norm;
