@@ -170,9 +170,10 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
 }
 
 static void
-mirbooking_occupant_init (MirbookingOccupant* self, MirbookingTarget *target, MirbookingMirna *mirna, MirbookingScore score)
+mirbooking_occupant_init (MirbookingOccupant* self, MirbookingTarget *target, gsize position, MirbookingMirna *mirna, MirbookingScore score)
 {
     self->target = g_object_ref (target);
+    self->position = position;
     self->mirna = g_object_ref (mirna);
     self->score = score;
 }
@@ -779,6 +780,8 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
             {
                 MirbookingTargetSite *target_site = &target_sites[seed_positions->positions[p]];
 
+                g_assert_cmpint (target_site->position, ==, seed_positions->positions[p]);
+
                 MirbookingScore score;
                 mirbooking_score_table_compute_score (self->priv->score_table,
                                                       mirna,
@@ -789,6 +792,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
 
                 mirbooking_occupant_init (&occupants[_k + p],
                                           target_site->target,
+                                          seed_positions->positions[p],
                                           mirna,
                                           score);
 

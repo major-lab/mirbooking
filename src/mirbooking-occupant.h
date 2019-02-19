@@ -12,8 +12,9 @@ G_BEGIN_DECLS
 typedef struct _MirbookingOccupant
 {
     MirbookingTarget *target;
-    MirbookingMirna *mirna;
-    MirbookingScore  score;
+    gsize             position;
+    MirbookingMirna  *mirna;
+    MirbookingScore   score;
 } MirbookingOccupant;
 
 G_END_DECLS
