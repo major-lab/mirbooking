@@ -8,7 +8,7 @@ foreach name : mirbooking_tests
 endforeach
 
 if get_option('with_introspection')
-    test('gi', python3_bin,
+    test('gi', python3,
          args: [join_paths(meson.current_source_dir(), 'gi-test.py')],
          env: ['GI_TYPELIB_PATH=@0@'.format(join_paths(meson.current_build_dir(), '../src')),
                'LD_LIBRARY_PATH=@0@'.format(join_paths(meson.current_build_dir(), '../src')),
