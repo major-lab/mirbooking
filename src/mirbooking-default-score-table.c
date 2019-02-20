@@ -324,25 +324,24 @@ compute_score (MirbookingScoreTable *score_table,
                                             SEED_OFFSET + SEED_LENGTH + 9,
                                             3);
 
-            // AAA::UUU
-            gfloat mismatch_threshold = -1e-8; // sparse_matrix_get_float (&self->priv->supplementary_scores, 0, 63);
+            gfloat mismatch_threshold = 0.0f;
 
-            if (B_box <= mismatch_threshold)
+            if (B_box < mismatch_threshold)
             {
                 supplementary_score += B_box;
             }
 
-            if (B_box <= mismatch_threshold && C_box <= mismatch_threshold)
+            if (B_box < mismatch_threshold && C_box < mismatch_threshold)
             {
                 supplementary_score += C_box;
             }
 
-            if (A_box <= mismatch_threshold && B_box <= mismatch_threshold && C_box <= mismatch_threshold)
+            if (A_box < mismatch_threshold && B_box < mismatch_threshold && C_box <= mismatch_threshold)
             {
                 supplementary_score += A_box;
             }
 
-            if (A_box <= mismatch_threshold && B_box <= mismatch_threshold && C_box <= mismatch_threshold && D_box <= mismatch_threshold)
+            if (A_box < mismatch_threshold && B_box < mismatch_threshold && C_box < mismatch_threshold && D_box < mismatch_threshold)
             {
                 supplementary_score += D_box;
             }

@@ -15,17 +15,17 @@ typedef struct __attribute__ ((packed)) _SeedScoreLayout
     gsize  n;
     gsize  nnz;
     gsize  rowptr[16384 + 1];
-    gsize  colind[10];
-    gfloat data[10];
+    gsize  colind[11];
+    gfloat data[11];
 } SeedScoreLayout;
 
 static SeedScoreLayout SEED_SCORES =
 {
     16384,
-    10,
-    {[657] = 0, [658] = 1, [8882] = 1, [8883] = 8, [12152] = 8, [12153] = 9, [13391] = 9, [13392] = 10},
-    {11871,  3228,   4370,   4371,   4372,   7261,   7421,   9284,   13441,  952},
-    {-9.79f, -2.12f, -20.0f, -19.0f, -18.0f, -9.37f, -4.28f, -19.0f, -7.79f, -6.34f}, // FIXME: 7.79f is incorrect
+    11,
+    {[657] = 0, [658] = 2, [8882] = 2, [8883] = 9, [12152] = 9, [12153] = 10, [13391] = 10, [13392] = 11},
+    {11871,  11927, 3228,   4370,  4371,   4372,   7261,   7421,   9284,   13441,  952},
+    {-9.79f, -6.30, -2.12f, -0.77, -19.0f, -18.0f, -9.37f, -4.28f, -1.07f, -7.79f, -6.34f},
 };
 
 typedef struct __attribute__ ((packed)) _SupplementaryScore3Layout
@@ -55,8 +55,8 @@ static SupplementaryScore3Layout SUPPLEMENTARY_SCORES =
         [50] = 12, [51] = 13,
         [56] = 13, [57] = 14
     },
-    {63,   52,  9,   6,   2,     2,   33,  6,     9,     9,      49,  1,   28,  52},
-    {2.05, 0.0, 0.0, 0.0, 1.16f, 0.0, 0.0, 1.20f, 1.96f, -1.11f, 0.0, 0.0, 0.0, -0.04}
+    {63,   52,   9,    6,     2,     2,     33,  6,     9,     9,      49,  1,   28,  52},
+    {2.05, 4.16, 1.96, -0.33, 1.16f, 999.0, 0.0, 1.20f, -0.82, -1.11f, 0.0, 0.0, 0.0, -0.04}
 };
 
 typedef struct __attribute__ ((packed)) _SupplementaryScore4Layout
@@ -74,7 +74,7 @@ static SupplementaryScore4Layout SUPPLEMENTARY_SCORES_4 =
     5,
     {[251] = 0, [252] = 5},
     {0,     16,     63,    96,    239},
-    {1.58f, -0.83f, 2.63f, 0.29f, 0.0f},
+    {1.58f, -0.83f, 2.63f, 0.29f, 2.78f},
 };
 
 static void
@@ -106,7 +106,7 @@ test_score_table_compute_seed_score ()
                                           &site_score,
                                           &error);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (site_score), ==, 1e12 * exp ((-20.0f - 5.90f - 0.56f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (site_score), ==, 1e12 * exp ((-0.77f - 5.90f - 0.56f) / (R * T)));
     g_assert_null (error);
 }
 
@@ -145,9 +145,9 @@ test_score_table_compute_seed_scores ()
     g_assert_cmpint (positions_len, ==, 2);
     MirbookingScore score;
     mirbooking_score_table_compute_score (score_table, mirna, target, positions[0], &score, NULL);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-19.0f - 5.90f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-1.07f - 5.90f) / (R * T)));
     mirbooking_score_table_compute_score (score_table, mirna, target, positions[1], &score, NULL);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-20.0f - 5.90f - 0.56f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.77f - 5.90f - 0.56f) / (R * T)));
     g_assert_null (error);
 }
 
