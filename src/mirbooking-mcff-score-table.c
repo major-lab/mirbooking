@@ -1,20 +1,15 @@
 #include "mirbooking-mcff-score-table.h"
+#include "mirbooking-score-table-private.h"
 
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 
-#define R 1.987203611e-3
-#define T 310.15
-
-#define KF   2.4e-4 // pM^-1s^-1
-#define KCAT 3.6e-2 // s^-1
-
 /*
  * See @MirbookingDefaultScoreTable for the detail of the computation. Here,
  * mcff returned -19.765 kcal/mol.
  */
-#define AGO2_SCORE (4.40f)
+#define MCFF_AGO2_SCORE (AGO2_SCORE + 10.3f)
 
 struct _MirbookingMcffScoreTable
 {
@@ -49,37 +44,37 @@ compute_score (MirbookingScoreTable  *score_table,
                MirbookingScore       *score,
                GError               **error)
 {
-    gchar mirna_seq[9]  = {0};
-    gchar target_seq[9] = {0};
+    gchar mirna_seq[SEED_LENGTH + 2]  = {0};
+    gchar target_seq[SEED_LENGTH + 2] = {0};
 
     MirbookingScore ret = {.kf = KF, .kcat = KCAT};
 
-    if (1 + 7 > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (mirna)))
+    if (SEED_OFFSET + SEED_LENGTH > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (mirna)))
     {
         ret.kr = INFINITY;
         *score = ret;
         return TRUE;
     }
 
-    if (position + 7 > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)))
+    if (position + SEED_LENGTH > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)))
     {
         ret.kr = INFINITY;
         *score = ret;
         return TRUE;
     }
 
-    memcpy (mirna_seq + 1, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), 1, 7), 7);
-    memcpy (target_seq, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position, 7), 7);
+    memcpy (mirna_seq + 1, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), SEED_OFFSET, SEED_LENGTH), SEED_LENGTH);
+    memcpy (target_seq, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position, SEED_LENGTH), SEED_LENGTH);
 
     // dangling end
-    target_seq[7] = 'A';
+    target_seq[SEED_LENGTH] = 'A';
     mirna_seq[0]  = 'A';
 
     // ensure we have a leading 4mer
     guint i;
     for (i = 0; i < 4; i++)
     {
-        if (mirna_seq[1 + i] != rc (target_seq[6 - i]))
+        if (mirna_seq[SEED_OFFSET + i] != rc (target_seq[SEED_LENGTH - 1 - i]))
         {
             ret.kr = INFINITY;
             *score = ret;
@@ -115,7 +110,7 @@ compute_score (MirbookingScoreTable  *score_table,
     gfloat mfe;
     sscanf (standard_output, "%f", &mfe);
 
-    ret.kr = ret.kf * (1e12 * exp ((mfe + AGO2_SCORE) / (R * T)));
+    ret.kr = ret.kf * (1e12 * exp ((mfe + MCFF_AGO2_SCORE) / (R * T)));
 
     *score = ret;
 

@@ -1,66 +1,8 @@
 #include "mirbooking-default-score-table.h"
+#include "mirbooking-score-table-private.h"
 
 #include <math.h>
 #include <sparse.h>
-
-#define R 1.987203611e-3
-#define T 310.15
-
-#define SEED_OFFSET 1
-#define SEED_LENGTH 7
-
-/**
- * MIRBOOKING_SCORE_TABLE_DEFAULT_KF:
- *
- * Forward rate constant for the [E] + [S] -> [ES] reaction, which is
- * indistinguishable from seed types or supplementary bindings (Wee et al. 2012
- * and Salomon et al. 2015). We picked the value from the latest publication
- * for the seed-only setup.
- *
- * Reference:
- * Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into Domains
- * with Distinct Functions and RNA-Binding Properties,” Cell 151, no. 5
- * (November 21, 2012): 1055–67, https://doi.org/10.1016/j.cell.2012.10.036.
- *
- * William E. Salomon et al., “Single-Molecule Imaging Reveals That Argonaute
- * Reshapes the Binding Properties of Its Nucleic Acid Guides,” Cell 162, no. 1
- * (July 2, 2015): 84–95, https://doi.org/10.1016/j.cell.2015.06.029.
- */
-#define KF   2.4e-4 // pM^-1s^-1
-#define KCAT 3.6e-2 // s^-1
-
-/*
- * For the duplex: 'CUACCUC&GAGGUAG', ViennaRNA reports a binding energy of
- * -9.37 kcal/mol.
- *
- * Wee et al. measured a dissociation constant for a mouse Ago2 protein
- * carrying a guide miRNA with only the seed pairing of 26±2 pM, which
- * correspond to a free energy of -15.02 kcal/mol.
- *
- * On the other hand, Salomon et al. instead measured 15±2 pm, which correspond
- * to -15.36 kcal/mol.
- *
- * In addition, the seed setup experiment in both experiments had 'A', which
- * shoudld account for a -0.56 kcal/mol additional contribution (Schirle et al. 2015).
- *
- * Using RNAup, we folded the reporter with the seed-only sequence which
- * yielded a 0.466 kcal/mol penalty to "open" a 17 nucleotides window around
- * the seed.
- *
- * We thus the latest value and impute the -5.90 kcal/mol gap to AGO2 entropic
- * contribution.
- *
- * Reference:
- * Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into
- * Domains with Distinct Functions and RNA-Binding Properties,” Cell 151, no. 5
- * (November 21, 2012): 1055–67, https://doi.org/10.1016/j.cell.2012.10.036.
- *
- * Nicole T Schirle et al., “Water-Mediated Recognition of T1-Adenosine Anchors
- * Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4 (September
- * 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
- */
-
-#define AGO2_SCORE (-5.90f)
 
 typedef struct
 {
@@ -217,19 +159,13 @@ compute_score (MirbookingScoreTable *score_table,
 {
     MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
 
-    /*
-     * AGO2 has a slight preference for sites starting with 'A' at position t1.
-     *
-     * Reference:
-     * Nicole T Schirle et al., “Water-Mediated Recognition of T1-Adenosine
-     * Anchors Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4
-     * (September 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
-     */
+    MirbookingScore ret = {.kf = KF, .kcat = KCAT};
+
     gfloat A_score = 0.0f;
     if (position + SEED_LENGTH + 1 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
         *mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + SEED_LENGTH, 1) == 'A')
     {
-        A_score = -0.56f;
+        A_score = T1_ADENOSINE_SCORE;
     }
 
     gfloat seed_score = _get_subsequence_score (&self->priv->seed_scores,
@@ -240,24 +176,13 @@ compute_score (MirbookingScoreTable *score_table,
                                                 SEED_OFFSET,
                                                 SEED_LENGTH);
 
-    /*
-     * We allow a 'G' nucleation bulge at position t5.
-     *
-     * There's a penalty of 1.2 kcal/mol for this non-canonical motif that was
-     * taken from the authors free energy estimates.
-     *
-     * Reference:
-     * Sung Wook Chi, Gregory J. Hannon, and Robert B. Darnell, “An Alternative
-     * Mode of MicroRNA Target Recognition,” Nature Structural & Molecular
-     * Biology 19, no. 3 (March 2012): 321–27, https://doi.org/10.1038/nsmb.2230.
-     */
     if (is_g_bulge (target, position))
     {
         gsize i, j;
         i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), SEED_OFFSET, SEED_LENGTH);
         j = (1l << (2 * 4)) * mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, 3) +
             mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position + 4, 4);
-        seed_score = MIN (seed_score, sparse_matrix_get_float (&self->priv->seed_scores, i, j) + 1.2f);
+        seed_score = MIN (seed_score, sparse_matrix_get_float (&self->priv->seed_scores, i, j) + G_BULGED_SEED_SCORE);
     }
 
     gfloat supplementary_score = 0;
@@ -350,7 +275,8 @@ compute_score (MirbookingScoreTable *score_table,
 
     gdouble Kd = 1e12 * exp ((A_score + seed_score + supplementary_score + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE) / (R * T));
 
-    MirbookingScore ret = {KF, KF * Kd, KCAT};
+    ret.kr = ret.kf * Kd;
+
     *score = ret;
 
     return TRUE;
