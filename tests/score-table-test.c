@@ -166,7 +166,7 @@ test_score_table_mcff ()
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT");
 
-    gchar *target_seq = "GCACACAGAGCAGCATAAAGCCCAGTTGCTTTGGGAAGTGTTTGGGACCAGATGGATTGT";
+    gchar *target_seq = "AGGGAGTAGGGTACAATACAGTCTGTTCTCCTCCAGCTCCTTCTTTCTGCAACATGGGGA";
     gchar *mirna_seq = "UGAGGUAGUAGGUUGUAUAGUU";
 
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), target_seq);
@@ -174,15 +174,25 @@ test_score_table_mcff ()
 
     // test for a seed
     g_autoptr (GError) error = NULL;
+    gsize *positions;
+    gsize  positions_len;
+    g_assert (mirbooking_score_table_compute_positions (MIRBOOKING_SCORE_TABLE (score_table),
+                                                        mirna,
+                                                        target,
+                                                        &positions,
+                                                        &positions_len,
+                                                        &error));
+
+
     MirbookingScore site_score;
     g_assert (mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
-                                                    mirna,     // GAGGUAG =>
-                                                    target, 1, // CACACAG =>
+                                                    mirna,
+                                                    target, 26,
                                                     &site_score,
                                                     &error));
 
     g_assert_null (error);
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (site_score), 1e12 * exp ((-7.691f + 4.40f) / (R * T)), 1e-6);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (site_score), 1e12 * exp ((-13.940f + 4.40f) / (R * T)), 1e-6);
 }
 
 /**

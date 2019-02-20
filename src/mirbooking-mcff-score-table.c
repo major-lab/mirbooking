@@ -23,6 +23,24 @@ struct _MirbookingMcffScoreTable
 
 G_DEFINE_TYPE (MirbookingMcffScoreTable, mirbooking_mcff_score_table, MIRBOOKING_TYPE_SCORE_TABLE)
 
+static gchar
+rc (gchar c)
+{
+    switch (c)
+    {
+        case 'A':
+            return 'T';
+        case 'C':
+            return 'G';
+        case 'G':
+            return 'C';
+        case 'T':
+            return 'A';
+        default:
+            g_assert_not_reached ();
+    }
+}
+
 static gboolean
 compute_score (MirbookingScoreTable  *score_table,
                MirbookingMirna       *mirna,
@@ -34,12 +52,40 @@ compute_score (MirbookingScoreTable  *score_table,
     gchar mirna_seq[9]  = {0};
     gchar target_seq[9] = {0};
 
+    MirbookingScore ret = {.kf = KF, .kcat = KCAT};
+
+    if (1 + 7 > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (mirna)))
+    {
+        ret.kr = INFINITY;
+        *score = ret;
+        return TRUE;
+    }
+
+    if (position + 7 > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)))
+    {
+        ret.kr = INFINITY;
+        *score = ret;
+        return TRUE;
+    }
+
     memcpy (mirna_seq + 1, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna), 1, 7), 7);
-    memcpy (target_seq, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position, position + 7), 7);
+    memcpy (target_seq, mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position, 7), 7);
 
     // dangling end
     target_seq[7] = 'A';
     mirna_seq[0]  = 'A';
+
+    // ensure we have a leading 4mer
+    guint i;
+    for (i = 0; i < 4; i++)
+    {
+        if (mirna_seq[1 + i] != rc (target_seq[6 - i]))
+        {
+            ret.kr = INFINITY;
+            *score = ret;
+            return TRUE;
+        }
+    }
 
     gchar *argv[] = {"mcff", "-seq", target_seq, "-zzd", mirna_seq, NULL};
 
@@ -69,7 +115,8 @@ compute_score (MirbookingScoreTable  *score_table,
     gfloat mfe;
     sscanf (standard_output, "%f", &mfe);
 
-    MirbookingScore ret = {KF, KF * (1e12 * exp ((mfe + AGO2_SCORE) / (R * T))), KCAT};
+    ret.kr = ret.kf * (1e12 * exp ((mfe + AGO2_SCORE) / (R * T)));
+
     *score = ret;
 
     return TRUE;
