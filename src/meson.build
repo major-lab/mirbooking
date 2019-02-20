@@ -42,9 +42,17 @@ if get_option('with_introspection')
                                         includes: ['GLib-2.0', 'GObject-2.0', 'Gio-2.0'],
                                         install: true)
 
-    # FIXME: install in 'platlib' see https://github.com/mesonbuild/meson/pull/2196
-    install_data('gi/overrides/Mirbooking.py',
-                 install_dir: join_paths(import('python3').sysconfig_path('purelib'), 'gi/overrides'))
+    if python2.found()
+        python2.install_sources('gi/overrides/Mirbooking.py',
+                                subdir: 'gi/overrides',
+                                pure: false)
+    endif
+
+    if python3.found()
+        python3.install_sources('gi/overrides/Mirbooking.py',
+                                subdir: 'gi/overrides',
+                                pure: false)
+    endif
 
     if get_option('with_vapi')
         gnome.generate_vapi('mirbooking-2.0',
