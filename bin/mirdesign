@@ -92,7 +92,7 @@ generate_seeds = partial(generate_kmers, pos=1, k=7)
 generate_abox = partial(generate_kmers, pos=8, k=3)
 generate_bbox = partial(generate_kmers, pos=11, k=3)
 generate_cbox = partial(generate_kmers, pos=14, k=3)
-generate_dbox = partial(generate_kmers, pos=14, k=3)
+generate_dbox = partial(generate_kmers, pos=17, k=3)
 
 def successors(design):
     z = []
@@ -107,6 +107,8 @@ def successors(design):
             s = generate_cbox(seq)
         elif seq.seq[8:11] == 'NNN':
             s = generate_abox(seq)
+        elif seq.seq[17:20] == 'NNN':
+            s = generate_dbox(seq)
         else:
             # the sequence does not have any successors
             break
