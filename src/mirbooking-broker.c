@@ -642,7 +642,7 @@ cmp_gsize (gconstpointer a, gconstpointer b)
 }
 
 static gboolean
-_mirbooking_broker_prepare_step (MirbookingBroker *self)
+_mirbooking_broker_prepare_step (MirbookingBroker *self, GError **error)
 {
     guint64 prepare_begin = g_get_monotonic_time ();
 
@@ -718,6 +718,7 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
     // compute scores
     gsize occupants_len = 0;
     guint j;
+    gboolean anyerror = FALSE;
     #pragma omp parallel for collapse(2) reduction(+:occupants_len)
     for (i = 0; i < self->priv->targets->len; i++)
     {
@@ -726,21 +727,20 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
             MirbookingTarget *target = g_ptr_array_index (self->priv->targets, i);
             MirbookingMirna *mirna   = g_ptr_array_index (self->priv->mirnas, j);
             MirbookingTargetPositions *seed_positions = &g_array_index (self->priv->target_positions, MirbookingTargetPositions, i * self->priv->mirnas->len + j);
-            GError *err = NULL;
-            if (mirbooking_score_table_compute_positions (MIRBOOKING_SCORE_TABLE (self->priv->score_table),
-                                                          mirna,
-                                                          target,
-                                                          &seed_positions->positions,
-                                                          &seed_positions->positions_len,
-                                                          &err))
-            {
-                occupants_len += seed_positions->positions_len;
-            }
-            else
-            {
-                g_critical ("%s", err->message);
-            }
+            anyerror |= !mirbooking_score_table_compute_positions (MIRBOOKING_SCORE_TABLE (self->priv->score_table),
+                                                                   mirna,
+                                                                   target,
+                                                                   &seed_positions->positions,
+                                                                   &seed_positions->positions_len,
+                                                                   error);
+
+            occupants_len += seed_positions->positions_len;
         }
+    }
+
+    if (anyerror)
+    {
+        return FALSE;
     }
 
     g_debug ("Number of duplexes: %lu", occupants_len);
@@ -782,13 +782,13 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
 
                 g_assert_cmpint (target_site->position, ==, seed_positions->positions[p]);
 
-                MirbookingScore score;
-                mirbooking_score_table_compute_score (self->priv->score_table,
-                                                      mirna,
-                                                      target_site->target,
-                                                      seed_positions->positions[p],
-                                                      &score,
-                                                      NULL);
+                MirbookingScore score = {0};
+                anyerror |= !mirbooking_score_table_compute_score (self->priv->score_table,
+                                                                   mirna,
+                                                                   target_site->target,
+                                                                   seed_positions->positions[p],
+                                                                   &score,
+                                                                   error);
 
                 mirbooking_occupant_init (&occupants[_k + p],
                                           target_site->target,
@@ -805,6 +805,11 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self)
                 g_ptr_array_add (seed_positions->occupants, &occupants[_k + p]);
             }
         }
+    }
+
+    if (anyerror)
+    {
+        return FALSE;
     }
 
     g_assert_cmpint (self->priv->occupants->len, ==, occupants_len);
@@ -1273,7 +1278,7 @@ mirbooking_broker_evaluate (MirbookingBroker          *self,
 {
     if (g_once_init_enter (&self->priv->init))
     {
-        g_return_val_if_fail (_mirbooking_broker_prepare_step (self),
+        g_return_val_if_fail (_mirbooking_broker_prepare_step (self, error),
                               FALSE);
         g_once_init_leave (&self->priv->init, 1);
     }
@@ -1316,7 +1321,7 @@ mirbooking_broker_step (MirbookingBroker         *self,
 {
     if (g_once_init_enter (&self->priv->init))
     {
-        g_return_val_if_fail (_mirbooking_broker_prepare_step (self),
+        g_return_val_if_fail (_mirbooking_broker_prepare_step (self, error),
                               FALSE);
         g_once_init_leave (&self->priv->init, 1);
     }
