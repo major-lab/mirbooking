@@ -1,7 +1,7 @@
 #include <stddef.h>
 
 #define ODEINT_INTEGRATOR_DEFAULT_RTOL 1e-6
-#define ODEINT_INTEGRATOR_DEFAULT_ATOL 1e-12
+#define ODEINT_INTEGRATOR_DEFAULT_ATOL 1e-8
 
 typedef enum _OdeIntMethod
 {
