@@ -42,12 +42,6 @@ if get_option('with_introspection')
                                         includes: ['GLib-2.0', 'GObject-2.0', 'Gio-2.0'],
                                         install: true)
 
-    if python2.found()
-        python2.install_sources('gi/overrides/Mirbooking.py',
-                                subdir: 'gi/overrides',
-                                pure: false)
-    endif
-
     if python3.found()
         python3.install_sources('gi/overrides/Mirbooking.py',
                                 subdir: 'gi/overrides',
