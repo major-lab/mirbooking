@@ -81,7 +81,6 @@ else
 endif
 
 pymod = import('python')
-python2 = pymod.find_installation('python2')
 python3 = pymod.find_installation('python3')
 
 subdir('contrib/poisson-binomial')
