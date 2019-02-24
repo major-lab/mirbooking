@@ -25,7 +25,7 @@ typedef struct _SolverStorage
     MKL_INT *colind;
 } SolverStorage;
 
-void
+static void
 free_solver_storage (void *ptr)
 {
     SolverStorage *solver_storage = ptr;
