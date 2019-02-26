@@ -602,6 +602,8 @@ _mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
                                             gdouble                     St,
                                             const gdouble              *ES)
 {
+    gdouble vacancy = 1.0;
+
     const MirbookingTargetSite *from_target_site, *to_target_site;
     _mirbooking_broker_get_footprint_window (self,
                                              target_site,
@@ -610,15 +612,51 @@ _mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
                                              &from_target_site,
                                              &to_target_site);
 
-    // minimize vacancy around the footprint
-    gdouble quantity = 0;
-    const MirbookingTargetSite *nearby_target_site;
-    for (nearby_target_site = from_target_site; nearby_target_site <= to_target_site; nearby_target_site++)
+    /*
+     * Curiously, this corresponds to the following factorization of the joint
+     * distribution of having all positions simultaneously unbound.
+     *
+     * Pr(p_1,p_2,...,p_n) = Pr(p_1) * Pr(p_2|p_1) * ... * Pr(p_n|p_1, p_2,... p_{n-1})
+     *
+     * Pr(p_1) is straightforward to calculate.
+     *
+     * For every other position, we compute the vacancy by assuming that every
+     * preceding positions are unbounded as well.
+     */
+
+    const MirbookingTargetSite *last_tts = NULL;
+
+    const MirbookingTargetSite *ts;
+    for (ts = from_target_site; ts <= to_target_site; ts++)
     {
-        quantity += _mirbooking_broker_get_target_site_occupants_quantity (self, nearby_target_site, ES);
+        /*
+         * Here, we invert the footprint because we want to know where other
+         * occupants can overlap this position.
+         */
+        const MirbookingTargetSite *fts, *tts;
+        _mirbooking_broker_get_footprint_window (self,
+                                                 target_site,
+                                                 prime3_footprint,
+                                                 prime5_footprint,
+                                                 &fts,
+                                                 &tts);
+
+        gdouble quantity = 0;
+        const MirbookingTargetSite *nearby_target_site;
+        for (nearby_target_site = fts; nearby_target_site <= tts; nearby_target_site++)
+        {
+            if (nearby_target_site > last_tts)
+            {
+                quantity += _mirbooking_broker_get_target_site_occupants_quantity (self, nearby_target_site, ES);
+            }
+        }
+
+        vacancy *= (1 - (quantity / St));
+
+        last_tts = tts;
     }
 
-    return 1 - (quantity / St);
+    return vacancy;
 }
 
 typedef struct _MirbookingScoredTargetSite
