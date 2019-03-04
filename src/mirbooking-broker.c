@@ -1,4 +1,5 @@
 #include "mirbooking-broker.h"
+#include "mirbooking-score-table-private.h"
 
 #include <stdlib.h>
 #include <math.h>
@@ -50,7 +51,6 @@ typedef struct
 
     /* transcription */
     gdouble    *ktr;
-    gdouble    *kdeg;
 
     /* state of the system */
 
@@ -284,7 +284,6 @@ mirbooking_broker_finalize (GObject *object)
         g_free (self->priv->y);
         g_free (self->priv->F);
         g_free (self->priv->ktr);
-        g_free (self->priv->kdeg);
         odeint_integrator_free (self->priv->integrator);
     }
 
@@ -815,7 +814,6 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self, GError **error)
     g_assert_cmpint (self->priv->occupants->len, ==, occupants_len);
 
     self->priv->ktr  = g_new0 (gdouble, self->priv->targets->len);
-    self->priv->kdeg = g_new0 (gdouble, self->priv->targets->len);
 
     self->priv->y_len = self->priv->mirnas->len + self->priv->targets->len + self->priv->occupants->len + self->priv->targets->len;
 
@@ -898,7 +896,7 @@ _compute_F (double t, const double *y, double *F, void *user_data)
     for (i = 0; i < self->priv->targets->len; i++)
     {
         self->priv->dSdt[i] = self->priv->ktr[i];
-        self->priv->dPdt[i] = -self->priv->kdeg[i];
+        self->priv->dPdt[i] = -KDEG * self->priv->P[i];
     }
 
     guint j;
@@ -1416,7 +1414,7 @@ mirbooking_broker_step (MirbookingBroker         *self,
             for (i = 0; i < self->priv->targets->len; i++)
             {
                 self->priv->ktr[i]  -= self->priv->dSdt[i];
-                self->priv->kdeg[i] += self->priv->dPdt[i];
+                self->priv->P[i]     = -(self->priv->dSdt[i] - self->priv->ktr[i]) / KDEG;
             }
         }
     }
@@ -1468,7 +1466,7 @@ mirbooking_broker_get_product_degradation_rate (MirbookingBroker *self,
     g_return_val_if_fail (self->priv->init, 0.0);
     guint i;
     g_return_val_if_fail (g_ptr_array_find_with_equal_func (self->priv->targets, target, (GEqualFunc) mirbooking_sequence_equal, &i), 0);
-    return self->priv->kdeg[i];
+    return KDEG * self->priv->P[i];
 }
 
 /**

@@ -160,7 +160,7 @@ test_mirbooking ()
     g_assert_cmpfloat (ktr, >, 0);
     g_assert_cmpfloat (kdeg, >, 0);
     g_assert_cmpfloat (ktr, ==, kdeg);
-    g_assert_cmpfloat (mirbooking_broker_get_product_quantity (mirbooking, target), ==, 0);
+    g_assert_cmpfloat (mirbooking_broker_get_product_quantity (mirbooking, target), >, 0);
 
     const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
@@ -337,7 +337,7 @@ test_mirbooking_solve_and_integrate ()
     gdouble kdeg = mirbooking_broker_get_product_degradation_rate (broker, target);
     g_assert_cmpfloat (ktr, >, 0);
     g_assert_cmpfloat (kdeg, >, 0);
-    g_assert_cmpfloat (ktr, ==, kdeg);
+    g_assert_cmpfloat (fabs (ktr - kdeg), <=, 1e-6);
     g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 1.0, &error));
     g_assert_cmpfloat (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna)), ==, 10);
     g_assert_cmpfloat (fabs (mirbooking_broker_get_occupant_quantity (broker, occupant) - ES), <=, 1e-4);
@@ -376,7 +376,6 @@ test_mirbooking_solve_and_integrate ()
     gdouble P = mirbooking_broker_get_product_quantity (broker, target);
     g_assert_cmpfloat (P, >, 0);
     g_assert_cmpfloat (S, <, 10);
-    g_assert_cmpfloat (fabs(S + P - 10.0), <=, 1e-6);
 }
 
 static void

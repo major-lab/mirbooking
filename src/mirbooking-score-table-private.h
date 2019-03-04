@@ -27,6 +27,15 @@
 #define KCAT 3.6e-2 // s^-1
 
 /*
+ * Half-life of a messenger RNA in presence of microRNA is ~2 hours.
+ *
+ * Reference:
+ * Nadya Morozova et al., “Kinetic Signatures of MicroRNA Modes of Action,” RNA
+ * 18, no. 9 (September 2012): 1635–55, https://doi.org/10.1261/rna.032284.112.
+ */
+#define KDEG 9.627e-5 // s^-1
+
+/*
  * For the duplex: 'CUACCUC&GAGGUAG', ViennaRNA reports a binding energy of
  * -9.37 kcal/mol.
  *
