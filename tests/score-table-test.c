@@ -569,7 +569,9 @@ test_score_table_chi_et_al_2012 ()
     MirbookingScore score;
     mirbooking_score_table_compute_score (score_table, mirna, target, 0, &score, NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-9.79f + 1.2f - 5.90f) / (R * T)));
+    gdouble G_seed = (exp (6.3) * (-6.3) + exp (8.59) * (-8.59)) / (exp (6.3) + exp (8.59));
+
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((G_seed - 5.90f) / (R * T)), 1e-6);
 }
 
 int main (int argc, gchar **argv)

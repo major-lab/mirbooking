@@ -149,6 +149,28 @@ is_g_bulge (MirbookingTarget *target, gsize position)
         *mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + 3, 1) == 'G';
 }
 
+static gfloat
+binding_energy (gfloat *G, gsize n)
+{
+    guint i;
+    gdouble Gtot = 0, Z = 0;
+    for (i = 0; i < n; i++)
+    {
+        if (isfinite (G[i]))
+        {
+            Gtot += exp (-G[i]) * G[i];
+            Z += exp (-G[i]);
+        }
+    }
+
+    if (Z == 0)
+    {
+        return INFINITY;
+    }
+
+    return Gtot / Z;
+}
+
 static gboolean
 compute_score (MirbookingScoreTable *score_table,
                MirbookingMirna      *mirna,
@@ -182,7 +204,9 @@ compute_score (MirbookingScoreTable *score_table,
         i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), SEED_OFFSET, SEED_LENGTH);
         j = (1l << (2 * 4)) * mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, 3) +
             mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position + 4, 4);
-        seed_score = MIN (seed_score, sparse_matrix_get_float (&self->priv->seed_scores, i, j) + G_BULGED_SEED_SCORE);
+
+        gfloat Z[2] = {seed_score, sparse_matrix_get_float (&self->priv->seed_scores, i, j) + G_BULGED_SEED_SCORE};
+        seed_score = binding_energy (Z, 2);
     }
 
     gfloat supplementary_score = 0;
