@@ -53,9 +53,9 @@ set_supplementary_model (const gchar   *key,
                          gpointer       data,
                          GError      **error)
 {
-    if (g_strcmp0 (value, "zamore-et-al-2012") == 0)
+    if (g_strcmp0 (value, "wee-et-al-2012") == 0)
     {
-        supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_ZAMORE_ET_AL_2012;
+        supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_WEE_ET_AL_2012;
     }
     else if (g_strcmp0 (value, "yan-et-al-2018") == 0)
     {

@@ -210,7 +210,7 @@ compute_score (MirbookingScoreTable *score_table,
     }
 
     gfloat supplementary_score = 0;
-    if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_ZAMORE_ET_AL_2012)
+    if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_WEE_ET_AL_2012)
     {
         if (self->priv->supplementary_scores_bytes != NULL)
         {
