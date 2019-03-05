@@ -568,22 +568,15 @@ _mirbooking_broker_get_footprint_window (MirbookingBroker            *self,
                                          const MirbookingTargetSite **from_target_site,
                                          const MirbookingTargetSite **to_target_site)
 {
-    const MirbookingTargetSite *_to_target_site;
-
     // find the lower target site
     *from_target_site = target_site - MIN (prime5_footprint, target_site->position);
 
     // find the upper target site
-    _to_target_site = MIN (target_site + prime3_footprint,
-                           &g_array_index (self->priv->target_sites, MirbookingTargetSite, self->priv->target_sites->len - 1));
+    *to_target_site = target_site + MIN (prime3_footprint,
+                                         mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target_site->target)) - target_site->position - 1);
 
-    // we might overlap preceeding or following target sites
-    while (_to_target_site->target != target_site->target)
-    {
-        --_to_target_site;
-    }
-
-    *to_target_site = _to_target_site;
+    g_assert ((*from_target_site)->target == target_site->target);
+    g_assert ((*to_target_site)->target == target_site->target);
 }
 
 gdouble
