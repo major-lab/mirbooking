@@ -910,6 +910,7 @@ _compute_F (double t, const double *y, double *F, void *user_data)
     const gdouble *E  = y;
     const gdouble *S  = E  + self->priv->mirnas->len;
     const gdouble *ES = S  + self->priv->targets->len;
+    const gdouble *P  = ES + self->priv->occupants->len;
 
     gdouble *dEdt  = F;
     gdouble *dSdt  = dEdt  + self->priv->mirnas->len;
@@ -926,8 +927,8 @@ _compute_F (double t, const double *y, double *F, void *user_data)
     #pragma omp parallel for
     for (i = 0; i < self->priv->targets->len; i++)
     {
-        self->priv->dSdt[i] = self->priv->ktr[i];
-        self->priv->dPdt[i] = -KDEG * self->priv->P[i];
+        dSdt[i] = self->priv->ktr[i];
+        dPdt[i] = -KDEG * P[i];
     }
 
     guint j;
