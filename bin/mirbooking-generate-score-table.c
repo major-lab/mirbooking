@@ -240,7 +240,7 @@ main (gint argc, gchar **argv)
             if (completed % n == 0)
             {
                 #pragma omp critical
-                g_print ("\rCompleted %f%% (%lu/%lu) %f it/sec",
+                g_print ("\r%.2f%% %lu/%lu [%.2fit/sec]",
                          100.0 * (gdouble) completed / pow (n, 2),
                          completed,
                          n * n,
