@@ -153,7 +153,7 @@ static gfloat
 binding_energy (gfloat *G, gsize n)
 {
     guint i;
-    gdouble Gtot = 0, Z = 0;
+    gfloat Gtot = 0, Z = 0;
     for (i = 0; i < n; i++)
     {
         if (isfinite (G[i]))

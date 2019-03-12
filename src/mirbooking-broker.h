@@ -63,11 +63,11 @@ void                   mirbooking_broker_set_3prime_footprint    (MirbookingBrok
 MirbookingScoreTable * mirbooking_broker_get_score_table         (MirbookingBroker *self);
 void                   mirbooking_broker_set_score_table         (MirbookingBroker     *self,
                                                                   MirbookingScoreTable *score_table);
-gfloat                 mirbooking_broker_get_sequence_quantity   (MirbookingBroker   *self,
+gdouble                mirbooking_broker_get_sequence_quantity   (MirbookingBroker   *self,
                                                                   MirbookingSequence *sequence);
 void                   mirbooking_broker_set_sequence_quantity   (MirbookingBroker   *self,
                                                                   MirbookingSequence *sequence,
-                                                                  gfloat              quantity);
+                                                                  gdouble             quantity);
 gdouble                mirbooking_broker_get_time                (MirbookingBroker *self);
 void                   mirbooking_broker_set_time                (MirbookingBroker *self,
                                                                   gdouble           time);
@@ -79,6 +79,11 @@ gboolean               mirbooking_broker_step                    (MirbookingBrok
                                                                   gdouble                    step_size,
                                                                   GError                   **error);
 const GArray *         mirbooking_broker_get_target_sites        (MirbookingBroker *self);
+gdouble                mirbooking_broker_get_target_site_quantity (MirbookingBroker *self,
+                                                                   const MirbookingTargetSite *target_site);
+gdouble                mirbooking_broker_get_target_site_kother  (MirbookingBroker *self,
+                                                                  const MirbookingTargetSite *target_site);
+
 const GPtrArray *      mirbooking_broker_get_mirnas              (MirbookingBroker *self);
 const GPtrArray *      mirbooking_broker_get_targets             (MirbookingBroker *self);
 const GArray *         mirbooking_broker_get_occupants           (MirbookingBroker *self);
@@ -87,6 +92,9 @@ gdouble                mirbooking_broker_get_occupant_quantity   (MirbookingBrok
 void                   mirbooking_broker_set_occupant_quantity   (MirbookingBroker         *self,
                                                                   const MirbookingOccupant *occupant,
                                                                   gdouble                   quantity);
+
+gdouble                mirbooking_broker_get_bound_mirna_quantity (MirbookingBroker *self,
+                                                                   MirbookingMirna *mirna);
 
 gdouble *              mirbooking_broker_get_target_occupants_pmf (MirbookingBroker *self,
                                                                    MirbookingTarget  *target,
