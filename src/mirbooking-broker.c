@@ -899,6 +899,12 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self, GError **error)
     return TRUE;
 }
 
+static gsize
+absdiff (gsize a, gsize b)
+{
+    return MAX (a, b) - MIN (a, b);
+}
+
 /*
  * Compute the system state.
  */
@@ -986,7 +992,7 @@ _compute_F (double t, const double *y, double *F, void *user_data)
                         guint q;
                         for (q = 0; q < tss->positions_len; q++)
                         {
-                            if (abs (tss->positions[q] - seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
+                            if (absdiff (tss->positions[q], seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
                             {
                                 MirbookingOccupant *occupant_q = g_ptr_array_index (tss->occupants, q);
                                 kother += occupant_q->score.kcat * (_mirbooking_broker_get_occupant_quantity (self, occupant_q, ES) / S[i]);
@@ -1213,7 +1219,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                                 guint q;
                                 for (q = 0; q < tss->positions_len; q++)
                                 {
-                                    if (abs (tss->positions[q] - seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
+                                    if (absdiff (tss->positions[q] ,seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
                                     {
                                         MirbookingOccupant *occupant_q = g_ptr_array_index (tss->occupants, q);
                                         kother += occupant_q->score.kcat * (ES[_mirbooking_broker_get_occupant_index (self, occupant_q)] / S[i]);
@@ -1265,7 +1271,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                             guint q;
                             for (q = 0; q < tss->positions_len; q++)
                             {
-                                if (abs (tss->positions[q] - seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
+                                if (absdiff (tss->positions[q], seed_positions->positions[p]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
                                 {
                                     MirbookingOccupant *occupant_q = g_ptr_array_index (tss->occupants, q);
                                     kother += occupant->score.kcat * (ES[_mirbooking_broker_get_occupant_index (self, occupant_q)] / S[i]);
