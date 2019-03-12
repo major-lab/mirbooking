@@ -18,7 +18,6 @@ option('with_mkl_tbb', type: 'boolean', value: false)
 option('with_mkl_fftw3', type: 'boolean', value: false)
 
 # NVIDIA CUDA
-option('cuda_root', type: 'string', value: '/usr/local/cuda')
 option('with_cusolver', type: 'boolean', value: false)
 
 option('with_introspection', type: 'boolean', value: false)
