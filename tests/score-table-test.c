@@ -528,6 +528,12 @@ test_score_table_yan_et_al_2018 ()
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f -7.79f - 1.11f - 5.90f) / (R * T)));
 }
 
+/**
+ * Reference:
+ * Myung Hyun Jo et al., “Human Argonaute 2 Has Diverse Reaction Pathways on
+ * Target RNAs,” Molecular Cell 59, no. 1 (July 2, 2015): 117–24,
+ * https://doi.org/10.1016/j.molcel.2015.04.027.
+ */
 static void
 test_score_table_jo_et_al_2015 ()
 {
