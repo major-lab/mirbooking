@@ -6,6 +6,10 @@
 #define R 1.987203611e-3
 #define T 310.15
 
+#if !GLIB_CHECK_VERSION(2,58,0)
+#define g_assert_cmpfloat_with_epsilon(n1,n2,epsilon) g_assert_true(fabs((n1) - (n2)) < (epsilon))
+#endif
+
 typedef struct __attribute__ ((packed)) _SparseMatrixMem
 {
     gsize  n;
