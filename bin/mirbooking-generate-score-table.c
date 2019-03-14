@@ -6,7 +6,6 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <string.h>
-#include <omp.h>
 
 #include <sparse.h>
 
@@ -238,8 +237,9 @@ main (gint argc, gchar **argv)
             #pragma omp atomic
             ++completed;
 
-            if (omp_get_thread_num() == 0 && completed % n == 0)
+            if (completed % n == 0)
             {
+                #pragma omp critical
                 g_print ("\rCompleted %f%% (%lu/%lu) %f it/sec",
                          100.0 * (gdouble) completed / pow (n, 2),
                          completed,
