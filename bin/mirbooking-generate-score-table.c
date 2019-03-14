@@ -22,7 +22,7 @@ static const GOptionEntry MIRBOOKING_GENERATE_SCORE_TABLE_OPTIONS[] =
     {"mcff",   0, 0, G_OPTION_ARG_FILENAME, &mcff,   NULL, "mcff"},
     {"mask",   0, 0, G_OPTION_ARG_STRING,   &mask,   NULL, "||||..."},
     {"output", 0, 0, G_OPTION_ARG_FILENAME, &output, NULL, "FILE"},
-    {NULL}
+    {0}
 };
 
 static gchar

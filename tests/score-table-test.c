@@ -543,11 +543,10 @@ test_score_table_jo_et_al_2015 ()
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), "UGAGGUAGUAGGUUGUAUAGU");
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "ACUAUACAACCUACUACCUCG");
 
-    // MirbookingScore score;
-    // mirbooking_score_table_compute_score (score_table, mirna, target, 13, NULL);
+    MirbookingScore score;
+    mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
 
-    // g_assert_cmpfloat (score.kf, ==, 1.7e-5);
-    // g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 17);
+    // TODO: g_assert_cmpfloat (score.kf, ==, 1.7e-5);
 }
 
 static void

@@ -1280,7 +1280,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                         {
                             kother = _compute_kother (self, i, seed_positions->positions[p], ES, S[i]);
                         }
-                        else if (i == z && ABS ((gssize) seed_positions->positions[p] - (gssize) alternative_seed_positions->positions[w]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
+                        else if (i == z && absdiff (seed_positions->positions[p], alternative_seed_positions->positions[w]) > (self->priv->prime5_footprint + self->priv->prime3_footprint))
                         {
                             /*
                              * Here, we account for the kother if a microRNA is

@@ -141,7 +141,7 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"3prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime3_footprint,          "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
     {"cutoff",               0, 0, G_OPTION_ARG_DOUBLE,         &cutoff,                    "Cutoff on the duplex concentration",                                                              G_STRINGIFY (MIRBOOKING_DEFAULT_CUTOFF)},
     {"relative-cutoff",      0, 0, G_OPTION_ARG_DOUBLE,         &rel_cutoff,                "Relative cutoff on the bound fraction",                                                           G_STRINGIFY (MIRBOOKING_DEFAULT_REL_CUTOFF)},
-    {NULL}
+    {0}
 };
 
 typedef enum _FastaFormat
