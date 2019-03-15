@@ -1011,7 +1011,7 @@ _compute_F (double t, const double *y, double *F, void *user_data)
     gsize prime5_footprint = self->priv->prime5_footprint;
     gsize prime3_footprint = self->priv->prime3_footprint;
 
-    memset (F, 0, sizeof (gdouble) * self->priv->y_len);
+    memset (dEdt, 0, self->priv->mirnas->len * sizeof (gdouble));
 
     // basic transcription and degradation
     guint i;
