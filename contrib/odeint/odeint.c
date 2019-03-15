@@ -206,24 +206,24 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         func (t0, self->y, self->F, user_data);
 
         /* simple Euler step */
-        size_t i;
-        #pragma omp parallel for
-        for (i = 0; i < self->n; i++)
-        {
-            y[i] = self->y[i] + (epsilon * self->F[i]);
-        }
+        cblas_dcopy (self->n, self->y, 1, y, 1);
+        cblas_daxpy (self->n,
+                     epsilon,
+                     self->F,
+                     1,
+                     y,
+                     1);
 
         func (t0 + epsilon, y, self->F + self->n, user_data);
 
-        double y_norm = 0;
+        cblas_daxpy (self->n,
+                     -1,
+                     self->F,
+                     1,
+                     self->F + self->n,
+                     1);
 
-        #pragma omp parallel for reduction(+:y_norm)
-        for (i = 0; i < self->n; i++)
-        {
-            y_norm += pow ((self->F[self->n + i] - self->F[i]) / epsilon, 2);
-        }
-
-        y_norm = sqrt (y_norm);
+        double y_norm = cblas_dnrm2 (self->n, self->F + self->n, 1) / epsilon;
 
         assert (isfinite (y_norm));
 
@@ -249,15 +249,12 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         int step;
         for (step = 0; step < self->integrator_meta->steps; step++)
         {
+            /* restore state at the beginning of the step */
+            cblas_dcopy (self->n, self->y, 1, y, 1);
+
             int prev_step;
             for (prev_step = 0; prev_step < step; prev_step++)
             {
-                /* restore state at the beginning of the step */
-                if (prev_step == 0)
-                {
-                    cblas_dcopy (self->n, self->y, 1, y, 1);
-                }
-
                 cblas_daxpy (self->n,
                              h * self->integrator_meta->a[(step * step - step)/2 + prev_step],
                              self->F + prev_step * self->n,
@@ -273,15 +270,12 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         // final update
         if (!self->integrator_meta->last_step_is_update)
         {
+            /* restore state at the beginning of the step */
+            cblas_dcopy (self->n, self->y, 1, y, 1);
+
             int step;
             for (step = 0; step < self->integrator_meta->steps; step++)
             {
-                /* restore state at the beginning of the step */
-                if (step == 0)
-                {
-                    cblas_dcopy (self->n, self->y, 1, y, 1);
-                }
-
                 cblas_daxpy (self->n,
                              h * self->integrator_meta->b[step],
                              self->F + step * self->n,
@@ -294,15 +288,12 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         // error estimate
         if (self->integrator_meta->error_estimate)
         {
+            /* restore state at the beginning of the step */
+            cblas_dcopy (self->n, self->y, 1, ye, 1);
+
             int step;
             for (step = 0; step < self->integrator_meta->steps; step++)
             {
-                /* restore state at the beginning of the step */
-                if (step == 0)
-                {
-                    cblas_dcopy (self->n, self->y, 1, ye, 1);
-                }
-
                 cblas_daxpy (self->n,
                              h * self->integrator_meta->e[step],
                              self->F + step * self->n,
