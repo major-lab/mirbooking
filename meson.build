@@ -67,6 +67,13 @@ else
     warning('MKL is recommended for solving sparse systems efficiently.')
 endif
 
+if get_option('with_mkl')
+    add_project_arguments('-DHAVE_MKL_CBLAS', language: 'c')
+    cblas_dep = mkl_dep
+else
+    cblas_dep = dependency('cblas')
+endif
+
 if get_option('with_mkl') and get_option('with_mkl_fftw3')
     add_project_arguments('-DHAVE_FFTW3', language: 'c')
     fftw3_dep = declare_dependency(include_directories: include_directories(join_paths(mkl_root, 'include/fftw')),

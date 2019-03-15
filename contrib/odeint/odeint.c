@@ -5,6 +5,12 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <float.h>
+#include <stdio.h>
+#if HAVE_MKL_CBLAS
+#include <mkl_cblas.h>
+#else
+#include <cblas.h>
+#endif
 
 /* TODO:
  * - implicit methods
@@ -246,18 +252,18 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             int prev_step;
             for (prev_step = 0; prev_step < step; prev_step++)
             {
-                size_t i;
-                #pragma omp parallel for
-                for (i = 0; i < self->n; i++)
+                /* restore state at the beginning of the step */
+                if (prev_step == 0)
                 {
-                    /* restore state at the beginning of the step */
-                    if (prev_step == 0)
-                    {
-                        y[i] = self->y[i];
-                    }
-
-                    y[i] += h * self->integrator_meta->a[(step * step - step)/2 + prev_step] * self->F[prev_step * self->n + i];
+                    cblas_dcopy (self->n, self->y, 1, y, 1);
                 }
+
+                cblas_daxpy (self->n,
+                             h * self->integrator_meta->a[(step * step - step)/2 + prev_step],
+                             self->F + prev_step * self->n,
+                             1,
+                             y,
+                             1);
             }
 
             /* update from previous steps */
@@ -270,18 +276,18 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             int step;
             for (step = 0; step < self->integrator_meta->steps; step++)
             {
-                size_t i;
-                #pragma omp parallel for
-                for (i = 0; i < self->n; i++)
+                /* restore state at the beginning of the step */
+                if (step == 0)
                 {
-                    /* restore state at the beginning of the step */
-                    if (step == 0)
-                    {
-                        y[i] = self->y[i];
-                    }
-
-                    y[i] += h * self->integrator_meta->b[step] * self->F[step * self->n + i];
+                    cblas_dcopy (self->n, self->y, 1, y, 1);
                 }
+
+                cblas_daxpy (self->n,
+                             h * self->integrator_meta->b[step],
+                             self->F + step * self->n,
+                             1,
+                             y,
+                             1);
             }
         }
 
@@ -291,31 +297,31 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             int step;
             for (step = 0; step < self->integrator_meta->steps; step++)
             {
-                size_t i;
-                #pragma omp parallel for
-                for (i = 0; i < self->n; i++)
+                /* restore state at the beginning of the step */
+                if (step == 0)
                 {
-                    if (step == 0)
-                    {
-                        ye[i] = self->y[i];
-                    }
-
-                    ye[i] += h * self->integrator_meta->e[step] * self->F[step * self->n + i];
+                    cblas_dcopy (self->n, self->y, 1, ye, 1);
                 }
+
+                cblas_daxpy (self->n,
+                             h * self->integrator_meta->e[step],
+                             self->F + step * self->n,
+                             1,
+                             ye,
+                             1);
             }
 
-            double error_ = 0;
-            double ye_norm_ = 0;
-            size_t i;
-            #pragma omp parallel for reduction(+:error_) reduction(+:ye_norm_)
-            for (i = 0; i < self->n; i++)
-            {
-                error_   += pow (y[i] - ye[i], 2);
-                ye_norm_ += pow (ye[i], 2);
-            }
+            double ye_norm = cblas_dnrm2 (self->n, ye, 1);
 
-            double ye_norm = sqrt (ye_norm_);
-            double error = sqrt (error_);
+            // ye = ye - y
+            cblas_daxpy (self->n,
+                         -1,
+                         y,
+                         1,
+                         ye,
+                         1);
+
+            double error = cblas_dnrm2 (self->n, ye, 1);
 
             assert (isfinite (ye_norm));
             assert (isfinite (error));
@@ -325,7 +331,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             if (error <= tol)
             {
                 *self->t = t + h;
-                memcpy (self->y, y, self->n * sizeof (double));
+                cblas_dcopy (self->n, y, 1, self->y, 1);
             }
 
             // compute optimal step size
@@ -344,7 +350,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         else
         {
             *self->t = t + h;
-            memcpy (self->y, y, self->n * sizeof (double));
+            cblas_dcopy (self->n, y, 1, self->y, 1);
         }
     }
 }
