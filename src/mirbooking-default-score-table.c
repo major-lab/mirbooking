@@ -25,6 +25,46 @@ struct _MirbookingDefaultScoreTable
 
 G_DEFINE_TYPE_WITH_PRIVATE (MirbookingDefaultScoreTable, mirbooking_default_score_table, MIRBOOKING_TYPE_SCORE_TABLE)
 
+/**
+ * mirbooking_default_score_table_cutoff_filter:
+ * @user_data: (type MirbookingDefaultScoreTableCutoffFilterUserData)
+ */
+gboolean
+mirbooking_default_score_table_cutoff_filter  (MirbookingDefaultScoreTable *score_table,
+                                               MirbookingMirna             *mirna,
+                                               MirbookingTarget            *target,
+                                               gssize                       position,
+                                               gpointer                     user_data)
+{
+    MirbookingDefaultScoreTableCutoffFilterUserData *cutoff_filter_user_data = user_data;
+
+    gdouble E0 = mirbooking_broker_get_sequence_quantity (cutoff_filter_user_data->broker, MIRBOOKING_SEQUENCE (mirna));
+    gdouble S0 = mirbooking_broker_get_sequence_quantity (cutoff_filter_user_data->broker, MIRBOOKING_SEQUENCE (target));
+
+    gdouble Km;
+    if (position == -1)
+    {
+        Km = 0;
+    }
+    else
+    {
+        MirbookingScore score;
+        mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
+                                              mirna,
+                                              target,
+                                              position,
+                                              &score,
+                                              NULL);
+         Km = MIRBOOKING_SCORE_KM (score);
+    }
+
+    gdouble Z = E0 + S0 + Km;
+
+    gdouble ES = ((Z - sqrt (pow (Z, 2) - 4 * E0 * S0)) / 2.0);
+
+    return ES >= cutoff_filter_user_data->cutoff && ((ES / S0) >= cutoff_filter_user_data->relative_cutoff);
+}
+
 static void
 mirbooking_default_score_table_init (MirbookingDefaultScoreTable *self)
 {

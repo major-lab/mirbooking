@@ -121,6 +121,25 @@ class MirbookingScoreTableTestCase(unittest.TestCase):
         for p in positions:
             self.assertTrue(score_table.compute_score(mirna, target, p)[1].kr < float('inf'))
 
+class MirbookingDefaultScoreTableTestCase(unittest.TestCase):
+    def test_cutoff_filter(self):
+        broker = Mirbooking.Broker(score_table=SimpleScoreTable())
+        broker.set_sequence_quantity(target, 5.0)
+        broker.set_sequence_quantity(mirna, 5.0)
+
+        score_table = Mirbooking.DefaultScoreTable(seed_scores=GLib.MappedFile('../data/scores-7mer-3mismatch-ending', False).get_bytes())
+
+        ud = Mirbooking.DefaultScoreTableCutoffFilterUserData()
+        ud.broker = broker
+        ud.cutoff = 0.1;
+        ud.relative_cutoff = 0
+
+        score_table.set_filter(Mirbooking.DefaultScoreTable.cutoff_filter, ud)
+
+        ret, positions = score_table.compute_positions(mirna, target)
+
+        self.assertListEqual(positions, [2460, 4078, 4154, 4233])
+
 class MirbookingMcffScoreTableTestCase(unittest.TestCase):
     def test_mcff_score_table(self):
         from shutil import which

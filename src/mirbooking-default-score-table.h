@@ -2,6 +2,7 @@
 #define __MIRBOOKING_DEFAULT_SCORE_TABLE_H__
 
 #include "mirbooking-score-table.h"
+#include "mirbooking-broker.h"
 
 #include <gio/gio.h>
 
@@ -29,6 +30,19 @@ typedef gboolean (*MirbookingDefaultScoreTableFilter) (MirbookingDefaultScoreTab
                                                        gssize                       position,
                                                        gpointer                     user_data);
 
+typedef struct _MirbookingDefaultScoreTableCutoffFilterUserData
+{
+    MirbookingBroker *broker;
+    gdouble           cutoff;
+    gdouble           relative_cutoff;
+} MirbookingDefaultScoreTableCutoffFilterUserData;
+
+gboolean
+mirbooking_default_score_table_cutoff_filter (MirbookingDefaultScoreTable *score_table,
+                                              MirbookingMirna             *mirna,
+                                              MirbookingTarget            *target,
+                                              gssize                       position,
+                                              gpointer                     user_data);
 
 MirbookingDefaultScoreTable * mirbooking_default_score_table_new        (GBytes *seed_bytes,
                                                                          MirbookingDefaultScoreTableSupplementaryModel supplementary_model,

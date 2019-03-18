@@ -426,41 +426,11 @@ write_output_to_gff3 (MirbookingBroker *mirbooking, FILE *output_f)
         }
     }
 }
-
-static gboolean
-filter (MirbookingDefaultScoreTable *score_table,
-        MirbookingMirna             *mirna,
-        MirbookingTarget            *target,
-        gssize                       position,
-        gpointer                     user_data)
+static void
+free_cutoff_filter_user_data (gpointer ud)
 {
-    MirbookingBroker *broker = user_data;
-
-    gdouble E0 = mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna));
-    gdouble S0 = mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target));
-
-    gdouble Km;
-    if (position == -1)
-    {
-        Km = 0;
-    }
-    else
-    {
-        MirbookingScore score;
-        mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
-                                              mirna,
-                                              target,
-                                              position,
-                                              &score,
-                                              NULL);
-         Km = MIRBOOKING_SCORE_KM (score);
-    }
-
-    gdouble Z = E0 + S0 + Km;
-
-    gdouble ES = ((Z - sqrt (pow (Z, 2) - 4 * E0 * S0)) / 2.0);
-
-    return ES >= cutoff && ((ES / S0) >= rel_cutoff);
+    MirbookingDefaultScoreTableCutoffFilterUserData *cutoff_filter_ud = ud;
+    g_object_unref (cutoff_filter_ud->broker);
 }
 
 int
@@ -543,10 +513,16 @@ main (gint argc, gchar **argv)
                                                                                               supplementary_model,
                                                                                               supplementary_scores_map_bytes);
 
+    MirbookingDefaultScoreTableCutoffFilterUserData user_data = {
+        .broker          = g_object_ref (mirbooking),
+        .cutoff          = cutoff,
+        .relative_cutoff = rel_cutoff
+    };
+
     mirbooking_default_score_table_set_filter (score_table,
-                                               filter,
-                                               g_object_ref (mirbooking),
-                                               g_object_unref);
+                                               mirbooking_default_score_table_cutoff_filter,
+                                               &user_data,
+                                               free_cutoff_filter_user_data);
 
     mirbooking_broker_set_score_table (mirbooking,
                                        MIRBOOKING_SCORE_TABLE (score_table));
