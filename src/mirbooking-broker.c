@@ -539,6 +539,10 @@ mirbooking_broker_set_product_quantity (MirbookingBroker *self, MirbookingTarget
  * Set the free concentration of @sequence to @quantity. If @sequence is not
  * part of the system, it is added.
  *
+ * The concentration of a #MirbookingMirna can be set to a negative value, as
+ * long as the total amount present (see #mirbooking_broker_get_bound_mirna_quantity)
+ * is positive.
+ *
  * Note that no new sequence can be added this way once
  * #mirbooking_broker_evaluate has been called.
  */
@@ -547,7 +551,7 @@ mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSeque
 {
     g_return_if_fail (MIRBOOKING_IS_MIRNA (sequence) || MIRBOOKING_IS_TARGET (sequence));
     g_return_if_fail (self->priv->init == 0 || g_hash_table_contains (self->priv->quantification, sequence));
-    g_return_if_fail (quantity >= 0);
+    g_return_if_fail (MIRBOOKING_IS_MIRNA (sequence) || quantity >= 0);
 
     /* update the system */
     // TODO: have reverse-index for these use cases
@@ -555,6 +559,7 @@ mirbooking_broker_set_sequence_quantity (MirbookingBroker *self, MirbookingSeque
     {
         if (MIRBOOKING_IS_MIRNA (sequence))
         {
+            g_return_if_fail (quantity + mirbooking_broker_get_bound_mirna_quantity (self, MIRBOOKING_MIRNA (sequence)) >= 0);
             guint i;
             if (g_ptr_array_find_with_equal_func (self->priv->mirnas, sequence, (GEqualFunc) mirbooking_sequence_equal, &i))
             {
