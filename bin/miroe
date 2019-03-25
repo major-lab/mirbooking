@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+
+import argparse
+import gi
+gi.require_version('Mirbooking', '2.2')
+from gi.repository import GLib, Mirbooking
+import pandas as pd
+from Bio.SeqIO import parse
+from math import sqrt
+from tqdm import tqdm
+import numpy as np
+import gzip
+from math import ceil
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--targets')
+parser.add_argument('--mirnas')
+
+parser.add_argument('--seed-scores', required=True)
+parser.add_argument('--supplementary-scores')
+
+parser.add_argument('--cutoff', type=float, default=100)
+parser.add_argument('--relative-cutoff', type=float, default=0)
+
+parser.add_argument('--input', required=True)
+parser.add_argument('--output', required=True, help='Output for the microtargetomes')
+
+parser.add_argument('--step-size', type=float, default=1.0, help='Step size between successive microtargetomes')
+parser.add_argument('--duration', type=float, default=3600, help='Duration')
+parser.add_argument('--over-expression-mirna', required=True, help='miRNA being over-expressed')
+parser.add_argument('--over-expression-quantity', type=float, required=True, help='miRNA over-expression concentration')
+parser.add_argument('--over-expression-duration', type=float, required=True, help='miRNA over-expression duration')
+
+args = parser.parse_args()
+
+targets = [Mirbooking.Target(accession=record.id.split('|')[0], name=record.id.split('|')[5], sequence=record.seq)
+               for record in parse(args.targets, 'fasta')]
+mirnas = [Mirbooking.Mirna(accession=record.description.split()[1], name=record.id, sequence=record.seq)
+              for record in parse(args.mirnas, 'fasta')]
+
+oe_mir = next(m for m in mirnas if m.get_accession() == args.over_expression_mirna)
+
+quantifications = pd.read_csv(args.input, sep='\t', index_col=0)
+
+mir_oe_initial_quantity = quantifications.quantity.get(args.over_expression_mirna, default=0)
+
+# Ensure that miR-124 is picked at its OE level for filtering
+quantifications.loc[args.over_expression_mirna, 'quantity'] = args.over_expression_quantity
+
+score_table = Mirbooking.DefaultScoreTable(seed_scores=GLib.MappedFile(args.seed_scores, True).get_bytes(),
+                                           supplementary_scores=GLib.MappedFile(args.supplementary_scores, True).get_bytes())
+
+broker = Mirbooking.Broker(score_table=score_table, sparse_solver=Mirbooking.BrokerSparseSolver.MKL_DSS)
+
+cfud = Mirbooking.DefaultScoreTableCutoffFilterUserData()
+cfud.broker = broker
+cfud.cutoff = args.cutoff
+cfud.relative_cutoff = args.relative_cutoff
+score_table.set_filter(Mirbooking.DefaultScoreTable.cutoff_filter, cfud)
+
+for t in targets:
+    if quantifications.quantity.get(t.get_accession(), default=0) >= args.cutoff:
+        broker.set_sequence_quantity(t, quantifications.quantity[t.get_accession()])
+
+for m in mirnas:
+    if quantifications.quantity.get(m.get_accession(), default=0) >= args.cutoff:
+        broker.set_sequence_quantity(m, quantifications.quantity[m.get_accession()])
+
+print('Initial evaluation...')
+broker.evaluate()
+
+print('Number of equations:', len(broker.get_occupants()))
+
+# reset concentration
+broker.set_sequence_quantity (oe_mir, mir_oe_initial_quantity)
+
+# find initial steady-state
+print('Reaching steady-state...')
+with tqdm() as pb:
+    while broker.evaluate().error_ratio > 1:
+        broker.step(Mirbooking.BrokerStepMode.SOLVE_STEADY_STATE, 1.0)
+        pb.set_postfix(error_ratio=broker.evaluate().error_ratio)
+        pb.update()
+
+with gzip.open(args.output, 'wt') as f:
+    df = broker.get_target_sites_as_dataframe()
+    df['time'] = broker.get_time()
+    df.reset_index().set_index(['time', 'target_accession', 'position', 'mirna_accession']).to_csv(f, sep='\t')
+
+    num_steps = ceil(args.duration / args.step_size)
+
+    initial_transcription_rate = broker.get_mirna_transcription_rate(oe_mir)
+
+    # Over-expression
+    # To smooth out the over-expression, we simulate an inductible system by
+    # setting a transcription rate to reach the desired expression over the
+    # course of the specified duration.
+    print('Performing over-expression of {} from {}pM to {}pM over the course of {}s...'.format(args.over_expression_mirna, mir_oe_initial_quantity, args.over_expression_quantity, args.over_expression_duration))
+    broker.set_mirna_transcription_rate(oe_mir, (args.over_expression_quantity - mir_oe_initial_quantity) / args.over_expression_duration)
+
+    with tqdm(total=num_steps) as pb:
+        for i in range(num_steps):
+            broker.step(Mirbooking.BrokerStepMode.INTEGRATE, args.step_size)
+
+            # stop transcription
+            if broker.get_time() >= args.over_expression_duration:
+                broker.set_mirna_transcription_rate(oe_mir, initial_transcription_rate)
+
+            df = broker.get_target_sites_as_dataframe()
+            df['time'] = broker.get_time()
+            df.reset_index().set_index(['time', 'target_accession', 'position', 'mirna_accession']).to_csv(f, header=False, sep='\t')
+            pb.set_postfix(error_ratio=broker.evaluate().error_ratio, time=broker.get_time(), mirna_quantity=broker.get_sequence_quantity(oe_mir) + broker.get_bound_mirna_quantity(oe_mir))
+            pb.update()

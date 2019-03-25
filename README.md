@@ -154,6 +154,17 @@ seed length.
 The number of workers can be tuned by setting `OMP_NUM_THREADS` environment
 variable.
 
+`miroe` discovers functional microRNA targets by simulating over-expression
+with numerical integration starting at the steady-state.
+
+```bash
+miroe [mirbooking args...]
+      [--step-size]
+      [--duration]
+      --over-expression-mirna MIMAT0004792
+      --over-expression-quantity 1e4
+```
+
 ## C API
 
 The API is conform to the GLib style and enable a wide range of use. It is fairly easy to use and a typical
