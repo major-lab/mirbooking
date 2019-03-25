@@ -3,6 +3,7 @@
 
 #include <math.h>
 #include <sparse.h>
+#include <ctype.h>
 
 typedef struct
 {
@@ -186,7 +187,7 @@ static gboolean
 is_g_bulge (MirbookingTarget *target, gsize position)
 {
     return position + 4 + 4 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
-        *mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + 3, 1) == 'G';
+        toupper (*mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + 3, 1)) == 'G';
 }
 
 static gfloat
@@ -225,7 +226,7 @@ compute_score (MirbookingScoreTable *score_table,
 
     gfloat A_score = 0.0f;
     if (position + SEED_LENGTH + 1 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
-        *mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + SEED_LENGTH, 1) == 'A')
+        toupper (*mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + SEED_LENGTH, 1)) == 'A')
     {
         A_score = T1_ADENOSINE_SCORE;
     }
