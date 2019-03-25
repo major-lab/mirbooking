@@ -302,31 +302,26 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
                              1);
             }
 
-            double ye_norm = cblas_dnrm2 (self->n, ye, 1);
+            // component-wise error
+            double error_ratio = 0;
+            size_t i;
+            for (i = 0; i < self->n; i++)
+            {
+                double tol = self->rtol * fmax (fabs (ye[i]), fabs(y[i])) + self->atol;
+                double error = fabs (ye[i] - y[i]);
+                error_ratio = fmax (error_ratio, error / tol);
+            }
 
-            // ye = ye - y
-            cblas_daxpy (self->n,
-                         -1,
-                         y,
-                         1,
-                         ye,
-                         1);
+            assert (isfinite (error_ratio));
 
-            double error = cblas_dnrm2 (self->n, ye, 1);
-
-            assert (isfinite (ye_norm));
-            assert (isfinite (error));
-
-            double tol = self->rtol * ye_norm + self->atol;
-
-            if (error <= tol)
+            if (error_ratio <= 1)
             {
                 *self->t = t + h;
                 cblas_dcopy (self->n, y, 1, self->y, 1);
             }
 
             // compute optimal step size
-            double optimal_h = h * pow (tol / error, 1.0 / self->integrator_meta->order);
+            double optimal_h = h * pow (1.0 / error_ratio, 1.0 / self->integrator_meta->order);
 
             // in case h get smaller than self->h (i.e. around upper
             // integration bound) we don't update the step size such that
