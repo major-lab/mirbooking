@@ -11,6 +11,11 @@
 #endif
 #include <sparse.h>
 #include <stdio.h>
+#if HAVE_MKL_CBLAS
+#include <mkl_cblas.h>
+#else
+#include <cblas.h>
+#endif
 
 typedef struct _MirbookingTargetPositions
 {
@@ -1014,15 +1019,26 @@ _compute_F (double t, const double *y, double *F, void *user_data)
     memset (dEdt, 0, self->priv->mirnas->len * sizeof (gdouble));
 
     // basic transcription and degradation
-    guint i;
-    #pragma omp parallel for
-    for (i = 0; i < self->priv->targets->len; i++)
-    {
-        dSdt[i] = self->priv->ktr[i];
-        dPdt[i] = -KDEG * P[i];
-    }
 
-    guint j;
+    // dSdt = ktr
+    cblas_dcopy (self->priv->targets->len,
+                 self->priv->ktr,
+                 1,
+                 dSdt,
+                 1);
+
+    // dPdt = -KDEG * P
+    cblas_dcopy (self->priv->targets->len,
+                 P,
+                 1,
+                 dPdt,
+                 1);
+    cblas_dscal (self->priv->targets->len,
+                 -KDEG,
+                 dPdt,
+                 1);
+
+    guint i, j;
     #pragma omp parallel for collapse(2)
     for (i = 0; i < self->priv->targets->len; i++)
     {
@@ -1357,14 +1373,9 @@ mirbooking_broker_evaluate (MirbookingBroker          *self,
 
     if (norm)
     {
-        gdouble _norm = 0;
-        gsize i;
-        #pragma omp parallel for reduction(+:_norm)
-        for (i = 0; i < self->priv->y_len; i++)
-        {
-            _norm += pow (self->priv->F[i], 2);
-        }
-        *norm = sqrt (_norm);
+        *norm = cblas_dnrm2 (self->priv->y_len,
+                             self->priv->F,
+                             1);
     }
 
     return TRUE;
@@ -1478,13 +1489,31 @@ mirbooking_broker_step (MirbookingBroker         *self,
                     self);
 
         {
-            guint i;
-            #pragma omp parallel for
-            for (i = 0; i < self->priv->targets->len; i++)
-            {
-                self->priv->ktr[i]  -= self->priv->dSdt[i];
-                self->priv->P[i]     = -(self->priv->dSdt[i] - self->priv->ktr[i]) / KDEG;
-            }
+            // ktr = ktr - dSdt
+            cblas_daxpy (self->priv->targets->len,
+                         -1,
+                         self->priv->dSdt,
+                         1,
+                         self->priv->ktr,
+                         1);
+
+            // P = -(dSdt - ktr) / KDEG
+            // P = dSdt; P = -ktr + P; P = -1/KDEG * P
+            cblas_dcopy (self->priv->targets->len,
+                         self->priv->dSdt,
+                         1,
+                         self->priv->P,
+                         1);
+            cblas_daxpy (self->priv->targets->len,
+                         -1,
+                         self->priv->ktr,
+                         1,
+                         self->priv->P,
+                         1);
+            cblas_dscal (self->priv->targets->len,
+                         -1.0 / KDEG,
+                         self->priv->P,
+                         1);
         }
     }
     else if (step_mode == MIRBOOKING_BROKER_STEP_MODE_INTEGRATE)

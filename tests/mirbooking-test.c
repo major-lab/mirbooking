@@ -166,7 +166,7 @@ test_mirbooking ()
     gdouble kdeg = mirbooking_broker_get_product_degradation_rate (mirbooking, target);
     g_assert_cmpfloat (ktr, >, 0);
     g_assert_cmpfloat (kdeg, >, 0);
-    g_assert_cmpfloat (ktr, ==, kdeg);
+    g_assert_cmpfloat_with_epsilon (ktr, kdeg, 1e-8);
     g_assert_cmpfloat (mirbooking_broker_get_product_quantity (mirbooking, target), >, 0);
 
     const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
