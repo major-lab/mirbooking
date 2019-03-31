@@ -1,5 +1,5 @@
 project('mirbooking', 'c',
-        version: '2.1.0',
+        version: '2.1.1',
         default_options: 'c_std=gnu11')
 
 glib_dep = dependency('glib-2.0', version: '>=2.44')
