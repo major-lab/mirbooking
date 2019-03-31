@@ -564,6 +564,42 @@ test_mirbooking_restore_broker_state ()
     g_assert_cmpfloat_with_epsilon (norm, broker2_norm, 1e-6);
 }
 
+static void
+test_mirbooking_target_knock_out ()
+{
+    g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
+
+    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
+
+    g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
+    g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
+
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GCACACA");
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE);
+
+    mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
+    mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
+
+    mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (score_table));
+
+    gdouble norm;
+    do
+    {
+        mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1.0, NULL);
+        mirbooking_broker_evaluate (broker, &norm, NULL);
+    }
+    while (norm >= 1e-6);
+
+    // stop target transcription
+    mirbooking_broker_set_target_transcription_rate (broker, target, 0);
+
+    mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 2 * 3600.0, NULL);
+    mirbooking_broker_evaluate (broker, &norm, NULL);
+
+    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), 0, 1e-3);
+}
+
 gint
 main (gint argc, gchar **argv)
 {
@@ -576,6 +612,7 @@ main (gint argc, gchar **argv)
     g_test_add_func ("/mirbooking/solve-and-integrate", test_mirbooking_solve_and_integrate);
     g_test_add_func ("/mirbooking/set-occupant-quantity", test_mirbooking_set_occupant_quantity);
     g_test_add_func ("/mirbooking/restore-broker-state", test_mirbooking_restore_broker_state);
+    g_test_add_func ("/mirbooking/target-knock-out", test_mirbooking_target_knock_out);
 
     return g_test_run ();
 }

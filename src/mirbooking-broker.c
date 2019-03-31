@@ -1552,6 +1552,23 @@ mirbooking_broker_get_target_transcription_rate (MirbookingBroker *self,
 }
 
 /**
+ * mirbooking_broker_set_target_transcription_rate:
+ *
+ * Set the rate of transcription of @target to @transcription_rate.
+ */
+void
+mirbooking_broker_set_target_transcription_rate (MirbookingBroker *self, MirbookingTarget *target, gdouble transcription_rate)
+{
+    g_return_if_fail (self->priv->init);
+    g_return_if_fail (self->priv->init);
+
+    guint i;
+    g_return_if_fail (g_ptr_array_find_with_equal_func (self->priv->targets, target, (GEqualFunc) mirbooking_sequence_equal, &i));
+
+    self->priv->ktr[i] = transcription_rate;
+}
+
+/**
  * mirbooking_broker_get_product_degradation_rate:
  *
  * Get the rate of product degradation.
