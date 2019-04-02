@@ -102,6 +102,13 @@ gdouble *              mirbooking_broker_get_target_occupants_pmf (MirbookingBro
 
 gdouble                mirbooking_broker_get_product_quantity          (MirbookingBroker *self,
                                                                         MirbookingTarget *target);
+gdouble                mirbooking_broker_get_mirna_transcription_rate  (MirbookingBroker *self,
+                                                                        MirbookingMirna  *mirna);
+void                   mirbooking_broker_set_mirna_transcription_rate  (MirbookingBroker *self,
+                                                                        MirbookingMirna  *mirna,
+                                                                        gdouble           transcription_rate);
+gdouble                mirbooking_broker_get_mirna_degradation_rate    (MirbookingBroker *self,
+                                                                        MirbookingMirna  *mirna);
 gdouble                mirbooking_broker_get_target_transcription_rate (MirbookingBroker *self,
                                                                         MirbookingTarget *target);
 void                   mirbooking_broker_set_target_transcription_rate (MirbookingBroker *self,

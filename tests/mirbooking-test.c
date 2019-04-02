@@ -162,6 +162,8 @@ test_mirbooking ()
 
     // at steady-state, the system is closed so we get equal incoming,
     // catalyzing and outgoing product
+    g_assert_cmpfloat (mirbooking_broker_get_mirna_transcription_rate (mirbooking, mirna), >, 0);
+    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_mirna_transcription_rate (mirbooking, mirna), mirbooking_broker_get_mirna_degradation_rate (mirbooking, mirna), 1e-6);
     gdouble ktr = mirbooking_broker_get_target_transcription_rate (mirbooking, target);
     gdouble kdeg = mirbooking_broker_get_product_degradation_rate (mirbooking, target);
     g_assert_cmpfloat (ktr, >, 0);

@@ -55,7 +55,8 @@ typedef struct
     GArray     *occupants;
 
     /* transcription */
-    gdouble    *ktr;
+    gdouble    *targets_ktr;
+    gdouble    *mirnas_ktr;
 
     /* state of the system */
 
@@ -290,7 +291,8 @@ mirbooking_broker_finalize (GObject *object)
     {
         g_free (self->priv->y);
         g_free (self->priv->F);
-        g_free (self->priv->ktr);
+        g_free (self->priv->targets_ktr);
+        g_free (self->priv->mirnas_ktr);
         odeint_integrator_free (self->priv->integrator);
     }
 
@@ -910,7 +912,8 @@ _mirbooking_broker_prepare_step (MirbookingBroker *self, GError **error)
 
     g_assert_cmpint (self->priv->occupants->len, ==, occupants_len);
 
-    self->priv->ktr  = g_new0 (gdouble, self->priv->targets->len);
+    self->priv->targets_ktr  = g_new0 (gdouble, self->priv->targets->len);
+    self->priv->mirnas_ktr  = g_new0 (gdouble, self->priv->mirnas->len);
 
     self->priv->y_len = self->priv->mirnas->len + self->priv->targets->len + self->priv->occupants->len + self->priv->targets->len;
 
@@ -1021,25 +1024,42 @@ _compute_F (double t, const double *y, double *F, void *user_data)
     gsize prime5_footprint = self->priv->prime5_footprint;
     gsize prime3_footprint = self->priv->prime3_footprint;
 
-    memset (dEdt, 0, self->priv->mirnas->len * sizeof (gdouble));
-
     // basic transcription and degradation
 
-    // dSdt = ktr
+    // dEdt = ktr - KDEGE * [E]
+    cblas_dcopy (self->priv->mirnas->len,
+                 self->priv->mirnas_ktr,
+                 1,
+                 dEdt,
+                 1);
+    cblas_daxpy (self->priv->mirnas->len,
+                 -KDEGE,
+                 E,
+                 1,
+                 dEdt,
+                 1);
+
+    // dSdt = ktr - KDEGS * [S]
     cblas_dcopy (self->priv->targets->len,
-                 self->priv->ktr,
+                 self->priv->targets_ktr,
+                 1,
+                 dSdt,
+                 1);
+    cblas_daxpy (self->priv->targets->len,
+                 -KDEGS,
+                 S,
                  1,
                  dSdt,
                  1);
 
-    // dPdt = -KDEG * P
+    // dPdt = -KDEGP * P
     cblas_dcopy (self->priv->targets->len,
                  P,
                  1,
                  dPdt,
                  1);
     cblas_dscal (self->priv->targets->len,
-                 -KDEG,
+                 -KDEGP,
                  dPdt,
                  1);
 
@@ -1494,16 +1514,24 @@ mirbooking_broker_step (MirbookingBroker         *self,
                     self);
 
         {
+            // ktr = ktr - dEdt
+            cblas_daxpy (self->priv->mirnas->len,
+                         -1,
+                         self->priv->dEdt,
+                         1,
+                         self->priv->mirnas_ktr,
+                         1);
+
             // ktr = ktr - dSdt
             cblas_daxpy (self->priv->targets->len,
                          -1,
                          self->priv->dSdt,
                          1,
-                         self->priv->ktr,
+                         self->priv->targets_ktr,
                          1);
 
-            // P = -(dSdt - ktr) / KDEG
-            // P = dSdt; P = -ktr + P; P = -1/KDEG * P
+            // P = -(dSdt - ktr) / KDEGP
+            // P = dSdt; P = -ktr + P; P = -1/KDEGP * P
             cblas_dcopy (self->priv->targets->len,
                          self->priv->dSdt,
                          1,
@@ -1511,12 +1539,12 @@ mirbooking_broker_step (MirbookingBroker         *self,
                          1);
             cblas_daxpy (self->priv->targets->len,
                          -1,
-                         self->priv->ktr,
+                         self->priv->targets_ktr,
                          1,
                          self->priv->P,
                          1);
             cblas_dscal (self->priv->targets->len,
-                         -1.0 / KDEG,
+                         -1.0 / KDEGP,
                          self->priv->P,
                          1);
         }
@@ -1534,6 +1562,59 @@ mirbooking_broker_step (MirbookingBroker         *self,
     }
 
     return TRUE;
+}
+/**
+ * mirbooking_broker_get_mirna_transcription_rate:
+ *
+ * Get the rate of transcription of the given #MirbookingTarget.
+ *
+ * This is resolved when stepping with @MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE
+ * using the steady-state assumption.
+ */
+gdouble
+mirbooking_broker_get_mirna_transcription_rate (MirbookingBroker *self,
+                                                MirbookingMirna  *mirna)
+{
+    g_return_val_if_fail (self->priv->init, 0.0);
+
+    guint i;
+    g_return_val_if_fail (g_ptr_array_find_with_equal_func (self->priv->mirnas, mirna, (GEqualFunc) mirbooking_sequence_equal, &i), 0);
+
+    return self->priv->mirnas_ktr[i];
+}
+
+/**
+ * mirbooking_broker_set_mirna_transcription_rate:
+ *
+ * Set the rate of transcription of @mirna to @transcription_rate.
+ */
+void
+mirbooking_broker_set_mirna_transcription_rate (MirbookingBroker *self, MirbookingMirna *mirna, gdouble transcription_rate)
+{
+    g_return_if_fail (self->priv->init);
+    g_return_if_fail (transcription_rate >= 0);
+
+    guint i;
+    g_return_if_fail (g_ptr_array_find_with_equal_func (self->priv->mirnas, mirna, (GEqualFunc) mirbooking_sequence_equal, &i));
+
+    self->priv->mirnas_ktr[i] = transcription_rate;
+}
+
+/**
+ * mirbooking_broker_get_mirna_degradation_rate:
+ *
+ * Obtain @mirna degradation rate.
+ */
+gdouble
+mirbooking_broker_get_mirna_degradation_rate (MirbookingBroker *self,
+                                              MirbookingMirna  *mirna)
+{
+    g_return_val_if_fail (self->priv->init, 0.0);
+
+    guint i;
+    g_return_val_if_fail (g_ptr_array_find_with_equal_func (self->priv->mirnas, mirna, (GEqualFunc) mirbooking_sequence_equal, &i), 0.0);
+
+    return KDEGE * self->priv->E[i];
 }
 
 /**
@@ -1553,7 +1634,7 @@ mirbooking_broker_get_target_transcription_rate (MirbookingBroker *self,
     guint i;
     g_return_val_if_fail (g_ptr_array_find_with_equal_func (self->priv->targets, target, (GEqualFunc) mirbooking_sequence_equal, &i), 0);
 
-    return self->priv->ktr[i];
+    return self->priv->targets_ktr[i];
 }
 
 /**
@@ -1565,12 +1646,12 @@ void
 mirbooking_broker_set_target_transcription_rate (MirbookingBroker *self, MirbookingTarget *target, gdouble transcription_rate)
 {
     g_return_if_fail (self->priv->init);
-    g_return_if_fail (self->priv->init);
+    g_return_if_fail (transcription_rate >= 0);
 
     guint i;
     g_return_if_fail (g_ptr_array_find_with_equal_func (self->priv->targets, target, (GEqualFunc) mirbooking_sequence_equal, &i));
 
-    self->priv->ktr[i] = transcription_rate;
+    self->priv->targets_ktr[i] = transcription_rate;
 }
 
 /**
@@ -1590,7 +1671,7 @@ mirbooking_broker_get_product_degradation_rate (MirbookingBroker *self,
     guint i;
     g_return_val_if_fail (g_ptr_array_find_with_equal_func (self->priv->targets, target, (GEqualFunc) mirbooking_sequence_equal, &i), 0);
 
-    return KDEG * self->priv->P[i];
+    return KDEGP * self->priv->P[i];
 }
 
 /**

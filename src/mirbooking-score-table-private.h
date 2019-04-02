@@ -27,13 +27,30 @@
 #define KCAT 3.6e-2 // s^-1
 
 /*
+ * Half life of an average microRNA is is ~119 hours.
+ *
+ * Reference:
+ * Michael P. Gantier et al., “Analysis of MicroRNA Turnover in Mammalian Cells
+ * Following Dicer1 Ablation,” Nucleic Acids Research 39, no. 13 (July 2011):
+ * 5692–5703, https://doi.org/10.1093/nar/gkr148.
+ */
+#define KDEGE 1.618e-6 // s^-1
+
+/*
+ * Half-life of a messenger RNA is ~10 hours.
+ *
+ * Reference:
+ */
+#define KDEGS 0 // FIXME: 1.9254e-5 s^-1
+
+/*
  * Half-life of a messenger RNA in presence of microRNA is ~2 hours.
  *
  * Reference:
  * Nadya Morozova et al., “Kinetic Signatures of MicroRNA Modes of Action,” RNA
  * 18, no. 9 (September 2012): 1635–55, https://doi.org/10.1261/rna.032284.112.
  */
-#define KDEG 9.627e-5 // s^-1
+#define KDEGP 9.627e-5 // s^-1
 
 /*
  * For the duplex: 'CUACCUC&GAGGUAG', ViennaRNA reports a binding energy of
