@@ -1,6 +1,7 @@
 project('mirbooking', 'c',
         version: '2.2.0-dev',
-        default_options: 'c_std=gnu11')
+        default_options: 'c_std=gnu11',
+        meson_version: '>=0.46.0')
 
 api_version = '2.2'
 

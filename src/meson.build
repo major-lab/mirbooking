@@ -57,9 +57,9 @@ if get_option('with_introspection')
 endif
 
 pkgconfig = import('pkgconfig')
-pkgconfig.generate(name: meson.project_name(),
+pkgconfig.generate(mirbooking_lib,
+                   name: meson.project_name(),
                    description: 'miRBooking simulates the stoichiometric mode of action of microRNAs',
                    version: meson.project_version(),
-                   libraries: mirbooking_lib,
                    filebase: 'mirbooking-@0@'.format(api_version),
                    subdirs: 'mirbooking-@0@'.format(api_version))
