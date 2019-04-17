@@ -17,7 +17,7 @@ import random
 from queue import PriorityQueue, Empty
 from threading import Thread, Lock
 import os
-from os.path import join
+from os.path import join, exists
 import numpy as np
 from functools import partial
 from scipy.stats.mstats import gmean
@@ -121,7 +121,6 @@ best_candidate = None
 best_score = float('inf')
 
 counter = 1
-print_design_lock = Lock()
 def work(candidates, pb, designs_out):
     global counter, best_candidate, best_score
     while True:
@@ -153,9 +152,12 @@ def work(candidates, pb, designs_out):
                     best_candidate = candidate
                     best_score = candidate_score
 
-                run_mirbooking(candidate, quantities).to_csv(join(args.designs_output_dir, '-'.join(str(c.seq) for c in candidate)), sep='\t')
+                microtargetome_out = join(args.designs_output_dir, '-'.join(str(c.seq) for c in candidate))
 
-                with print_design_lock:
+                # It's possible that the design has already been found in a
+                # previous execution
+                if not exists(microtargetome_out):
+                    run_mirbooking(candidate, quantities).to_csv(microtargetome_out, sep='\t')
                     print(*[str(c.seq) for c in candidate], candidate_score, sep='\t', file=designs_out, flush=True)
         except Exception as err:
             print('Could not process candidate:', candidate)
@@ -164,7 +166,7 @@ def work(candidates, pb, designs_out):
         finally:
             candidates.task_done()
 
-with tqdm() as pb, open(join(args.designs_output_dir, 'designs.tsv'), 'w') as f:
+with tqdm() as pb, open(join(args.designs_output_dir, 'designs.tsv'), 'a') as f:
     candidates = PriorityQueue()
 
     # prepare workers
