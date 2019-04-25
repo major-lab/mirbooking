@@ -72,7 +72,7 @@ gdouble                mirbooking_broker_get_time                (MirbookingBrok
 void                   mirbooking_broker_set_time                (MirbookingBroker *self,
                                                                   gdouble           time);
 gboolean               mirbooking_broker_evaluate                (MirbookingBroker          *self,
-                                                                  gdouble                   *norm,
+                                                                  gdouble                   *error_ratio,
                                                                   GError                   **error);
 gboolean               mirbooking_broker_step                    (MirbookingBroker          *self,
                                                                   MirbookingBrokerStepMode   step_mode,

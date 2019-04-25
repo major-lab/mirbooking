@@ -18,7 +18,6 @@
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
-#define MIRBOOKING_DEFAULT_TOLERANCE      1e-8
 #define MIRBOOKING_DEFAULT_MAX_ITERATIONS 100
 #define MIRBOOKING_DEFAULT_CUTOFF         100 // pM
 #define MIRBOOKING_DEFAULT_REL_CUTOFF     0.0
@@ -38,7 +37,6 @@ static gchar                         *input_file                = NULL;
 static gchar                         *output_file               = NULL;
 static MirbookingOutputFormat         output_format             = MIRBOOKING_OUTPUT_FORMAT_TSV;
 static MirbookingBrokerSparseSolver   sparse_solver             = MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER;
-static gdouble                        tolerance                 = MIRBOOKING_DEFAULT_TOLERANCE;
 static guint64                        max_iterations            = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
 static gsize                          prime5_footprint          = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
 static gsize                          prime3_footprint          = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
@@ -135,7 +133,6 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"output",               0, 0, G_OPTION_ARG_FILENAME,       &output_file,               "Output destination file (defaults to stdout)",                                                    "FILE"},
     {"output-format",        0, 0, G_OPTION_ARG_CALLBACK,       &set_output_format,         "Output format (i.e. 'tsv', 'gff3')",                                                              "tsv"},
     {"sparse-solver",        0, 0, G_OPTION_ARG_CALLBACK,       &set_sparse_solver,         "Sparse solver implementation to use",                                                             "superlu"},
-    {"tolerance",            0, 0, G_OPTION_ARG_DOUBLE,         &tolerance,                 "Absolute tolerance of the system norm to declare convergence",                                    G_STRINGIFY (MIRBOOKING_DEFAULT_TOLERANCE)},
     {"max-iterations",       0, 0, G_OPTION_ARG_INT,            &max_iterations,            "Maximum number of iterations",                                                                    G_STRINGIFY (MIRBOOKING_DEFAULT_MAX_ITERATIONS)},
     {"5prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime5_footprint,          "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
     {"3prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime3_footprint,          "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
@@ -703,7 +700,7 @@ main (gint argc, gchar **argv)
 
     guint64 iteration = 0;
     guint64 iteration_begin, iteration_end, evaluate_begin, evaluate_end, step_begin, step_end;
-    gdouble norm;
+    gdouble error_ratio;
     do
     {
         iteration_begin = g_get_monotonic_time ();
@@ -719,7 +716,7 @@ main (gint argc, gchar **argv)
         evaluate_begin = g_get_monotonic_time ();
 
         if (!mirbooking_broker_evaluate (mirbooking,
-                                         &norm,
+                                         &error_ratio,
                                          &error))
         {
             g_printerr ("%s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);
@@ -728,13 +725,7 @@ main (gint argc, gchar **argv)
 
         evaluate_end = g_get_monotonic_time ();
 
-        if (!isfinite (norm))
-        {
-            g_printerr ("Failed to converge.\n");
-            return EXIT_FAILURE;
-        }
-
-        if (norm <= tolerance)
+        if (error_ratio <= 1)
         {
             break;
         }
@@ -756,9 +747,9 @@ main (gint argc, gchar **argv)
 
         if (rank == 0)
         {
-            g_debug ("iteration: %lu norm: %.2e evaluate-time: %lums step-time: %lums total-time: %lums",
+            g_debug ("iteration: %lu error-ratio: %.2e evaluate-time: %lums step-time: %lums total-time: %lums",
                      iteration,
-                     norm,
+                     error_ratio,
                      1000 * (evaluate_end - evaluate_begin) / G_USEC_PER_SEC,
                      1000 * (step_end - step_begin) / G_USEC_PER_SEC,
                      1000 * (iteration_end - iteration_begin) / G_USEC_PER_SEC);

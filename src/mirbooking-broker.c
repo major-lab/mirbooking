@@ -17,6 +17,9 @@
 #include <cblas.h>
 #endif
 
+#define RTOL 1e-6
+#define ATOL 1e-8
+
 typedef struct _MirbookingTargetPositions
 {
     gsize     *positions;
@@ -1372,7 +1375,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
 /**
  * mirbooking_broker_evaluate:
  * @self: A #MirbookingBroker
- * @norm: (out) (optional): The L2 norm of the system.
+ * @error_ratio: (out) (optional): Error-to-tolerance ratio
  *
  * Evaluate the current state of the system.
  *
@@ -1380,9 +1383,9 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
  * is set accordingly
  */
 gboolean
-mirbooking_broker_evaluate (MirbookingBroker          *self,
-                            gdouble                   *norm,
-                            GError                   **error)
+mirbooking_broker_evaluate (MirbookingBroker  *self,
+                            gdouble           *error_ratio,
+                            GError           **error)
 {
     if (g_once_init_enter (&self->priv->init))
     {
@@ -1396,11 +1399,16 @@ mirbooking_broker_evaluate (MirbookingBroker          *self,
                 self->priv->F,
                 self);
 
-    if (norm)
+    if (error_ratio)
     {
-        *norm = cblas_dnrm2 (self->priv->y_len,
-                             self->priv->F,
-                             1);
+        gdouble _error_ratio = 0;
+        gsize i;
+        for (i = 0; i < self->priv->y_len; i++)
+        {
+            _error_ratio = fmax (_error_ratio, fabs (self->priv->F[i]) / (RTOL  * fabs (self->priv->y[i]) + ATOL));
+        }
+
+        *error_ratio = _error_ratio;
     }
 
     return TRUE;

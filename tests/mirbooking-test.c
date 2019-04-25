@@ -139,17 +139,17 @@ test_mirbooking ()
     mirbooking_broker_set_5prime_footprint (mirbooking, 0);
     mirbooking_broker_set_3prime_footprint (mirbooking, 0);
 
-    gdouble norm, last_norm;
-    last_norm = 1.0/0.0;
+    gdouble error_ratio, last_error_ratio;
+    last_error_ratio = 1.0/0.0;
     g_autoptr (GError) error = NULL;
 
     do
     {
-        g_assert (mirbooking_broker_evaluate (mirbooking, &norm, &error));
+        g_assert (mirbooking_broker_evaluate (mirbooking, &error_ratio, &error));
         g_assert (mirbooking_broker_step (mirbooking, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1, &error));
         g_assert_null (error);
-        g_assert_cmpfloat (norm, <=, last_norm);
-        last_norm = norm;
+        g_assert_cmpfloat (error_ratio, <=, last_error_ratio);
+        last_error_ratio = error_ratio;
 
         const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
         MirbookingTargetSite target_site = g_array_index (target_sites, MirbookingTargetSite, 0);
@@ -158,7 +158,7 @@ test_mirbooking ()
         g_assert_cmpfloat (ES, <=, 6e5);
         g_assert_cmpfloat (ES, <=, 4e6);
     }
-    while (norm > 1e-6);
+    while (error_ratio > 1);
 
     // at steady-state, the system is closed so we get equal incoming,
     // catalyzing and outgoing product
@@ -212,8 +212,8 @@ test_mirbooking_empty ()
     g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
-    gdouble norm;
-    g_assert (mirbooking_broker_evaluate (broker, &norm, NULL));
+    gdouble error_ratio;
+    g_assert (mirbooking_broker_evaluate (broker, &error_ratio, NULL));
     g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1, NULL));
 }
 
@@ -237,9 +237,9 @@ test_mirbooking_bad_seed_range ()
 
     if (g_test_subprocess ())
     {
-        gdouble norm;
+        gdouble error_ratio;
         GError *error = NULL;
-        mirbooking_broker_evaluate (broker, &norm, &error);
+        mirbooking_broker_evaluate (broker, &error_ratio, &error);
         return;
     }
 
@@ -266,10 +266,10 @@ test_mirbooking_numerical_integration ()
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
 
-    gdouble norm;
+    gdouble error_ratio;
     GError *error = NULL;
-    g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
-    g_assert (isfinite (norm));
+    g_assert (mirbooking_broker_evaluate (broker, &error_ratio, &error));
+    g_assert (isfinite (error_ratio));
 
     const GArray *target_sites = mirbooking_broker_get_target_sites (broker);
 
@@ -282,14 +282,14 @@ test_mirbooking_numerical_integration ()
 
     /* duplex concentration should steadily increase toward equilibrium */
     gint i;
-    gfloat last_norm = 1.0/0.0;
+    gfloat last_error_ratio = 1.0/0.0;
     gdouble step_size = 1;
     for (i = 0; i < 10; i++)
     {
-        g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
+        g_assert (mirbooking_broker_evaluate (broker, &error_ratio, &error));
         g_assert_null (error);
-        g_assert_cmpfloat (norm, <, last_norm);
-        last_norm = norm;
+        g_assert_cmpfloat (error_ratio, <, last_error_ratio);
+        last_error_ratio = error_ratio;
 
         g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, step_size, &error));
         g_assert_null (error);
@@ -321,10 +321,10 @@ test_mirbooking_solve_and_integrate ()
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
 
-    gdouble norm;
+    gdouble error_ratio;
     GError *error = NULL;
-    g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
-    g_assert (isfinite (norm));
+    g_assert (mirbooking_broker_evaluate (broker, &error_ratio, &error));
+    g_assert (isfinite (error_ratio));
 
     const GArray *target_sites = mirbooking_broker_get_target_sites (broker);
 
@@ -337,12 +337,12 @@ test_mirbooking_solve_and_integrate ()
 
     do
     {
-        mirbooking_broker_evaluate (broker, &norm, &error);
+        mirbooking_broker_evaluate (broker, &error_ratio, &error);
         g_assert_null (error);
         mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1.0, &error);
         g_assert_null (error);
     }
-    while (norm > 1e-16);
+    while (error_ratio > 1);
 
     // steady-state assumption holds
     g_assert_cmpfloat (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), ==, mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)));
@@ -364,35 +364,35 @@ test_mirbooking_solve_and_integrate ()
     gdouble kother = mirbooking_broker_get_target_site_kother (broker, target_site);
     g_assert_cmpfloat (kother, >, 0);
     gdouble Stp = mirbooking_broker_get_target_site_quantity (broker, target_site);
-    g_assert_cmpfloat_with_epsilon ((E * Stp) / ES, MIRBOOKING_SCORE_KM (occupant->score) + kother / occupant->score.kf, 1e-12);
+    g_assert_cmpfloat_with_epsilon ((E * Stp) / ES, MIRBOOKING_SCORE_KM (occupant->score) + kother / occupant->score.kf, 1e-6);
 
     // steady-state is maintained
     gdouble ktr = mirbooking_broker_get_target_transcription_rate (broker, target);
     gdouble kdeg = mirbooking_broker_get_product_degradation_rate (broker, target);
     g_assert_cmpfloat (ktr, >, 0);
     g_assert_cmpfloat (kdeg, >, 0);
-    g_assert_cmpfloat (fabs (ktr - kdeg), <=, 1e-12);
+    g_assert_cmpfloat (fabs (ktr - kdeg), <=, 1e-6);
 
     // integrating at steady-state must preserve the steady-state
     g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 120.0, &error));
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna)), E, 1e-6);
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_occupant_quantity (broker, occupant), ES, 1e-6);
-    mirbooking_broker_evaluate (broker, &norm, &error);
-    g_assert_cmpfloat (norm, <=, 1e-12);
+    mirbooking_broker_evaluate (broker, &error_ratio, &error);
+    g_assert (error_ratio <= 1);
 
     // over-expression of MIMAT0000001 (10 -> 20)
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 20);
     g_assert_cmpfloat (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna)), ==, 20);
 
-    mirbooking_broker_evaluate (broker, &norm, &error);
-    g_assert_cmpfloat (norm, >, 1e-6);
+    mirbooking_broker_evaluate (broker, &error_ratio, &error);
+    g_assert (error_ratio > 1);
 
     gdouble step_size = 1;
     for (i = 120; i < 130; i++)
     {
-        g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
+        g_assert (mirbooking_broker_evaluate (broker, &error_ratio, &error));
         g_assert_null (error);
-        g_assert (isfinite (norm));
+        g_assert (isfinite (error_ratio));
 
         g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, step_size, &error));
         g_assert_null (error);
@@ -431,10 +431,10 @@ test_mirbooking_set_occupant_quantity ()
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
 
-    gdouble norm;
+    gdouble error_ratio;
     GError *error = NULL;
-    g_assert (mirbooking_broker_evaluate (broker, &norm, &error));
-    g_assert (isfinite (norm));
+    g_assert (mirbooking_broker_evaluate (broker, &error_ratio, &error));
+    g_assert (isfinite (error_ratio));
 
     const GArray *occupants = mirbooking_broker_get_occupants (broker);
     MirbookingOccupant *occupant = &g_array_index (occupants, MirbookingOccupant, 0);
@@ -450,12 +450,12 @@ test_mirbooking_set_occupant_quantity ()
 
     do
     {
-        mirbooking_broker_evaluate (broker, &norm, &error);
+        mirbooking_broker_evaluate (broker, &error_ratio, &error);
         g_assert_null (error);
         mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1.0, &error);
         g_assert_null (error);
     }
-    while (norm > 1e-6);
+    while (error_ratio > 1);
 
     // ensure that we converge to the same equilibrium point
     gdouble ES = mirbooking_broker_get_occupant_quantity (broker, occupant);
@@ -490,12 +490,12 @@ test_mirbooking_restore_broker_state ()
     mirbooking_broker_set_sequence_quantity (broker1, MIRBOOKING_SEQUENCE (mirna), 10);
 
     g_autoptr (GError) error = NULL;
-    gdouble norm;
-    mirbooking_broker_evaluate (broker1, &norm, &error);
+    gdouble error_ratio;
+    mirbooking_broker_evaluate (broker1, &error_ratio, &error);
     g_assert_null (error);
     mirbooking_broker_step (broker1, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1.0, &error);
     g_assert_null (error);
-    mirbooking_broker_evaluate (broker1, &norm, &error);
+    mirbooking_broker_evaluate (broker1, &error_ratio, &error);
 
     // restore broker2 from broker1 state
     const GPtrArray *mirnas = mirbooking_broker_get_mirnas (broker1);
@@ -559,11 +559,10 @@ test_mirbooking_restore_broker_state ()
         g_assert_cmpfloat (mirbooking_broker_get_occupant_quantity (broker1, broker1_occupant), ==, mirbooking_broker_get_occupant_quantity (broker2, broker2_occupant));
     }
 
-    gdouble broker2_norm;
-    mirbooking_broker_evaluate (broker2, &broker2_norm, &error);
+    gdouble broker2_error_ratio;
+    mirbooking_broker_evaluate (broker2, &broker2_error_ratio, &error);
     g_assert_null (error);
-
-    g_assert_cmpfloat_with_epsilon (norm, broker2_norm, 1e-6);
+    g_assert_cmpfloat_with_epsilon (error_ratio, broker2_error_ratio, 1e-3);
 }
 
 static void
@@ -585,19 +584,19 @@ test_mirbooking_target_knock_out ()
 
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (score_table));
 
-    gdouble norm;
+    gdouble error_ratio;
     do
     {
         mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1.0, NULL);
-        mirbooking_broker_evaluate (broker, &norm, NULL);
+        mirbooking_broker_evaluate (broker, &error_ratio, NULL);
     }
-    while (norm >= 1e-6);
+    while (error_ratio >= 1);
 
     // stop target transcription
     mirbooking_broker_set_target_transcription_rate (broker, target, 0);
 
     mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 2 * 3600.0, NULL);
-    mirbooking_broker_evaluate (broker, &norm, NULL);
+    mirbooking_broker_evaluate (broker, &error_ratio, NULL);
 
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), 0, 1e-3);
 }
@@ -621,13 +620,13 @@ test_mirbooking_mirna_knock_out ()
 
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (score_table));
 
-    gdouble norm;
+    gdouble error_ratio;
     do
     {
         mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1.0, NULL);
-        mirbooking_broker_evaluate (broker, &norm, NULL);
+        mirbooking_broker_evaluate (broker, &error_ratio, NULL);
     }
-    while (norm >= 1e-6);
+    while (error_ratio > 1);
 
     const GArray *occupants = mirbooking_broker_get_occupants (broker);
     MirbookingOccupant *occupant = &g_array_index (occupants, MirbookingOccupant, 0);
@@ -641,9 +640,9 @@ test_mirbooking_mirna_knock_out ()
     do
     {
         mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_SOLVE_STEADY_STATE, 1.0, NULL);
-        mirbooking_broker_evaluate (broker, &norm, NULL);
+        mirbooking_broker_evaluate (broker, &error_ratio, NULL);
     }
-    while (norm >= 1e-6);
+    while (error_ratio > 1);
 
     // occupant goes back to zero
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_occupant_quantity (broker, occupant), 0, 1e-6);

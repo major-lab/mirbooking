@@ -22,7 +22,6 @@ mirbooking --targets GCF_000001405.37_GRCh38.p11_rna.fna
            [--output stdout]
            [--output-format tsv]
            [--sparse-solver superlu]
-           [--tolerance 1e-8]
            [--max-iterations 100]
            [--5prime-footprint 9]
            [--3prime-footprint 7]
