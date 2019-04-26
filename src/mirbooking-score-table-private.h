@@ -60,18 +60,16 @@
  * carrying a guide miRNA with only the seed pairing of 26±2 pM, which
  * correspond to a free energy of -15.02 kcal/mol.
  *
- * On the other hand, Salomon et al. instead measured 15±2 pm, which correspond
- * to -15.36 kcal/mol.
+ * On the other hand, Salomon et al. instead measured 15±2 pM on the same
+ * setup, which correspond to -15.36 kcal/mol.
  *
- * In addition, the seed setup experiment in both experiments had 'A', which
- * shoudld account for a -0.56 kcal/mol additional contribution (Schirle et al. 2015).
+ * In addition, the seed setup experiment for Salomon et al. had a 'A' at t1,
+ * which should account for a -0.56 kcal/mol additional contribution (Schirle
+ * et al.  2015).
  *
- * Using RNAup, we folded the reporter with the seed-only sequence which
- * yielded a 0.466 kcal/mol penalty to "open" a 17 nucleotides window around
- * the seed.
- *
- * We thus the latest value and impute the -5.90 kcal/mol gap to AGO2 entropic
- * contribution.
+ * For Wee et al. we have an entropic contribution of -5.65 kcal/mol which is
+ * consistent with the -5.43 kcal/mol obtained from Salomon et al. We take the
+ * average of the two values.
  *
  * Reference:
  * Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into
@@ -82,7 +80,7 @@
  * Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4 (September
  * 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
  */
-#define AGO2_SCORE (-5.43f)
+#define AGO2_SCORE (-5.54f)
 
 /*
  * AGO2 has a slight preference for sites starting with 'A' at position t1.

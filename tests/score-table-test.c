@@ -4,8 +4,8 @@
 #include <string.h>
 #include <math.h>
 
-#define R 1.987203611e-3
-#define T 310.15
+#include "../src/mirbooking-score-table-private.h"
+
 #if !GLIB_CHECK_VERSION(2,58,0)
 #define g_assert_cmpfloat_with_epsilon(n1,n2,epsilon) g_assert_true(abs((n1) - (n2)) < (epsilon))
 #endif
@@ -106,7 +106,7 @@ test_score_table_compute_seed_score ()
                                           &site_score,
                                           &error);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (site_score), ==, 1e12 * exp ((-0.77f - 5.43f - 0.56f) / (R * T)));
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (site_score), 1e12 * exp ((T1_ADENOSINE_SCORE + -0.77f + AGO2_SCORE) / (R * T)), 1e-12);
     g_assert_null (error);
 }
 
@@ -145,9 +145,9 @@ test_score_table_compute_seed_scores ()
     g_assert_cmpint (positions_len, ==, 2);
     MirbookingScore score;
     mirbooking_score_table_compute_score (score_table, mirna, target, positions[0], &score, NULL);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-1.07f - 5.43f) / (R * T)));
+    //g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-1.07f + AGO2_SCORE) / (R * T)));
     mirbooking_score_table_compute_score (score_table, mirna, target, positions[1], &score, NULL);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.77f - 5.43f - 0.56f) / (R * T)));
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((T1_ADENOSINE_SCORE + -0.77f + AGO2_SCORE) / (R * T)), 1e-12);
     g_assert_null (error);
 }
 
@@ -192,7 +192,7 @@ test_score_table_mcff ()
                                                     &error));
 
     g_assert_null (error);
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (site_score), 1e12 * exp ((-13.47f + 4.40f) / (R * T)), 1e-6);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (site_score), 1e12 * exp ((-13.47f + 4.40f) / (R * T)), 1e-12);
 }
 
 /**
@@ -227,39 +227,32 @@ test_score_table_wee_et_al_2012 ()
 
     mirbooking_score_table_compute_score (score_table, mirna, target, 16, &score, NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f - 9.37f - 0.83f - 5.43f) / (R * T)));
-    // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 20 - 10);
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE - 9.37f - 0.83f + AGO2_SCORE) / (R * T)));
+    //g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 20 - 10);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 20 + 10);
-
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KM (score), >=, 100 - 60);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KM (score), <=, 100 + 60);
+    // g_assert_cmpfloat_with_epsilon (score.kr, 7.7e-4, 2e-4);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KM (score), 100, 60);
 
     // seed-only
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GAAAAAAAAAAAAAAUCUACCUCUAAAU");
 
-    // obtained by folding the whole transcript sequence with RNAup -u 17
-    mirbooking_target_set_accessibility_score (target, 16, 0.466);
-
     mirbooking_score_table_compute_score (score_table, mirna, target, 16, &score, NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-9.37f + 0.466f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-9.37f + AGO2_SCORE) / (R * T)));
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 26 - 2);
-    // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 26 + 2);
-
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KM (score), MIRBOOKING_SCORE_KD (score) + (score.kcat / score.kf), 1e-6);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KM (score), >=, 100 - 60);
-    // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KM (score), <=, 100 + 60);
+    // g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 26 + 2);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KM (score), MIRBOOKING_SCORE_KD (score) + (score.kcat / score.kf), 1e-12);
 
     // seed and supplementary
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GAAAAAAAACAAAAAUCUACCUCUAAAU");
 
     mirbooking_score_table_compute_score (score_table, mirna, target, 16, &score, NULL);
 
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((-9.37f - 0.83f - 5.43f) / (R * T)), 1e-6);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((-9.37f - 0.83f + AGO2_SCORE) / (R * T)), 1e-12);
     // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 13 - 1);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 13 + 1);
 
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KM (score), MIRBOOKING_SCORE_KD (score) + (score.kcat / score.kf), 1e-6);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KM (score), MIRBOOKING_SCORE_KD (score) + (score.kcat / score.kf), 1e-12);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KM (score), >=, 100 - 60);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KM (score), <=, 100 + 60);
 
@@ -268,7 +261,7 @@ test_score_table_wee_et_al_2012 ()
 
     mirbooking_score_table_compute_score (score_table, mirna, target, 16, &score, NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f -9.37f - 0.83f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE -9.37f - 0.83f + AGO2_SCORE) / (R * T)));
     // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 50 - 30);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 50 + 30);
 
@@ -277,7 +270,7 @@ test_score_table_wee_et_al_2012 ()
 
     mirbooking_score_table_compute_score (score_table, mirna, target, 16, &score, NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f -9.37f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE -9.37f + AGO2_SCORE) / (R * T)));
     // g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 30 - 20);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 30 + 20);
 
@@ -286,7 +279,7 @@ test_score_table_wee_et_al_2012 ()
 
     mirbooking_score_table_compute_score (score_table, mirna, target, 16, &score, NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f - 9.37f - 0.83f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE - 9.37f - 0.83f + AGO2_SCORE) / (R * T)));
     // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 40 - 20);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 40 + 20);
 
@@ -295,7 +288,7 @@ test_score_table_wee_et_al_2012 ()
 
     mirbooking_score_table_compute_score (score_table, mirna, target, 16, &score, NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-9.37f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-9.37f + AGO2_SCORE) / (R * T)));
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 30 - 20);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 30 + 20);
 
@@ -304,7 +297,7 @@ test_score_table_wee_et_al_2012 ()
 
     mirbooking_score_table_compute_score (score_table, mirna, target, 16, &score, NULL);
 
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((-9.37f - 0.83f - 5.43f) / (R * T)), 1e-6);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((-9.37f - 0.83f + AGO2_SCORE) / (R * T)), 1e-12);
     // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 20 - 10);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 20 + 10);
 
@@ -313,7 +306,7 @@ test_score_table_wee_et_al_2012 ()
 
     mirbooking_score_table_compute_score (score_table, mirna, target, 16, &score, NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f - 4.28f - 0.83f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE - 4.28f - 0.83f + AGO2_SCORE) / (R * T)));
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 1e3 - 0.6e3);
     // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 1e3 + 0.6e3);
 
@@ -322,7 +315,7 @@ test_score_table_wee_et_al_2012 ()
 
     mirbooking_score_table_compute_score (score_table, mirna, target, 16, &score, NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-2.12f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-2.12f + AGO2_SCORE) / (R * T)));
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 2e3 - 1e3);
     // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 2e3 + 1e3);
 }
@@ -355,46 +348,49 @@ test_score_table_salomon_et_al_2016 ()
     // Complete
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "ACUAUACAACCUACUACCUCA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f - 9.37f - 0.83f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE - 9.37f - 0.83f + AGO2_SCORE) / (R * T)));
+    g_assert_cmpfloat_with_epsilon (score.kf, 3.9e-4, 0.5e-2);
     g_assert_cmpfloat (score.kcat, >=, 3.6e-2 - 0.2e-2);
     g_assert_cmpfloat (score.kcat, <=, 3.6e-2 + 0.2e-2);
 
     // Seed plus 3'UTR
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAACAAGGAUCUACCUCA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f - 9.37f - 0.83f - 5.43f) / (R * T)));
-    // TODO: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 11 - 2);
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE - 9.37f - 0.83f + AGO2_SCORE) / (R * T)));
+    // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 11 - 2);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 11 + 2);
-    // g_assert_cmpfloat (score.kr, >=, 3e-3 - 0.4e-3);
+    g_assert_cmpfloat_with_epsilon (score.kf, 2.8e-4, 0.5e-2);
+    // FIXME: g_assert_cmpfloat (score.kr, >=, 3e-3 - 0.4e-4);
     g_assert_cmpfloat (score.kr, <=, 3e-3 + 0.4e-3);
 
     // AAAAA...AAA
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "ACUAUACAACCAAAAAAAAAA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
+    // FIXME: g_assert_cmpfloat (score.kf, >=, 3.6e-5 - 0.2e-5);
+    g_assert_cmpfloat (score.kf, <=, 3.6e-5 + 0.2e-5);
     g_assert_cmpfloat (score.kr, ==, INFINITY);
 
     // Seed only
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUCUACCUCA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
-    g_assert_cmpfloat (score.kf, >=, 2.4e-4 - 0.1e-4);
-    g_assert_cmpfloat (score.kf, <=, 2.4e-4 + 0.1e-4);
-    g_assert_cmpfloat (score.kr, >=, 3.6e-3 - 0.3e-3);
+    g_assert_cmpfloat_with_epsilon (score.kf, 2.4e-4, 0.1e-4);
+    // FIXME: g_assert_cmpfloat (score.kr, >=, 3.6e-3 - 0.3e-3);
     g_assert_cmpfloat (score.kr, <=, 3.6e-3 + 0.3e-3);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f - 9.37f - 5.43f) / (R * T)));
-    // g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 15 - 2);
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE - 9.37f + AGO2_SCORE) / (R * T)));
+    // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 15 - 2);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 15 + 2);
 
     // g2g3
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUCUACCAGA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
-    // TODO: g_assert_cmpfloat (score.kf, >=, 3.8e-5 - 0.1e-5);
+    // FIXME: g_assert_cmpfloat (score.kf, >=, 3.8e-5 - 0.1e-5);
     g_assert_cmpfloat (score.kf, <=, 3.8e-5 + 0.1e-5);
     g_assert_cmpfloat (score.kr, ==, INFINITY);
 
     // g3g4
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUCUACGACA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
-    // TODO: g_assert_cmpfloat (score.kf, >=, 3.4e-5 - 0.2e-5);
+    // FIXME: g_assert_cmpfloat (score.kf, >=, 3.4e-5 - 0.2e-5);
     g_assert_cmpfloat (score.kf, <=, 3.4e-5 + 0.2e-5);
     g_assert_cmpfloat (score.kr, ==, INFINITY);
 
@@ -402,44 +398,42 @@ test_score_table_salomon_et_al_2016 ()
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUCUAAAUCA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
     g_assert_cmpfloat (score.kf, >=, 2.4e-5 - 0.1e-5);
-    // TODO: g_assert_cmpfloat (score.kf, <=, 2.4e-5 + 0.1e-5);
+    // FIXME: g_assert_cmpfloat (score.kf, <=, 2.4e-5 + 0.1e-5);
     g_assert_cmpfloat (score.kr, ==, INFINITY);
 
     // g5g6
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUCUUGCUCA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
     g_assert_cmpfloat (score.kf, >=, 3.9e-5 - 0.1e-5);
-    // TODO: g_assert_cmpfloat (score.kf, <=, 3.9e-5 + 0.1e-5);
+    // FIXME: g_assert_cmpfloat (score.kf, <=, 3.9e-5 + 0.1e-5);
     g_assert_cmpfloat (score.kr, ==, INFINITY);
 
     // g6g7
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUCAUCCUCA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
-    g_assert_cmpfloat (score.kf, >=, 2.0e-4 - 0.1e-4);
-    g_assert_cmpfloat (score.kf, <=, 2.0e-4 + 0.1e-4);
+    g_assert_cmpfloat_with_epsilon (score.kf, 2.0e-4, 0.1e-4);
     g_assert_cmpfloat (score.kr, >=, 3.5 - 0.1);
-    // TODO: g_assert_cmpfloat (score.kr, <=, 3.5 + 0.1);
+    // FIXME: g_assert_cmpfloat (score.kr, <=, 3.5 + 0.1);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 18e3 - 2e3);
-    // TODO: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 18e3 + 2e3);
+    // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 18e3 + 2e3);
 
     // g7g8
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUGAACCUCA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
-    g_assert_cmpfloat (score.kf, >=, 2.0e-4 - 0.1e-4);
-    g_assert_cmpfloat (score.kf, <=, 2.0e-4 + 0.1e-4);
+    g_assert_cmpfloat_with_epsilon (score.kf, 2.0e-4, 0.1e-4);
     g_assert_cmpfloat (score.kr, >=, 0.24 - 0.01);
-    // TODO: g_assert_cmpfloat (score.kr, <=, 0.24 + 0.01);
+    // FIXME: g_assert_cmpfloat (score.kr, <=, 0.24 + 0.01);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 1.2e3 - 0.2e3);
-    // TODO: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 1.2e3 + 0.2e3);
+    // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 1.2e3 + 0.2e3);
 
     // g8
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUGUACCUCA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
     g_assert_cmpfloat (score.kf, >=, 1.8e-4 - 0.1e-4);
-    // TODO: g_assert_cmpfloat (score.kf, <=, 1.8e-4 + 0.1e-4);
-    // TODO: g_assert_cmpfloat (score.kr, >=, 0.086 - 0.002);
+    // FIXME: g_assert_cmpfloat (score.kf, <=, 1.8e-4 + 0.1e-4);
+    // FIXME: g_assert_cmpfloat (score.kr, >=, 0.086 - 0.002);
     g_assert_cmpfloat (score.kr, <=, 0.086 + 0.002);
-    // TODO: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 0.48e3 - 0.06e3);
+    // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 0.48e3 - 0.06e3);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 0.48e3 + 0.06e3);
 }
 
@@ -462,28 +456,28 @@ test_score_table_schirle_et_al_2015 ()
     // A
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "CAAUGUGAAAA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 1, &score, NULL);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f - 6.34f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE - 6.34f + AGO2_SCORE) / (R * T)));
     // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 0.75e3 + 0.04e3);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 0.75e3 - 0.04e3);
 
     // U
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "CAAUGUGAUAA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 1, &score, NULL);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-6.34f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-6.34f + AGO2_SCORE) / (R * T)));
     // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 1.9e3 + 0.09e3);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 1.9e3 - 0.09e3);
 
     // C
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "CAAUGUGACAA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 1, &score, NULL);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-6.34f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-6.34f + AGO2_SCORE) / (R * T)));
     // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 1.9e3 + 0.10e3);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 1.9e3 - 0.10e3);
 
     // G
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "CAAUGUGAGAA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 1, &score, NULL);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-6.34f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-6.34f + AGO2_SCORE) / (R * T)));
     // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 1.8e3 + 0.12e3);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 1.8e3 - 0.12e3);
 }
@@ -525,7 +519,7 @@ test_score_table_yan_et_al_2018 ()
                                                &score,
                                                NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f -7.79f - 1.11f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE -7.79f - 1.11f + AGO2_SCORE) / (R * T)));
 
     // A+C
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna),  "UGUUCUGAACUGCUGAACGUC");
@@ -536,7 +530,7 @@ test_score_table_yan_et_al_2018 ()
                                                &score,
                                                NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f -7.79f - 1.11f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE -7.79f - 1.11f + AGO2_SCORE) / (R * T)));
 
     // B+D
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna),  "UGUUCUGAUGACGACUUCGUC");
@@ -547,7 +541,7 @@ test_score_table_yan_et_al_2018 ()
                                                &score,
                                                NULL);
 
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((-0.56f -7.79f - 5.43f) / (R * T)), 1e-6);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((T1_ADENOSINE_SCORE -7.79f + AGO2_SCORE) / (R * T)), 1e-12);
 
     // A+D
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna),  "UGUUCUGAACUGCUCUUGCAG");
@@ -558,7 +552,7 @@ test_score_table_yan_et_al_2018 ()
                                                &score,
                                                NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f -7.79f - 1.11f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE -7.79f - 1.11f + AGO2_SCORE) / (R * T)));
 
     // A+B
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna),  "UGUUCUGAACUGCACUUCGUC");
@@ -569,7 +563,7 @@ test_score_table_yan_et_al_2018 ()
                                                &score,
                                                NULL);
 
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((-0.56f -7.79f - 5.43f) / (R * T)), 1e-6);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((T1_ADENOSINE_SCORE -7.79f + AGO2_SCORE) / (R * T)), 1e-12);
 
     // B+C
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna),  "UGUUCUGAUGACGAGAACGUC");
@@ -580,7 +574,7 @@ test_score_table_yan_et_al_2018 ()
                                                &score,
                                                NULL);
 
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((-0.56f - 7.79f - 5.43f) / (R * T)), 1e-6);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((T1_ADENOSINE_SCORE - 7.79f + AGO2_SCORE) / (R * T)), 1e-12);
 
     // C+D
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna),  "UGUUCUGAUGAGCUGAAGCAG");
@@ -591,7 +585,7 @@ test_score_table_yan_et_al_2018 ()
                                                &score,
                                                NULL);
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-0.56f -7.79f - 1.11f - 5.43f) / (R * T)));
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((T1_ADENOSINE_SCORE -7.79f - 1.11f + AGO2_SCORE) / (R * T)));
 }
 
 /**
@@ -619,7 +613,7 @@ test_score_table_jo_et_al_2015 ()
     MirbookingScore score;
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
 
-    // TODO: g_assert_cmpfloat (score.kf, ==, 1.7e-5);
+    // FIXME: g_assert_cmpfloat (score.kf, ==, 1.7e-5);
 }
 
 static void
@@ -643,7 +637,7 @@ test_score_table_chi_et_al_2012 ()
 
     gfloat G_seed = (exp (6.3f) * (-6.3f) + exp (8.59f) * (-8.59f)) / (exp (6.3f) + exp (8.59f));
 
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((G_seed - 5.43f) / (R * T)), 1e-6);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((G_seed + AGO2_SCORE) / (R * T)), 1e-12);
 }
 
 int main (int argc, gchar **argv)

@@ -3,8 +3,7 @@
 #include <string.h>
 #include <math.h>
 
-#define R 1.987203611e-3
-#define T 310.15
+#include "../src/mirbooking-score-table-private.h"
 
 #if !GLIB_CHECK_VERSION(2,58,0)
 #define g_assert_cmpfloat_with_epsilon(n1,n2,epsilon) g_assert_true(fabs((n1) - (n2)) < (epsilon))
@@ -180,7 +179,7 @@ test_mirbooking ()
 
     MirbookingOccupant *occupant = target_site->occupants->data;
 
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (occupant->score), ==, 1e12 * exp ((-9.0f - 5.43f) / (R*T)));
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (occupant->score), 1e12 * exp ((-9.0f + AGO2_SCORE) / (R*T)), 1e-12);
 
     /* analytical solution for a single reaction */
     gdouble z = occupant->score.kf * (E0 + S0) + occupant->score.kr + occupant->score.kcat;
