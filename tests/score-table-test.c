@@ -371,8 +371,7 @@ test_score_table_salomon_et_al_2016 ()
     // AAAAA...AAA
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "ACUAUACAACCAAAAAAAAAA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
-    g_assert_cmpfloat (score.kr, >=, 0.79 - 0.08);
-    // g_assert_cmpfloat (score.kr, <=, 0.79 + 0.08);
+    g_assert_cmpfloat (score.kr, ==, INFINITY);
 
     // Seed only
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUCUACCUCA");
@@ -396,6 +395,7 @@ test_score_table_salomon_et_al_2016 ()
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUCUACGACA");
     mirbooking_score_table_compute_score (score_table, mirna, target, 13, &score, NULL);
     // TODO: g_assert_cmpfloat (score.kf, >=, 3.4e-5 - 0.2e-5);
+    g_assert_cmpfloat (score.kf, <=, 3.4e-5 + 0.2e-5);
     g_assert_cmpfloat (score.kr, ==, INFINITY);
 
     // g4g5
@@ -419,6 +419,8 @@ test_score_table_salomon_et_al_2016 ()
     g_assert_cmpfloat (score.kf, <=, 2.0e-4 + 0.1e-4);
     g_assert_cmpfloat (score.kr, >=, 3.5 - 0.1);
     // TODO: g_assert_cmpfloat (score.kr, <=, 3.5 + 0.1);
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 18e3 - 2e3);
+    // TODO: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 18e3 + 2e3);
 
     // g7g8
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUGAACCUCA");
@@ -427,6 +429,8 @@ test_score_table_salomon_et_al_2016 ()
     g_assert_cmpfloat (score.kf, <=, 2.0e-4 + 0.1e-4);
     g_assert_cmpfloat (score.kr, >=, 0.24 - 0.01);
     // TODO: g_assert_cmpfloat (score.kr, <=, 0.24 + 0.01);
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 1.2e3 - 0.2e3);
+    // TODO: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 1.2e3 + 0.2e3);
 
     // g8
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAUGUUGGAUGUACCUCA");
@@ -435,6 +439,8 @@ test_score_table_salomon_et_al_2016 ()
     // TODO: g_assert_cmpfloat (score.kf, <=, 1.8e-4 + 0.1e-4);
     // TODO: g_assert_cmpfloat (score.kr, >=, 0.086 - 0.002);
     g_assert_cmpfloat (score.kr, <=, 0.086 + 0.002);
+    // TODO: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 0.48e3 - 0.06e3);
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 0.48e3 + 0.06e3);
 }
 
 static void
