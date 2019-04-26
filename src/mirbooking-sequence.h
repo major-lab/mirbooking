@@ -25,6 +25,9 @@ gsize          mirbooking_sequence_get_sequence_length  (MirbookingSequence *sel
 const guint8 * mirbooking_sequence_get_subsequence      (MirbookingSequence *self,
                                                          gsize               subsequence_offset,
                                                          gsize               subsequence_len);
+const guint8 * mirbooking_sequence_get_subsequence_rc   (MirbookingSequence *self,
+                                                         gsize               subsequence_offset,
+                                                         gsize               subsequence_len);
 
 gssize        mirbooking_sequence_get_subsequence_index (MirbookingSequence *self,
                                                          gsize               offset,

@@ -1,5 +1,6 @@
 #include "mirbooking-sequence.h"
 
+#include <ctype.h>
 #include <string.h>
 #include <glib-object.h>
 
@@ -286,6 +287,43 @@ mirbooking_sequence_get_subsequence (MirbookingSequence *self, gsize subsequence
     {
         return subsequence;
     }
+}
+
+static gchar
+rc (gchar c)
+{
+    switch (toupper (c))
+    {
+        case 'A':
+            return 'T';
+        case 'C':
+            return 'G';
+        case 'G':
+            return 'C';
+        case 'T':
+        case 'U':
+            return 'A';
+        default:
+            g_assert_not_reached ();
+    }
+}
+
+const guint8*
+mirbooking_sequence_get_subsequence_rc (MirbookingSequence *self, gsize subsequence_offset, gsize subsequence_len)
+{
+    static __thread guint8 subsequence_rc_buffer[64];
+
+    const guint8 *subsequence_buffer = mirbooking_sequence_get_subsequence (self,
+                                                                            subsequence_offset,
+                                                                            subsequence_len);
+
+    gsize i;
+    for (i = 0; i < subsequence_len; i++)
+    {
+        subsequence_rc_buffer[i] = rc (subsequence_buffer[subsequence_len - i - 1]);
+    }
+
+    return subsequence_rc_buffer;
 }
 
 static gssize

@@ -282,14 +282,11 @@ test_mirbooking_numerical_integration ()
 
     /* duplex concentration should steadily increase toward equilibrium */
     gint i;
-    gfloat last_error_ratio = 1.0/0.0;
     gdouble step_size = 1;
     for (i = 0; i < 10; i++)
     {
         g_assert (mirbooking_broker_evaluate (broker, &error_ratio, &error));
         g_assert_null (error);
-        g_assert_cmpfloat (error_ratio, <, last_error_ratio);
-        last_error_ratio = error_ratio;
 
         g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, step_size, &error));
         g_assert_null (error);
@@ -364,7 +361,7 @@ test_mirbooking_solve_and_integrate ()
     gdouble kother = mirbooking_broker_get_target_site_kother (broker, target_site);
     g_assert_cmpfloat (kother, >, 0);
     gdouble Stp = mirbooking_broker_get_target_site_quantity (broker, target_site);
-    g_assert_cmpfloat_with_epsilon ((E * Stp) / ES, MIRBOOKING_SCORE_KM (occupant->score) + kother / occupant->score.kf, 1e-6);
+    g_assert_cmpfloat_with_epsilon ((E * Stp) / ES, MIRBOOKING_SCORE_KM (occupant->score) + kother / occupant->score.kf, 1e-3);
 
     // steady-state is maintained
     gdouble ktr = mirbooking_broker_get_target_transcription_rate (broker, target);
@@ -595,7 +592,7 @@ test_mirbooking_target_knock_out ()
     // stop target transcription
     mirbooking_broker_set_target_transcription_rate (broker, target, 0);
 
-    mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 2 * 3600.0, NULL);
+    mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 100 * 3600.0, NULL);
     mirbooking_broker_evaluate (broker, &error_ratio, NULL);
 
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), 0, 1e-3);

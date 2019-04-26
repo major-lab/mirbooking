@@ -239,6 +239,41 @@ compute_score (MirbookingScoreTable *score_table,
                                                 SEED_OFFSET,
                                                 SEED_LENGTH);
 
+    // Seed mismatches penalty to the arrival rate (Salomon et al. 2015)
+    //
+    // The two weights are obtained by considering dinucleotide mismatches in
+    // the leading 4mer box (0.16, 0.14, 0.10) and trailing 3mer box (0.81,
+    // 0.82) as two separate kind of impairment.
+    //
+    // that there are two kind of
+    // mismatches: within the leading 4mer of the seed and in the ending 3mer.
+    //
+    // Since two di-nucleotide mismatches incured a penalty of ~0.81, we assume
+    // that each individual mismatches result in a multiplicative penalty of
+    // 0.9.
+    gdouble w[7] = {0.36, 0.36, 0.36, 0.36, 0.9, 0.9, 0.9};
+
+    const guint8 *_seed = mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna),
+                                                               SEED_OFFSET,
+                                                               SEED_LENGTH);
+
+    guint8 seed[7];
+    memcpy (seed, _seed, 7);
+
+    const guint8 *target_seed_rc = mirbooking_sequence_get_subsequence_rc (MIRBOOKING_SEQUENCE (target),
+                                                                           position ,
+                                                                           SEED_LENGTH);
+
+    //
+    guint i;
+    for (i = 0; i < 7; i++)
+    {
+        if ((toupper (seed[i]) == 'U' ? 'T' : toupper (seed[i])) != target_seed_rc[i])
+        {
+            ret.kf *= w[i];
+        }
+    }
+
     if (is_g_bulge (target, position))
     {
         gsize i, j;

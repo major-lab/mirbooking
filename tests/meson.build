@@ -4,7 +4,8 @@ mirbooking_tests = [
     'mirbooking']
 foreach name : mirbooking_tests
     test(name, executable(name + '-test', name + '-test.c',
-                          dependencies: [glib_dep, gobject_dep, mirbooking_dep, m_dep]))
+                          dependencies: [glib_dep, gobject_dep, mirbooking_dep, m_dep]),
+                          env: ['G_TEST_SRCDIR=@0@'.format( meson.current_source_dir())])
 endforeach
 
 mirbooking_integration_tests = [
