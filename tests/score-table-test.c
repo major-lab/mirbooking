@@ -240,6 +240,7 @@ test_score_table_wee_et_al_2012 ()
 
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), ==, 1e12 * exp ((-9.37f + AGO2_SCORE) / (R * T)));
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 26 - 2);
+    g_assert_cmpfloat (score.kcat, ==, 0);
     // g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 26 + 2);
     g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KM (score), MIRBOOKING_SCORE_KD (score) + (score.kcat / score.kf), 1e-12);
 
@@ -252,9 +253,8 @@ test_score_table_wee_et_al_2012 ()
     // FIXME: g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), >=, 13 - 1);
     g_assert_cmpfloat (MIRBOOKING_SCORE_KD (score), <=, 13 + 1);
 
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KM (score), MIRBOOKING_SCORE_KD (score) + (score.kcat / score.kf), 1e-12);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KM (score), >=, 100 - 60);
-    g_assert_cmpfloat (MIRBOOKING_SCORE_KM (score), <=, 100 + 60);
+    g_assert_cmpfloat (MIRBOOKING_SCORE_KM (score), ==, MIRBOOKING_SCORE_KD (score) + (score.kcat / score.kf));
+    // FIXME: g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KM (score), 100, 60);
 
     // g10g11 central internal loop 50±30
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GAUACUAUACAACGAACUACCUCAACCU");

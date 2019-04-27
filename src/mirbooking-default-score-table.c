@@ -213,6 +213,12 @@ binding_energy (gfloat *G, gsize n)
 }
 
 static gboolean
+nucleotide_equal (guint8 a, guint8 b)
+{
+    return (toupper (a) == 'U' ? 'T' : toupper (a)) == (toupper (b) == 'U' ? 'T' : toupper (b));
+}
+
+static gboolean
 compute_score (MirbookingScoreTable *score_table,
                MirbookingMirna      *mirna,
                MirbookingTarget     *target,
@@ -222,7 +228,7 @@ compute_score (MirbookingScoreTable *score_table,
 {
     MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
 
-    MirbookingScore ret = {.kf = KF, .kcat = KCAT};
+    MirbookingScore ret = {.kf = KF, .kcat = 0};
 
     gfloat A_score = 0.0f;
     if (position + SEED_LENGTH + 1 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
@@ -268,9 +274,30 @@ compute_score (MirbookingScoreTable *score_table,
     guint i;
     for (i = 0; i < 7; i++)
     {
-        if ((toupper (seed[i]) == 'U' ? 'T' : toupper (seed[i])) != target_seed_rc[i])
+        if (!nucleotide_equal (seed[i], target_seed_rc[i]))
         {
             ret.kf *= w[i];
+        }
+    }
+
+    // determine if the binding is cleavage competent by looking at the
+    // complementarity of nucleotides g10g11 (Elbashir et al. 2001 obtained
+    // from Wee et al. 2012)
+    if (position >= 3)
+    {
+        const guint8 *_cleavage_site = mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna),
+                                                                            9,
+                                                                            2);
+        guint8 cleavage_site[2];
+        memcpy (cleavage_site, _cleavage_site, 2);
+        const guint8 *target_cleavage_site_rc = mirbooking_sequence_get_subsequence_rc (MIRBOOKING_SEQUENCE (target),
+                                                                                        position - 3,
+                                                                                        2);
+
+        if (nucleotide_equal (cleavage_site[0], target_cleavage_site_rc[0]) &&
+            nucleotide_equal (cleavage_site[1], target_cleavage_site_rc[1]))
+        {
+            ret.kcat = KCAT;
         }
     }
 
