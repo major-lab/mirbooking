@@ -24,7 +24,7 @@
  * (July 2, 2015): 84–95, https://doi.org/10.1016/j.cell.2015.06.029.
  */
 #define KF   2.4e-4 // pM^-1s^-1
-#define KCAT 3.6e-2 // s^-1
+#define KCAT 2.8    // s^-1
 
 /*
  * Half life of an average microRNA is is ~119 hours.
@@ -65,10 +65,14 @@
  *
  * In addition, the seed setup experiment for Salomon et al. had a 'A' at t1,
  * which should account for a -0.56 kcal/mol additional contribution (Schirle
- * et al.  2015).
+ * et al. 2015).
  *
- * For Wee et al. we have an entropic contribution of -5.65 kcal/mol which is
- * consistent with the -5.43 kcal/mol obtained from Salomon et al. We take the
+ * For the supplementary contribution, both setup had intentionally poor
+ * supplementary bindings leading to 0.04 kcal/mol from ensemble analysis with
+ * Yan et al. 2018 model.
+ *
+ * For Wee et al. we have an entropic contribution of -5.69 kcal/mol which is
+ * consistent with the -5.47 kcal/mol obtained from Salomon et al. We take the
  * average of the two values.
  *
  * Reference:
@@ -80,7 +84,7 @@
  * Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4 (September
  * 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
  */
-#define AGO2_SCORE (-5.54f)
+#define AGO2_SCORE (-5.69)
 
 /*
  * AGO2 has a slight preference for sites starting with 'A' at position t1.
@@ -90,7 +94,7 @@
  * Anchors Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4
  * (September 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
  */
-#define T1_ADENOSINE_SCORE (-0.56f)
+#define T1_ADENOSINE_SCORE (-0.56)
 
 /*
  * We allow a 'G' nucleation bulge at position t5.
@@ -103,4 +107,4 @@
  * Mode of MicroRNA Target Recognition,” Nature Structural & Molecular
  * Biology 19, no. 3 (March 2012): 321–27, https://doi.org/10.1038/nsmb.2230.
  */
-#define G_BULGED_SEED_SCORE (1.2f)
+#define G_BULGED_SEED_SCORE (1.2)

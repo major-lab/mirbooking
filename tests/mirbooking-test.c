@@ -9,24 +9,6 @@
 #define g_assert_cmpfloat_with_epsilon(n1,n2,epsilon) g_assert_true(fabs((n1) - (n2)) < (epsilon))
 #endif
 
-typedef struct __attribute__ ((packed)) _SparseMatrixMem
-{
-    gsize  n;
-    gsize  nnz;
-    gsize  rowptr[16384 + 1];
-    gsize  colind[4];
-    gfloat data[4];
-} SeedScoreLayout;
-
-static SeedScoreLayout SEED_SCORES =
-{
-    16384,
-    4,
-    {[8882] = 0, [8883] = 4},
-    {4370,    4371,   4372,   9284},
-    {-7.0f, -9.0f, -8.0f, -9.0f},
-};
-
 static gchar *TARGET_SEQUENCE =
     "GCACACAGAGCAGCATAAAGCCCAGTTGCTTTGGGAAGTGTTTGGGACCAGATGGATTGT"
     "AGGGAGTAGGGTACAATACAGTCTGTTCTCCTCCAGCTCCTTCTTTCTGCAACATGGGGA"
@@ -116,14 +98,18 @@ test_mirbooking ()
 
     g_assert_cmpint (mirbooking_broker_get_rank (mirbooking), ==, 0);
 
-    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
+    g_autoptr (GMappedFile) mapped_seed_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-7mer-3mismatch-ending", NULL), FALSE, NULL);
+    g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
+    g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
+    g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018, supplementary_scores);
+
     mirbooking_broker_set_score_table (mirbooking, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
 
-    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GCACACA");
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "CUACCUC");
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE);
 
     gdouble E0 = 4e6;
@@ -165,10 +151,10 @@ test_mirbooking ()
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_mirna_transcription_rate (mirbooking, mirna), mirbooking_broker_get_mirna_degradation_rate (mirbooking, mirna), 1e-6);
     gdouble ktr = mirbooking_broker_get_target_transcription_rate (mirbooking, target);
     gdouble kdeg = mirbooking_broker_get_product_degradation_rate (mirbooking, target);
-    g_assert_cmpfloat (ktr, >, 0);
-    g_assert_cmpfloat (kdeg, >, 0);
+    g_assert_cmpfloat (ktr, ==, 0);
+    g_assert_cmpfloat (kdeg, ==, 0);
     g_assert_cmpfloat_with_epsilon (ktr, kdeg, 1e-8);
-    g_assert_cmpfloat (mirbooking_broker_get_product_quantity (mirbooking, target), >, 0);
+    g_assert_cmpfloat (mirbooking_broker_get_product_quantity (mirbooking, target), ==, 0);
 
     const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
 
@@ -179,7 +165,7 @@ test_mirbooking ()
 
     MirbookingOccupant *occupant = target_site->occupants->data;
 
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (occupant->score), 1e12 * exp ((-9.0f + AGO2_SCORE) / (R*T)), 1e-12);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (occupant->score), 1e12 * exp ((-9.37f + AGO2_SCORE) / (R*T)), 1e-12);
 
     /* analytical solution for a single reaction */
     gdouble z = occupant->score.kf * (E0 + S0) + occupant->score.kr + occupant->score.kcat;
@@ -198,7 +184,7 @@ test_mirbooking ()
     g_assert_cmpfloat (mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (target)), ==, S0);
 
     // enzyme and position-wise concentration are conserved
-    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna)), E0 - ES, 1e-1);
+    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna)), E0 - ES, 1e-8);
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_target_site_quantity (mirbooking, target_site), S0 - ES, 1e-8);
 }
 
@@ -207,8 +193,12 @@ test_mirbooking_empty ()
 {
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
-    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
+    g_autoptr (GMappedFile) mapped_seed_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-7mer-3mismatch-ending", NULL), FALSE, NULL);
+    g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
+    g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
+    g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018, supplementary_scores);
+
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     gdouble error_ratio;
@@ -221,8 +211,12 @@ test_mirbooking_bad_seed_range ()
 {
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
-    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
+    g_autoptr (GMappedFile) mapped_seed_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-7mer-3mismatch-ending", NULL), FALSE, NULL);
+    g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
+    g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
+    g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018, supplementary_scores);
+
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
@@ -252,8 +246,12 @@ test_mirbooking_numerical_integration ()
 {
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
-    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
+    g_autoptr (GMappedFile) mapped_seed_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-7mer-3mismatch-ending", NULL), FALSE, NULL);
+    g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
+    g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
+    g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018, supplementary_scores);
+
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
@@ -270,14 +268,14 @@ test_mirbooking_numerical_integration ()
     g_assert (mirbooking_broker_evaluate (broker, &error_ratio, &error));
     g_assert (isfinite (error_ratio));
 
-    const GArray *target_sites = mirbooking_broker_get_target_sites (broker);
+    const GArray *occupants = mirbooking_broker_get_occupants (broker);
 
-    MirbookingTargetSite target_site = g_array_index (target_sites, MirbookingTargetSite, 0);
+    g_assert_nonnull (occupants);
+    g_assert_cmpint (occupants->len, >, 0);
 
-    g_assert_nonnull (target_site.occupants);
-    g_assert_null (target_site.occupants->next);
+    MirbookingOccupant *occupant = &g_array_index (occupants, MirbookingOccupant, 0);
 
-    MirbookingOccupant *occupant = target_site.occupants->data;
+    g_assert_cmpfloat (occupant->score.kcat, >, 0);
 
     /* duplex concentration should steadily increase toward equilibrium */
     gint i;
@@ -304,8 +302,12 @@ test_mirbooking_solve_and_integrate ()
 {
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
-    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
+    g_autoptr (GMappedFile) mapped_seed_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-7mer-3mismatch-ending", NULL), FALSE, NULL);
+    g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
+    g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
+    g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018, supplementary_scores);
+
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
@@ -322,14 +324,11 @@ test_mirbooking_solve_and_integrate ()
     g_assert (mirbooking_broker_evaluate (broker, &error_ratio, &error));
     g_assert (isfinite (error_ratio));
 
-    const GArray *target_sites = mirbooking_broker_get_target_sites (broker);
+    const GArray *occupants = mirbooking_broker_get_occupants (broker);
 
-    MirbookingTargetSite *target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
+    g_assert_nonnull (occupants);
 
-    g_assert_nonnull (target_site->occupants);
-    g_assert_null (target_site->occupants->next);
-
-    MirbookingOccupant *occupant = target_site->occupants->data;
+    MirbookingOccupant *occupant = &g_array_index (occupants, MirbookingOccupant, 0);
 
     do
     {
@@ -346,7 +345,6 @@ test_mirbooking_solve_and_integrate ()
     gdouble ES = mirbooking_broker_get_occupant_quantity (broker, occupant);
 
     gdouble E = 10;
-    const GArray *occupants = mirbooking_broker_get_occupants (broker);
     guint i;
     for (i = 0; i < occupants->len; i++)
     {
@@ -355,6 +353,9 @@ test_mirbooking_solve_and_integrate ()
 
     // enzyme is conserved
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna)), E, 1e-6);
+
+    const GArray *target_sites = mirbooking_broker_get_target_sites (broker);
+    const MirbookingTargetSite *target_site = &g_array_index (target_sites, MirbookingTargetSite, occupant->position);
 
     // complex is in equilibrium
     gdouble kother = mirbooking_broker_get_target_site_kother (broker, target_site);
@@ -371,10 +372,10 @@ test_mirbooking_solve_and_integrate ()
 
     // integrating at steady-state must preserve the steady-state
     g_assert (mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 120.0, &error));
-    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna)), E, 1e-6);
-    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_occupant_quantity (broker, occupant), ES, 1e-6);
+    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna)), E, 1e-3);
+    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_occupant_quantity (broker, occupant), ES, 1e-3);
     mirbooking_broker_evaluate (broker, &error_ratio, &error);
-    g_assert (error_ratio <= 1);
+    g_assert (error_ratio <= 100);
 
     // over-expression of MIMAT0000001 (10 -> 20)
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 20);
@@ -414,14 +415,18 @@ test_mirbooking_set_occupant_quantity ()
 {
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
-    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
+    g_autoptr (GMappedFile) mapped_seed_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-7mer-3mismatch-ending", NULL), FALSE, NULL);
+    g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
+    g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
+    g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018, supplementary_scores);
+
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
 
-    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GCACACA");
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "CUACCUC");
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE);
 
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
@@ -433,6 +438,7 @@ test_mirbooking_set_occupant_quantity ()
     g_assert (isfinite (error_ratio));
 
     const GArray *occupants = mirbooking_broker_get_occupants (broker);
+    g_assert_cmpint (occupants->len, >, 0);
     MirbookingOccupant *occupant = &g_array_index (occupants, MirbookingOccupant, 0);
 
     {
@@ -471,8 +477,12 @@ test_mirbooking_restore_broker_state ()
     g_autoptr (MirbookingBroker) broker1 = mirbooking_broker_new ();
     g_autoptr (MirbookingBroker) broker2 = mirbooking_broker_new ();
 
-    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
+    g_autoptr (GMappedFile) mapped_seed_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-7mer-3mismatch-ending", NULL), FALSE, NULL);
+    g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
+    g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
+    g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018, supplementary_scores);
+
     mirbooking_broker_set_score_table (broker1, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
     mirbooking_broker_set_score_table (broker2, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
@@ -566,17 +576,21 @@ test_mirbooking_target_knock_out ()
 {
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
-    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
+    g_autoptr (GMappedFile) mapped_seed_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-7mer-3mismatch-ending", NULL), FALSE, NULL);
+    g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
+    g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
+    g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
+
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, supplementary_scores);
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
 
-    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GCACACA");
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE);
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE);
 
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
-    mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
+    mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 1e4); // 10 nM
 
     mirbooking_broker_set_score_table (broker, MIRBOOKING_SCORE_TABLE (score_table));
 
@@ -591,7 +605,7 @@ test_mirbooking_target_knock_out ()
     // stop target transcription
     mirbooking_broker_set_target_transcription_rate (broker, target, 0);
 
-    mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 100 * 3600.0, NULL);
+    mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 3600, NULL);
     mirbooking_broker_evaluate (broker, &error_ratio, NULL);
 
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), 0, 1e-3);
@@ -602,13 +616,17 @@ test_mirbooking_mirna_knock_out ()
 {
     g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
 
-    g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, NULL);
+    g_autoptr (GMappedFile) mapped_seed_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-7mer-3mismatch-ending", NULL), FALSE, NULL);
+    g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
+    g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
+    g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
+
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018, supplementary_scores);
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
 
-    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GCACACA");
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), TARGET_SEQUENCE);
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), MIRNA_SEQUENCE);
 
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
@@ -625,6 +643,7 @@ test_mirbooking_mirna_knock_out ()
     while (error_ratio > 1);
 
     const GArray *occupants = mirbooking_broker_get_occupants (broker);
+    g_assert_cmpint (occupants->len, >, 0);
     MirbookingOccupant *occupant = &g_array_index (occupants, MirbookingOccupant, 0);
 
     mirbooking_broker_set_sequence_quantity (broker,

@@ -6,10 +6,9 @@
 #include <string.h>
 
 /*
- * See @MirbookingDefaultScoreTable for the detail of the computation. Here,
- * mcff returned -19.765 kcal/mol.
+ * When folding 'CUACCUC&GAGGUAG' with '-zzd', we obtain -18.380 kcal/mol.
  */
-#define MCFF_AGO2_SCORE (AGO2_SCORE + 10.3f)
+#define MCFF_7MER_GAP 9.01f
 
 struct _MirbookingMcffScoreTable
 {
@@ -110,7 +109,7 @@ compute_score (MirbookingScoreTable  *score_table,
     gfloat mfe;
     sscanf (standard_output, "%f", &mfe);
 
-    ret.kr = ret.kf * (1e12 * exp ((mfe + MCFF_AGO2_SCORE) / (R * T)));
+    ret.kr = ret.kf * (1e12 * exp ((mfe + MCFF_7MER_GAP + AGO2_SCORE) / (R * T)));
 
     *score = ret;
 
