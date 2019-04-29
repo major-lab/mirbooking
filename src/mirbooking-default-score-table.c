@@ -190,17 +190,17 @@ is_g_bulge (MirbookingTarget *target, gsize position)
         toupper (*mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + 3, 1)) == 'G';
 }
 
-static gfloat
-binding_energy (gfloat *G, gsize n)
+static gdouble
+binding_energy (gdouble *G, gsize n)
 {
     guint i;
-    gfloat Gtot = 0, Z = 0;
+    gdouble Gtot = 0, Z = 0;
     for (i = 0; i < n; i++)
     {
         if (isfinite (G[i]))
         {
-            Gtot += exp (-G[i]) * G[i];
-            Z += exp (-G[i]);
+            Gtot += exp (-G[i] / (R * T)) * G[i];
+            Z += exp (-G[i] / (R * T));
         }
     }
 
@@ -210,6 +210,27 @@ binding_energy (gfloat *G, gsize n)
     }
 
     return Gtot / Z;
+}
+
+static gdouble
+binding_probability (gdouble *G, gsize n, gsize j)
+{
+    guint i;
+    gdouble Z = 0;
+    for (i = 0; i < n; i++)
+    {
+        if (isfinite (G[i]))
+        {
+            Z += exp (-G[i] / (R * T));
+        }
+    }
+
+    if (Z == 0)
+    {
+        return INFINITY;
+    }
+
+    return exp (-G[j] / (R * T)) / Z;
 }
 
 static gboolean
@@ -222,9 +243,9 @@ compute_score (MirbookingScoreTable *score_table,
 {
     MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
 
-    MirbookingScore ret = {.kf = KF, .kcat = KCAT};
+    MirbookingScore ret = {.kf = KF, .kcat = 0};
 
-    gfloat A_score = 0.0f;
+    gdouble A_score = 0.0f;
     if (position + SEED_LENGTH + 1 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
         toupper (*mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + SEED_LENGTH, 1)) == 'A')
     {
@@ -281,11 +302,11 @@ compute_score (MirbookingScoreTable *score_table,
         j = (1l << (2 * 4)) * mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position, 3) +
             mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position + 4, 4);
 
-        gfloat Z[2] = {seed_score, sparse_matrix_get_float (&self->priv->seed_scores, i, j) + G_BULGED_SEED_SCORE};
+        gdouble Z[2] = {seed_score, sparse_matrix_get_float (&self->priv->seed_scores, i, j) + G_BULGED_SEED_SCORE};
         seed_score = binding_energy (Z, 2);
     }
 
-    gfloat supplementary_score = 0;
+    gdouble supplementary_score = 0;
     if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_WEE_ET_AL_2012)
     {
         if (self->priv->supplementary_scores_bytes != NULL)
@@ -297,8 +318,11 @@ compute_score (MirbookingScoreTable *score_table,
                                                                   4,
                                                                   SEED_OFFSET + SEED_LENGTH + 4,
                                                                   4);
+            gdouble z[2] = {0, supplementary_score_};
+            supplementary_score = binding_energy (z, 2);
 
-            supplementary_score = MIN (supplementary_score, supplementary_score_);
+            // require at least the 3' supplementary bindings for cleavage
+            ret.kcat = binding_probability (z, 5, 1) * KCAT;
         }
     }
     else if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018)
@@ -349,27 +373,16 @@ compute_score (MirbookingScoreTable *score_table,
                                             SEED_OFFSET + SEED_LENGTH + 9,
                                             3);
 
-            gfloat mismatch_threshold = 0.0f;
+            gdouble z[5] = {0,
+                            B_box,
+                            B_box + C_box,
+                            B_box + C_box + A_box,
+                            B_box + C_box + A_box + D_box};
 
-            if (B_box < mismatch_threshold)
-            {
-                supplementary_score += B_box;
-            }
+            supplementary_score = binding_energy (z, 5);
 
-            if (B_box < mismatch_threshold && C_box < mismatch_threshold)
-            {
-                supplementary_score += C_box;
-            }
-
-            if (A_box < mismatch_threshold && B_box < mismatch_threshold && C_box <= mismatch_threshold)
-            {
-                supplementary_score += A_box;
-            }
-
-            if (A_box < mismatch_threshold && B_box < mismatch_threshold && C_box < mismatch_threshold && D_box < mismatch_threshold)
-            {
-                supplementary_score += D_box;
-            }
+            // at least A-box and B-box for cleaving
+            ret.kcat = (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * KCAT;
         }
     }
 
