@@ -30,6 +30,7 @@ parser.add_argument('--initial-candidate', action='append', help='Initial candid
 parser.add_argument('--workers', type=int, default=2, help='Number of workers spawning processes')
 parser.add_argument('--threads-per-worker', type=int, default=1, help='Number of threads per worker')
 parser.add_argument('--max-sequences', type=int, default=1, help='Maximum number of sequences per design')
+parser.add_argument('--improvement-threshold', type=float, default=0.01, help='Threshold for considering a candidate as an actual improvement (in log-fold)')
 parser.add_argument('--designs-output-dir')
 
 parser.add_argument('--mirbooking', default='mirbooking', help='Location of miRBooking binary')
@@ -59,26 +60,22 @@ def expressed_fraction(df):
 
 quantities = pd.read_csv(args.input, index_col=0, sep='\t')
 def evaluate(candidate):
-    try:
-        df = run_mirbooking(candidate, quantities)
+    df = run_mirbooking(candidate, quantities)
 
-        if args.target is None and args.non_target is None:
-            # if no target/non-target are specified, default to target everything mode
-            t_ef = expressed_fraction(df).reindex(quantities.index).fillna(1.0)
-        elif args.target is None:
-            t_ef = [1.0]
-        else:
-            t_ef = expressed_fraction(df).reindex(args.target).fillna(1.0)
+    if args.target is None and args.non_target is None:
+        # if no target/non-target are specified, default to target everything mode
+        t_ef = expressed_fraction(df).reindex(quantities.index).fillna(1.0)
+    elif args.target is None:
+        t_ef = [1.0]
+    else:
+        t_ef = expressed_fraction(df).reindex(args.target).fillna(1.0)
 
-        if args.non_target is None:
-            nt_ef = [1.0]
-        else:
-            nt_ef = expressed_fraction(df).reindex(args.non_target).fillna(1.0)
+    if args.non_target is None:
+        nt_ef = [1.0]
+    else:
+        nt_ef = expressed_fraction(df).reindex(args.non_target).fillna(1.0)
 
-        return log(gmean(t_ef) / gmean(nt_ef), 2)
-    except subprocess.CalledProcessError as err:
-        sys.stderr.write(err.output)
-        raise err
+    return log(gmean(t_ef) / gmean(nt_ef), 2)
 
 def generate_kmers(design, pos, k):
     for seed in (''.join(s) for s in product('ACGT', repeat=k)):
@@ -126,45 +123,47 @@ def work(candidates, pb, designs_out):
     while True:
         item = candidates.get()
         candidate_score, _, candidate = item
-        try:
-            if candidate is None:
-                return
 
-            if best_candidate:
-                pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=candidate_score, best_design=','.join(str(c.seq) for c in best_candidate), best_score=best_score)
-            else:
-                pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=candidate_score)
+        if candidate is None:
+            return
 
-            succ = []
-            for s in successors(candidate):
+        if best_candidate:
+            pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=candidate_score, best_design=','.join(str(c.seq) for c in best_candidate), best_score=best_score)
+        else:
+            pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=candidate_score)
+
+        succ = []
+        for s in successors(candidate):
+            try:
                 successor_score = evaluate(s)
-                # This monotonicity condition comes from Yan et al. 2018 tail model
-                # and the order in which boxes are enumerated in 'successors'.
-                if successor_score < candidate_score:
-                    succ.append(s)
-                    candidates.put((successor_score, counter, s))
-                    counter += 1
+            except Exception as err:
+                pb.write('Failed to process candidate: {}'.format(', '.join(str(c.seq) for c in s)))
+                if hasattr(err, 'output'):
+                    pb.write(err.output)
+                continue
+            # This monotonicity condition comes from Yan et al. 2018 tail model
+            # and the order in which boxes are enumerated in 'successors'.
+            if successor_score < candidate_score - args.improvement_threshold:
+                succ.append(s)
+                candidates.put((successor_score, counter, s))
+                counter += 1
                 pb.update()
 
-            # terminal design
-            if not succ:
-                if candidate_score < best_score:
-                    best_candidate = candidate
-                    best_score = candidate_score
+        # terminal design
+        if not succ:
+            if candidate_score < best_score:
+                best_candidate = candidate
+                best_score = candidate_score
 
-                microtargetome_out = join(args.designs_output_dir, '-'.join(str(c.seq) for c in candidate))
+            microtargetome_out = join(args.designs_output_dir, '-'.join(str(c.seq) for c in candidate))
 
-                # It's possible that the design has already been found in a
-                # previous execution
-                if not exists(microtargetome_out):
-                    run_mirbooking(candidate, quantities).to_csv(microtargetome_out, sep='\t')
-                    print(*[str(c.seq) for c in candidate], candidate_score, sep='\t', file=designs_out, flush=True)
-        except Exception as err:
-            print('Could not process candidate:', candidate)
-            print(err)
-            continue
-        finally:
-            candidates.task_done()
+            # It's possible that the design has already been found in a
+            # previous execution
+            if not exists(microtargetome_out):
+                run_mirbooking(candidate, quantities).to_csv(microtargetome_out, sep='\t')
+                print(*[str(c.seq) for c in candidate], candidate_score, sep='\t', file=designs_out, flush=True)
+
+        candidates.task_done()
 
 with tqdm() as pb, open(join(args.designs_output_dir, 'designs.tsv'), 'a') as f:
     candidates = PriorityQueue()
