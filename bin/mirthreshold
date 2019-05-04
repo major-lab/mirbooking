@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+
+import gi
+gi.require_version('Mirbooking', '2.2')
+from gi.repository import GLib, Mirbooking
+from Bio.SeqIO import parse
+from scipy.optimize import minimize
+import numpy as np
+from sklearn.metrics import mean_squared_error
+from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor
+from autograd import numpy as np
+from autograd import grad
+import argparse
+from os.path import join
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--targets', required=True)
+parser.add_argument('--workers', type=int)
+parser.add_argument('--output-dir', required=True)
+parser.add_argument('--plot-response-curves', action='store_true')
+args = parser.parse_args()
+
+def f(theta, X):
+    """4-parameter sigmoid for general response curves"""
+    A, B, C, D = theta
+    return D + ((A - D) / (1 + np.exp(B * (X - C))))
+
+def loss(theta, X, y):
+    """RMS loss"""
+    return np.sqrt(np.mean(np.square(y - f(theta, X))))
+
+def fit(X, y):
+    x0 = (1, -1, 14, np.min(y))
+    bounds = [(0, 1), (None, None), (None, None), (0, 1)]
+    result = minimize(loss, x0=x0, bounds=bounds, jac=grad(loss), args=(np.log(X), y))
+    return result
+
+def expressed_fraction(df):
+    # fraction of targets without any microRNA bound (following Poisson-Binomial model)
+    target_with_pos = df.groupby(level=['target_accession','position']).agg({'target_quantity': 'first', 'quantity': 'sum'})
+    return (1 - (target_with_pos.quantity / target_with_pos.target_quantity)).groupby(level=0).prod()
+
+def silencing(pmf):
+    lambda_ = .3
+    return np.sum(np.exp(-lambda_ * np.arange(len(pmf))) * pmf)
+
+seed_scores = GLib.MappedFile('data/scores-7mer-3mismatch-ending', False)
+supplementary_scores = GLib.MappedFile('data/scores-3mer', False)
+
+score_table = Mirbooking.DefaultScoreTable(seed_scores=seed_scores.get_bytes(), supplementary_scores=supplementary_scores.get_bytes(),
+                                          supplementary_model=Mirbooking.DefaultScoreTableSupplementaryModel.YAN_ET_AL_2018)
+
+mir155 = Mirbooking.Mirna(accession='MIMAT0000075', sequence='UAAGGCACGCGGUGAAUGCCAA')
+
+X = np.logspace(0, 9, base=10, num=50)
+
+with ProcessPoolExecutor(max_workers=args.workers) as executor:
+    def work(record):
+        target = Mirbooking.Target(accession=record.id.split('|')[0], sequence=str(record.seq))
+        y = []
+        for target_quantity in X:
+            broker = Mirbooking.Broker(score_table=score_table)
+            broker.set_sequence_quantity(mir155, 1e4) # 10 nM
+            broker.set_sequence_quantity(target, target_quantity)
+
+            broker.evaluate()
+            if len(broker.get_occupants()) == 0:
+                return target.get_accession(), None
+
+            # reach steady-state
+            iterations = 0
+            while broker.evaluate().error_ratio > 1:
+                iterations += 1
+                if iterations >= 100:
+                    return target.get_accession(), None
+                broker.step(Mirbooking.BrokerStepMode.SOLVE_STEADY_STATE, 1.0)
+
+            y.append(silencing(broker.get_target_occupants_pmf(target)))
+
+        r = fit(X, y)
+
+        if args.plot_response_curves:
+            import matplotlib.pyplot as plt
+            import matplotlib
+            matplotlib.use('Agg')
+            plt.figure()
+            plt.xscale('log')
+            plt.ylim(bottom=0, top=1)
+            plt.plot(X, f(r.x, np.log(X)))
+            plt.scatter(X, y)
+            plt.gca().spines['top'].set_visible(False)
+            plt.gca().spines['right'].set_visible(False)
+            plt.savefig(join(args.output_dir, '{}.pdf'.format(target.get_accession())))
+            plt.close()
+
+        return target.get_accession(), r
+
+    with open(join(args.output_dir, 'fits.tsv'), 'w') as fout:
+        print('accession', 'slope', 'ic50', 'min', 'max', sep='\t', file=fout)
+        for accession, r in tqdm(executor.map(work, parse(args.targets, 'fasta'))):
+            if r:
+                print(accession, r.x[1], np.exp(r.x[2]), r.x[3], r.x[0], sep='\t', file=fout, flush=True)
+            else:
+                tqdm.write(f'{accession} has no binding sites or failed to converge')
