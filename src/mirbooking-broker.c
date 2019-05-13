@@ -1826,3 +1826,26 @@ mirbooking_broker_get_target_occupants_pmf (MirbookingBroker *self, MirbookingTa
 
     return pmf;
 }
+
+/**
+ * mirbooking_broker_get_target_expressed_fraction:
+ *
+ * Obtain the fraction of substrate @target that is expressed.
+ */
+gdouble
+mirbooking_broker_get_target_expressed_fraction (MirbookingBroker *broker, MirbookingTarget *target)
+{
+    gdouble ef = 0;
+    gdouble lambda = .3;
+
+    gsize pmf_len;
+    g_autofree gdouble *pmf = mirbooking_broker_get_target_occupants_pmf (broker, target, &pmf_len);
+
+    gsize i;
+    for (i = 0; i < pmf_len; i++)
+    {
+        ef += exp (-lambda * i) * pmf[i];
+    }
+
+    return ef;
+}

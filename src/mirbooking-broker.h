@@ -99,7 +99,8 @@ gdouble                mirbooking_broker_get_bound_mirna_quantity (MirbookingBro
 gdouble *              mirbooking_broker_get_target_occupants_pmf (MirbookingBroker *self,
                                                                    MirbookingTarget  *target,
                                                                    gsize             *pmf_len);
-
+gdouble                mirbooking_broker_get_target_expressed_fraction (MirbookingBroker *self,
+                                                                        MirbookingTarget *target);
 gdouble                mirbooking_broker_get_product_quantity          (MirbookingBroker *self,
                                                                         MirbookingTarget *target);
 gdouble                mirbooking_broker_get_mirna_transcription_rate  (MirbookingBroker *self,
