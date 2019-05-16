@@ -23,8 +23,20 @@
  * Reshapes the Binding Properties of Its Nucleic Acid Guides,” Cell 162, no. 1
  * (July 2, 2015): 84–95, https://doi.org/10.1016/j.cell.2015.06.029.
  */
-#define KF   2.4e-4 // pM^-1s^-1
-#define KCAT 2.8    // s^-1
+#define KF 2.4e-4 // pM^-1s^-1
+
+/*
+ * Base turnover rate of the complex.
+ *
+ * This is modulated by the binding probability of the cleavage site, so the
+ * actual catalytic rate is much slower.
+ *
+ * Reference:
+ * William E. Salomon et al., “Single-Molecule Imaging Reveals That Argonaute
+ * Reshapes the Binding Properties of Its Nucleic Acid Guides,” Cell 162, no. 1
+ * (July 2, 2015): 84–95, https://doi.org/10.1016/j.cell.2015.06.029.
+ */
+#define KCAT 3.53 // s^-1
 
 /*
  * Half life of an average microRNA is is ~119 hours.

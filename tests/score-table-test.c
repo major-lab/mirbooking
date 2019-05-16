@@ -311,7 +311,7 @@ test_score_table_salomon_et_al_2016 ()
     // dye control (Figure 3B)
     // FIXME: g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KM (score), 1.7e3, 0.1e3);
     g_assert_cmpfloat_with_epsilon (score.kf, 3.9e-4, 0.5e-2);
-    // FIXME: g_assert_cmpfloat_with_epsilon (score.kcat, 3.6e-2, 0.2e-2);
+    g_assert_cmpfloat_with_epsilon (score.kcat, 3.6e-2, 0.2e-2);
 
     // Seed plus 3'UTR
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "UGAUAACAAGGAUCUACCUCA");

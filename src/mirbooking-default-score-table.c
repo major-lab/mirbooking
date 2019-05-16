@@ -381,7 +381,7 @@ compute_score (MirbookingScoreTable *score_table,
 
             supplementary_score = binding_energy (z, 5);
 
-            // at least A-box and B-box for cleaving
+            // at least A-box for slicing
             ret.kcat = (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * KCAT;
         }
     }
