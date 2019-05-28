@@ -96,7 +96,7 @@
  * Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4 (September
  * 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
  */
-#define AGO2_SCORE (-5.69)
+#define AGO2_SCORE (-5.58)
 
 /*
  * AGO2 has a slight preference for sites starting with 'A' at position t1.
