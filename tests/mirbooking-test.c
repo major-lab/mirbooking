@@ -186,6 +186,9 @@ test_mirbooking ()
     // enzyme and position-wise concentration are conserved
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (mirna)), E0 - ES, 1e-8);
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_target_site_quantity (mirbooking, target_site), S0 - ES, 1e-8);
+
+    g_assert_cmpfloat (mirbooking_broker_get_target_expressed_fraction (mirbooking, target), >=, 0);
+    g_assert_cmpfloat (mirbooking_broker_get_target_expressed_fraction (mirbooking, target), <=, 1);
 }
 
 static void

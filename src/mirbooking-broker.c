@@ -1836,7 +1836,7 @@ gdouble
 mirbooking_broker_get_target_expressed_fraction (MirbookingBroker *broker, MirbookingTarget *target)
 {
     gdouble ef = 0;
-    gdouble lambda = .3;
+    gdouble lambda = .27;
 
     gsize pmf_len;
     g_autofree gdouble *pmf = mirbooking_broker_get_target_occupants_pmf (broker, target, &pmf_len);
