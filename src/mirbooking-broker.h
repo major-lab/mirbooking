@@ -115,6 +115,8 @@ gdouble                mirbooking_broker_get_target_transcription_rate (Mirbooki
 void                   mirbooking_broker_set_target_transcription_rate (MirbookingBroker *self,
                                                                         MirbookingTarget *target,
                                                                         gdouble           transcription_rate);
+gdouble                mirbooking_broker_get_target_degradation_rate   (MirbookingBroker *self,
+                                                                        MirbookingTarget *target);
 gdouble                mirbooking_broker_get_product_degradation_rate  (MirbookingBroker *self,
                                                                         MirbookingTarget *target);
 
