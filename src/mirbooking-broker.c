@@ -1738,6 +1738,34 @@ mirbooking_broker_get_target_site_quantity (MirbookingBroker *self, const Mirboo
 }
 
 /**
+ * mirbooking_broker_get_target_site_occupants_quantity:
+ *
+ * Obtain the total concentration of occupants occupying this target site
+ * either directly or indirectly via the footprint.
+ */
+gdouble
+mirbooking_broker_get_target_site_occupants_quantity (MirbookingBroker            *self,
+                                                      const MirbookingTargetSite *target_site)
+{
+    gdouble total_occupants_quantity = 0;
+
+    const MirbookingTargetSite *fts, *tts;
+    _mirbooking_broker_get_footprint_window (self,
+                                             target_site,
+                                             self->priv->prime3_footprint,
+                                             self->priv->prime5_footprint,
+                                             &fts, &tts);
+
+    const MirbookingTargetSite *ts;
+    for (ts = fts; ts <= tts; ts++)
+    {
+        total_occupants_quantity += _mirbooking_broker_get_target_site_occupants_quantity (self, ts, self->priv->ES);
+    }
+
+    return total_occupants_quantity;
+}
+
+/**
  * mirbooking_broker_get_target_site_catalytic_rate:
  *
  * Obtain the target site catalytic rate.
