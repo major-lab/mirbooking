@@ -706,7 +706,7 @@ _mirbooking_broker_get_target_site_vacancy (MirbookingBroker           *self,
          */
         const MirbookingTargetSite *fts, *tts;
         _mirbooking_broker_get_footprint_window (self,
-                                                 target_site,
+                                                 ts,
                                                  prime3_footprint,
                                                  prime5_footprint,
                                                  &fts,
