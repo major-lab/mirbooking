@@ -451,14 +451,14 @@ write_output_to_wiggle (MirbookingBroker *broker, FILE *output_f)
         }
 
         gdouble St  = mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target_site->target));
-        gdouble Stp = mirbooking_broker_get_target_site_quantity (broker, target_site);
+        gdouble Stp = mirbooking_broker_get_target_site_occupants_quantity (broker, target_site);
 
         // only report positions with activity
-        if (Stp < St)
+        if (Stp > 0)
         {
             g_fprintf (output_f, "%lu %f\n",
                        target_site->position + 1,
-                       1 - (Stp / St));
+                       Stp / St);
         }
     }
 }
