@@ -77,13 +77,12 @@ def evaluate(candidate):
 
     return log(gmean(t_ef) / gmean(nt_ef), 2)
 
+def heuristic(s, score):
+    return score * (sum(19 - (len(seq.seq) - seq.seq.count('N')) for seq in s) / (sum(len(seq.seq) - seq.seq.count('N') for seq in s) + 1e-15))
+
 def generate_kmers(design, pos, k):
     for seed in (''.join(s) for s in product('ACGT', repeat=k)):
         yield design[:pos] + seed + design[pos + k:]
-
-def generate_random_mutants(design):
-    while True:
-        yield SeqRecord
 
 generate_seeds = partial(generate_kmers, pos=1, k=7)
 generate_abox = partial(generate_kmers, pos=8, k=3)
@@ -94,7 +93,6 @@ generate_dbox = partial(generate_kmers, pos=17, k=3)
 def successors(design):
     z = []
     for i, seq in enumerate(design):
-
         # seed expansion
         if seq.seq[1:8] == 'NNNNNNN':
             s = generate_seeds(seq)
@@ -122,15 +120,15 @@ def work(candidates, pb, designs_out):
     global counter, best_candidate, best_score
     while True:
         item = candidates.get()
-        candidate_score, _, candidate = item
+        heuristic_score, candidate_score, _, candidate = item
 
         if candidate is None:
             return
 
         if best_candidate:
-            pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=candidate_score, best_design=','.join(str(c.seq) for c in best_candidate), best_score=best_score)
+            pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=f'{candidate_score:.2f} ({heuristic_score:.2f})', best_design=','.join(str(c.seq) for c in best_candidate), best_score=best_score)
         else:
-            pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=candidate_score)
+            pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=f'{candidate_score:.2f} ({heuristic_score:.2f})')
 
         succ = []
         for s in successors(candidate):
@@ -141,13 +139,16 @@ def work(candidates, pb, designs_out):
                 if hasattr(err, 'output'):
                     pb.write(err.output)
                 continue
-            # This monotonicity condition comes from Yan et al. 2018 tail model
-            # and the order in which boxes are enumerated in 'successors'.
-            if successor_score < candidate_score - args.improvement_threshold:
-                succ.append(s)
-                candidates.put((successor_score, counter, s))
-                counter += 1
-                pb.update()
+
+            # The heuristic simply project linearly the gain so far on the
+            # remaining nucleotides. With the monotonicity condition that
+            # arises from Yan et al. 2018 model, this is guaranteed to be
+            # admissible.
+            succ.append(s)
+            candidates.put((successor_score + heuristic(s, successor_score), successor_score, counter, s))
+            counter += 1
+
+            pb.update()
 
         # terminal design
         if not succ:
@@ -177,7 +178,7 @@ with tqdm() as pb, open(join(args.designs_output_dir, 'designs.tsv'), 'a') as f:
     for candidate in args.initial_candidate:
         candidate = [SeqRecord(Seq(seq), id='smart{}'.format(i+1))
                          for i, seq in enumerate(candidate.split(','))]
-        candidates.put((evaluate(candidate), counter, candidate))
+        candidates.put((evaluate(candidate) + heuristic(candidate, evaluate(candidate)), evaluate(candidate), counter, candidate))
         counter += 1
         pb.update()
 
@@ -186,7 +187,7 @@ with tqdm() as pb, open(join(args.designs_output_dir, 'designs.tsv'), 'a') as f:
 
     # stop all workers
     for t in threads:
-        candidates.put((float('inf'), counter, None))
+        candidates.put((float('inf'), float('inf'), counter, None))
         counter += 1
 
     for t in threads:
