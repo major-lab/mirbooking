@@ -118,7 +118,7 @@ machine on supported solvers (i.e. `mkl-cluster`) by specifying `-Dwith_mpi=true
 | --------    | ---------------------------------------------------------------------------------- |
 | SuperLU     | `-Dwith_superlu=true`                                                              |
 | UMFPACK     | `-Dwith_umfpack=true`                                                              |
-| cuSOLVER    | `-Dwith_cuda=10.0 -Dwith_cusolver=true`                                  |
+| cuSOLVER    | `-Dwith_cuda=<cuda_toolkit_api_version> -Dwith_cusolver=true`                      |
 | MKL DSS     | `-Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_dss=true`                     |
 | MKL Cluster | `-Dwith_mpi=true -Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_cluster=true` |
 | PARDISO     | `-Dwith_pardiso=true`                                                              |

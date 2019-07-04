@@ -18,6 +18,7 @@ option('with_mkl_tbb', type: 'boolean', value: false)
 option('with_mkl_fftw3', type: 'boolean', value: false)
 
 # NVIDIA CUDA
+option('with_cuda', type: 'string', value: '10.0')
 option('with_cusolver', type: 'boolean', value: false)
 
 option('with_introspection', type: 'boolean', value: false)
