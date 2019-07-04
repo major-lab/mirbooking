@@ -76,6 +76,10 @@ The output is a TSV with the following columns:
 The GFF3 output can be used with `--output-format=gff3`. The score will
 indicate the complex concentration.
 
+Wiggle output can also be produced with `--output-format=wig`. The score will
+be the position-wise bound fraction of substrate which properly account for
+overlapping microRNA.
+
 ## Installation
 
 You'll need [Meson](http://mesonbuild.com/) and [Ninja](http://ninja-build.org/)

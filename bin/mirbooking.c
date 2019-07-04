@@ -25,7 +25,8 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 typedef enum _MirbookingOutputFormat
 {
     MIRBOOKING_OUTPUT_FORMAT_TSV,
-    MIRBOOKING_OUTPUT_FORMAT_GFF3
+    MIRBOOKING_OUTPUT_FORMAT_GFF3,
+    MIRBOOKING_OUTPUT_FORMAT_WIG
 } MirbookingOutputFormat;
 
 static gchar                        **targets_files             = {NULL};
@@ -84,6 +85,10 @@ set_output_format (const gchar   *key,
     else if (g_strcmp0 (value, "gff3") == 0)
     {
         output_format = MIRBOOKING_OUTPUT_FORMAT_GFF3;
+    }
+    else if (g_strcmp0 (value, "wig") == 0)
+    {
+        output_format = MIRBOOKING_OUTPUT_FORMAT_WIG;
     }
     else
     {
@@ -423,6 +428,41 @@ write_output_to_gff3 (MirbookingBroker *mirbooking, FILE *output_f)
         }
     }
 }
+
+static void
+write_output_to_wiggle (MirbookingBroker *broker, FILE *output_f)
+{
+
+    const GArray *target_sites = mirbooking_broker_get_target_sites (broker);
+
+    g_fprintf (output_f, "track type=wiggle_0\n");
+
+    MirbookingTarget *target = NULL;
+    const MirbookingTargetSite *target_site;
+    for (target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
+         target_site < &g_array_index (target_sites, MirbookingTargetSite, target_sites->len);
+         target_site++)
+    {
+        if (target != target_site->target)
+        {
+            g_fprintf (output_f, "variableStep chrom=%s\n",
+                       mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)));
+            target = target_site->target;
+        }
+
+        gdouble St  = mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target_site->target));
+        gdouble Stp = mirbooking_broker_get_target_site_occupants_quantity (broker, target_site);
+
+        // only report positions with activity
+        if (Stp > 0)
+        {
+            g_fprintf (output_f, "%lu %f\n",
+                       target_site->position + 1,
+                       Stp / St);
+        }
+    }
+}
+
 static void
 free_cutoff_filter_user_data (gpointer ud)
 {
@@ -768,6 +808,10 @@ main (gint argc, gchar **argv)
             case MIRBOOKING_OUTPUT_FORMAT_GFF3:
                 write_output_to_gff3 (mirbooking,
                                       output_f);
+                break;
+            case MIRBOOKING_OUTPUT_FORMAT_WIG:
+                write_output_to_wiggle (mirbooking,
+                                        output_f);
                 break;
             default:
                 return EXIT_FAILURE;
