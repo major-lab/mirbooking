@@ -48,9 +48,9 @@ if get_option('with_mkl')
 endif
 
 if get_option('with_cusolver')
-    cudart_dep = dependency('cudart-10.0')
-    cusparse_dep = dependency('cusparse-10.0')
-    cusolver_dep = dependency('cusolver-10.0')
+    cudart_dep = dependency('cudart-@0@'.format(cuda_toolkit_api_version))
+    cusparse_dep = dependency('cusparse-@0@'.format(cuda_toolkit_api_version))
+    cusolver_dep = dependency('cusolver-@0@'.format(cuda_toolkit_api_version))
     sparse_solvers_compile_args += ['-DHAVE_CUSOLVER']
     sparse_cusolver_lib = static_library('sparse-cusolver', 'sparse-cusolver.c',
                                          dependencies: [cudart_dep, cusparse_dep, cusolver_dep])

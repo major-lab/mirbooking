@@ -118,10 +118,13 @@ machine on supported solvers (i.e. `mkl-cluster`) by specifying `-Dwith_mpi=true
 | --------    | ---------------------------------------------------------------------------------- |
 | SuperLU     | `-Dwith_superlu=true`                                                              |
 | UMFPACK     | `-Dwith_umfpack=true`                                                              |
-| cuSOLVER    | `-Dcuda_root=<path to cuda> -Dwith_cusolver=true`                                  |
+| cuSOLVER    | `-Dwith_cuda=10.0 -Dwith_cusolver=true`                                  |
 | MKL DSS     | `-Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_dss=true`                     |
 | MKL Cluster | `-Dwith_mpi=true -Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_cluster=true` |
 | PARDISO     | `-Dwith_pardiso=true`                                                              |
+
+CUDA cuSOLVER require CUDA 10.0 although this can be changed by modifying the
+`cuda_toolkit_api_version` variable in the build definition.
 
 MKL DSS and MKL Cluster can benefit from [TBB](https://www.threadingbuildingblocks.org/)
 instead of OpenMP, which can be enabled with `-Dwith_mkl_tbb=true`.
