@@ -1334,7 +1334,7 @@ _compute_J (double t, const double *y, SparseMatrix *J, void *user_data)
                              * Ideally we would do if for all pair of
                              * complexes, but it has a combinatorial cost.
                              */
-                            kother = kcat * (_mirbooking_broker_get_occupant_quantity (self, occupant, ES) / self->priv->S[i]);
+                            kother = occupant->score.kcat * (_mirbooking_broker_get_occupant_quantity (self, occupant, ES) / self->priv->S[i]);
                         }
 
                         gdouble dEdES  = -1; // always
