@@ -21,6 +21,7 @@ from os.path import join, exists
 import numpy as np
 from functools import partial
 from scipy.stats.mstats import gmean
+from collections import defaultdict
 
 parser = argparse.ArgumentParser()
 
@@ -30,7 +31,6 @@ parser.add_argument('--initial-candidate', action='append', help='Initial candid
 parser.add_argument('--workers', type=int, default=2, help='Number of workers spawning processes')
 parser.add_argument('--threads-per-worker', type=int, default=1, help='Number of threads per worker')
 parser.add_argument('--max-sequences', type=int, default=1, help='Maximum number of sequences per design')
-parser.add_argument('--improvement-threshold', type=float, default=0.01, help='Threshold for considering a candidate as an actual improvement (in log-fold)')
 parser.add_argument('--designs-output-dir')
 
 parser.add_argument('--mirbooking', default='mirbooking', help='Location of miRBooking binary')
@@ -112,8 +112,13 @@ def successors(design):
     random.shuffle(z)
     return z
 
+def seed(design):
+    return str(design[0].seq[1:8])
+
 best_candidate = None
 best_score = float('inf')
+# seed-wise pruning to obtain the best candidate for each seed
+best_score_by_seed = defaultdict(lambda: float('inf'))
 
 counter = 1
 def work(candidates, pb, designs_out):
@@ -144,17 +149,23 @@ def work(candidates, pb, designs_out):
             # remaining nucleotides. With the monotonicity condition that
             # arises from Yan et al. 2018 model, this is guaranteed to be
             # admissible.
-            succ.append(s)
-            candidates.put((successor_score + heuristic(s, successor_score), successor_score, counter, s))
-            counter += 1
+            heuristic_score = successor_score + heuristic(s, successor_score)
 
-            pb.update()
+            # here we do some alpha pruning
+            if heuristic_score < best_score_by_seed[seed(s)]:
+                succ.append(s)
+                candidates.put((heuristic_score, successor_score, counter, s))
+                counter += 1
+                pb.update()
 
         # terminal design
         if not succ:
             if candidate_score < best_score:
                 best_candidate = candidate
                 best_score = candidate_score
+
+            if candidate_score < best_score_by_seed[seed(candidate)]:
+                best_score_by_seed[seed(candidate)] = candidate_score
 
             microtargetome_out = join(args.designs_output_dir, '-'.join(str(c.seq) for c in candidate))
 
@@ -178,7 +189,8 @@ with tqdm() as pb, open(join(args.designs_output_dir, 'designs.tsv'), 'a') as f:
     for candidate in args.initial_candidate:
         candidate = [SeqRecord(Seq(seq), id='smart{}'.format(i+1))
                          for i, seq in enumerate(candidate.split(','))]
-        candidates.put((evaluate(candidate) + heuristic(candidate, evaluate(candidate)), evaluate(candidate), counter, candidate))
+        score = evaluate(candidate)
+        candidates.put((score + heuristic(candidate, score), score, counter, candidate))
         counter += 1
         pb.update()
 
