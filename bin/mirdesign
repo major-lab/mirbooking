@@ -22,12 +22,14 @@ import numpy as np
 from functools import partial
 from scipy.stats.mstats import gmean
 from collections import defaultdict
+from scipy.special import logit
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--target', action='append', help='Target transcripts or everything if not specified')
 parser.add_argument('--non-target', action='append', help='Non-target transcripts')
 parser.add_argument('--initial-candidate', action='append', help='Initial candidates')
+parser.add_argument('--alpha', type=float, default=1.0, help='Heuristic weight')
 parser.add_argument('--workers', type=int, default=2, help='Number of workers spawning processes')
 parser.add_argument('--threads-per-worker', type=int, default=1, help='Number of threads per worker')
 parser.add_argument('--max-sequences', type=int, default=1, help='Maximum number of sequences per design')
@@ -75,7 +77,7 @@ def evaluate(candidate):
     else:
         nt_ef = expressed_fraction(df).reindex(args.non_target).fillna(1.0)
 
-    return log(gmean(t_ef) / gmean(nt_ef), 2)
+    return logit(t_ef - 1e-15).mean() - logit(nt_ef - 1e-15).mean()
 
 def heuristic(s, score):
     return score * (sum(19 - (len(seq.seq) - seq.seq.count('N')) for seq in s) / (sum(len(seq.seq) - seq.seq.count('N') for seq in s) + 1e-15))
@@ -149,7 +151,7 @@ def work(candidates, pb, designs_out):
             # remaining nucleotides. With the monotonicity condition that
             # arises from Yan et al. 2018 model, this is guaranteed to be
             # admissible.
-            heuristic_score = successor_score + heuristic(s, successor_score)
+            heuristic_score = successor_score + args.alpha * heuristic(s, successor_score)
 
             # here we do some alpha pruning
             if heuristic_score < best_score_by_seed[seed(s)]:
@@ -190,7 +192,7 @@ with tqdm() as pb, open(join(args.designs_output_dir, 'designs.tsv'), 'a') as f:
         candidate = [SeqRecord(Seq(seq), id='smart{}'.format(i+1))
                          for i, seq in enumerate(candidate.split(','))]
         score = evaluate(candidate)
-        candidates.put((score + heuristic(candidate, score), score, counter, candidate))
+        candidates.put((score + args.alpha * heuristic(candidate, score), score, counter, candidate))
         counter += 1
         pb.update()
 
