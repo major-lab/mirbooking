@@ -161,11 +161,11 @@ class MirbookingBrokerTestCase(unittest.TestCase):
 
         # solve steady-state
         while True:
-            ret, norm = mirbooking.evaluate()
+            ret, etr = mirbooking.evaluate()
             self.assertTrue(ret)
             ret = mirbooking.step(Mirbooking.BrokerStepMode.SOLVE_STEADY_STATE, 1.0)
             self.assertTrue(ret)
-            if norm < 1e-8:
+            if etr < 1:
                 break
 
         for target_site in mirbooking.get_target_sites():
