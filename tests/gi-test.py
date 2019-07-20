@@ -184,6 +184,6 @@ class MirbookingBrokerTestCase(unittest.TestCase):
         mirbooking.step(Mirbooking.BrokerStepMode.SOLVE_STEADY_STATE, 1.0)
         df = mirbooking.get_target_sites_as_dataframe()
         self.assertEqual(71, len(df))
-        self.assertEqual('NM_000014.4', df.index[0][0])
+        self.assertEqual('NM_000014.4', df.index[0][1])
 
 unittest.main()

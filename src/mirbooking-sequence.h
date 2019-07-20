@@ -15,6 +15,10 @@ struct _MirbookingSequenceClass
 
 const gchar * mirbooking_sequence_get_accession         (MirbookingSequence *self);
 const gchar * mirbooking_sequence_get_name              (MirbookingSequence *self);
+const gchar * mirbooking_sequence_get_gene_accession    (MirbookingSequence *self);
+const gchar * mirbooking_sequence_get_gene_name         (MirbookingSequence *self);
+void          mirbooking_sequence_set_gene_accession    (MirbookingSequence *self, const gchar * );
+void          mirbooking_sequence_set_gene_name         (MirbookingSequence *self, const gchar * );
 gchar       * mirbooking_sequence_get_sequence          (MirbookingSequence *self);
 void          mirbooking_sequence_set_sequence          (MirbookingSequence *self,
                                                          const gchar *sequence);

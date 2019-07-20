@@ -8,6 +8,8 @@ typedef struct
 {
     gchar       *accession;
     gchar       *name;
+    gchar       *gene_accession;
+    gchar       *gene_name;
     GBytes      *sequence;
     GPtrArray   *sequence_skips; /* all the pointers in 'sequence' to skip (i.e. line feeds) */
 } MirbookingSequencePrivate;
@@ -16,6 +18,8 @@ enum
 {
     PROP_ACCESSION = 1,
     PROP_NAME,
+    PROP_GENE_ACCESSION,
+    PROP_GENE_NAME,
     PROP_SEQUENCE
 };
 
@@ -41,6 +45,12 @@ mirbooking_sequence_set_property (GObject *object, guint property_id, const GVal
         case PROP_NAME:
             priv->name = g_value_dup_string (value);
             break;
+        case PROP_GENE_ACCESSION:
+            priv->gene_accession = g_value_dup_string (value);
+            break;
+        case PROP_GENE_NAME:
+            priv->gene_name = g_value_dup_string (value);
+            break;
         case PROP_SEQUENCE:
             seq = g_value_get_string (value);
             mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (object),
@@ -63,6 +73,12 @@ mirbooking_sequence_get_property (GObject *object, guint property_id, GValue *va
             break;
         case PROP_NAME:
             g_value_set_string (value, priv->name);
+            break;
+        case PROP_GENE_ACCESSION:
+            g_value_set_string (value, priv->gene_accession);
+            break;
+        case PROP_GENE_NAME:
+            g_value_set_string (value, priv->gene_name);
             break;
         case PROP_SEQUENCE:
             g_value_take_string (value, mirbooking_sequence_get_sequence (MIRBOOKING_SEQUENCE (object)));
@@ -119,6 +135,39 @@ mirbooking_sequence_get_name (MirbookingSequence *self)
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
 
     return priv->name;
+}
+
+
+const gchar *
+mirbooking_sequence_get_gene_accession (MirbookingSequence *self)
+{
+    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+
+    return priv->gene_accession;
+}
+
+const gchar *
+mirbooking_sequence_get_gene_name (MirbookingSequence *self)
+{
+    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+
+    return priv->gene_name;
+}
+
+void
+mirbooking_sequence_set_gene_accession (MirbookingSequence *self, const gchar *gene_accession)
+{
+    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+
+    priv->gene_accession = g_strdup (gene_accession);
+}
+
+void
+mirbooking_sequence_set_gene_name (MirbookingSequence *self, const gchar *gene_name)
+{
+    MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (self);
+
+    priv->gene_name = g_strdup (gene_name);
 }
 
 /**

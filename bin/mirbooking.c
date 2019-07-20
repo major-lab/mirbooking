@@ -186,6 +186,8 @@ read_sequences_from_fasta (FILE        *file,
 {
     gchar *accession;
     gchar *name;
+    gchar *gene_accession = NULL;
+    gchar *gene_name = NULL;
     gchar *seq;
     gchar line[1024];
 
@@ -202,11 +204,15 @@ read_sequences_from_fasta (FILE        *file,
             {
                 // for GENCODE-style annotation, the name is in the sixth field
                 accession = strtok (line + 1, "|");
+                gene_accession = strtok (NULL, "|");
+
                 gint i;
-                for (i = 0; i < 5; i++)
+                for (i = 0; i < 3; i++)
                 {
                     name = strtok (NULL, "|");
                 }
+
+                gene_name = strtok (NULL, "|");
             }
             else if (fasta_format == FASTA_FORMAT_NCBI)
             {
@@ -248,6 +254,9 @@ read_sequences_from_fasta (FILE        *file,
 
             // FIXME: add a destroy notify to clear this ref when the sequence is disposed
             g_mapped_file_ref (mapped_file);
+
+            mirbooking_sequence_set_gene_accession (sequence, gene_accession);
+            mirbooking_sequence_set_gene_name (sequence, gene_name);
 
             mirbooking_sequence_set_raw_sequence (sequence,
                                                   g_bytes_new_from_bytes (g_mapped_file_get_bytes (mapped_file), offset, seq_len));
@@ -350,7 +359,9 @@ static void
 write_output_to_tsv (MirbookingBroker *mirbooking,
                      FILE             *output_f)
 {
-    g_fprintf (output_f, "target_accession\t"
+    g_fprintf (output_f, "gene_accession\t"
+                         "gene_name\t"
+                         "target_accession\t"
                          "target_name\t"
                          "target_quantity\t"
                          "position\t"
@@ -383,7 +394,9 @@ write_output_to_tsv (MirbookingBroker *mirbooking,
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
         {
             MirbookingOccupant *occupant = occupants->data;
-            g_fprintf (output_f, "%s\t%s\t%e\t%lu\t%s\t%s\t%e\t%e\t%e\n",
+            g_fprintf (output_f, "%s\t%s\t%s\t%s\t%e\t%lu\t%s\t%s\t%e\t%e\t%e\n",
+                       COALESCE (mirbooking_sequence_get_gene_accession (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
+                       COALESCE (mirbooking_sequence_get_gene_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        target_quantity,

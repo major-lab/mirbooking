@@ -19,7 +19,9 @@ class Broker(Mirbooking.Broker):
                     cur_target = target_site.target
                     target_quantity = self.get_sequence_quantity(target_site.target)
                 for occupant in target_site.occupants:
-                    yield [target_site.target.get_accession(),
+                    yield [target_site.target.get_gene_accession(),
+                           target_site.target.get_gene_name(),
+                           target_site.target.get_accession(),
                            target_site.target.get_name(),
                            target_quantity,
                            target_site.position + 1,
@@ -28,7 +30,9 @@ class Broker(Mirbooking.Broker):
                            self.get_sequence_quantity(occupant.mirna) + self.get_bound_mirna_quantity(occupant.mirna),
                            (occupant.score.kr + occupant.score.kcat) / occupant.score.kf,
                            self.get_occupant_quantity(occupant)]
-        columns = ['target_accession',
+        columns = ['gene_accession',
+                   'gene_name',
+                   'target_accession',
                    'target_name',
                    'target_quantity',
                    'position',
@@ -37,4 +41,4 @@ class Broker(Mirbooking.Broker):
                    'mirna_quantity',
                    'score',
                    'quantity']
-        return pd.DataFrame(get_target_sites(), columns=columns).set_index(['target_accession', 'position', 'mirna_accession'])
+        return pd.DataFrame(get_target_sites(), columns=columns).set_index(['gene_accession', 'target_accession', 'position', 'mirna_accession'])
