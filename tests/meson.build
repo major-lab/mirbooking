@@ -9,12 +9,16 @@ foreach name : mirbooking_tests
 endforeach
 
 mirbooking_integration_tests = [
-    ['superlu',     ['--sparse-solver', 'superlu'],     get_option('with_superlu')],
-    ['umfpack',     ['--sparse-solver', 'umfpack'],     get_option('with_umfpack')],
-    ['mkl-dss',     ['--sparse-solver', 'mkl-dss'],     get_option('with_mkl_dss')],
-    ['mkl-cluster', ['--sparse-solver', 'mkl-cluster'], get_option('with_mkl_cluster')],
-    ['cusolver',    ['--sparse-solver', 'cusolver'],    get_option('with_cusolver')],
-    ['pardiso',     ['--sparse-solver', 'pardiso'],     get_option('with_pardiso')]
+    ['superlu',      ['--sparse-solver', 'superlu'],      get_option('with_superlu')],
+    ['umfpack',      ['--sparse-solver', 'umfpack'],      get_option('with_umfpack')],
+    ['mkl-dss',      ['--sparse-solver', 'mkl-dss'],      get_option('with_mkl_dss')],
+    ['mkl-cluster',  ['--sparse-solver', 'mkl-cluster'],  get_option('with_mkl_cluster')],
+    ['cusolver',     ['--sparse-solver', 'cusolver'],     get_option('with_cusolver')],
+    ['pardiso',      ['--sparse-solver', 'pardiso'],      get_option('with_pardiso')],
+    ['tsv',          ['--output-format', 'tsv'],          true],
+    ['tsv-detailed', ['--output-format', 'tsv-detailed'], true],
+    ['gff3',         ['--output-format', 'gff3'],         true],
+    ['wig',          ['--output-format', 'wig'],          true]
 ]
 
 mirbooking_integration_test_args = [

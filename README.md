@@ -73,6 +73,10 @@ The output is a TSV with the following columns:
 | score            | Michalis-Menten constant of the miRNA::MRE duplex      |
 | quantity         | miRNA::MRE duplex concentration this target position   |
 
+The detailed TSV output which expands the score structure in its constituents
+can be used with `--output-format=tsv-detailed`. In this mode, the `score`
+column is replaced by `kf`, `kr`, `kcat`, `kother`, `kd` and `km`.
+
 The GFF3 output can be used with `--output-format=gff3`. The score will
 indicate the complex concentration.
 
