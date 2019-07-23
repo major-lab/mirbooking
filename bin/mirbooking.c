@@ -200,6 +200,7 @@ read_sequences_from_fasta (FILE        *file,
 {
     gchar *accession;
     gchar *name;
+    gchar name_buffer[128]; /* in case the name does not appear literally */
     gchar *gene_accession = NULL;
     gchar *gene_name = NULL;
     gchar *seq;
@@ -231,14 +232,27 @@ read_sequences_from_fasta (FILE        *file,
             else if (fasta_format == FASTA_FORMAT_NCBI)
             {
                 accession = strtok (line + 1, " ");
-                name = NULL;
 
-                /* pick last opening brace */
-                gchar *name_p;
-                while (strtok (NULL, "(") && (name_p = strtok (NULL, ")")))
+                gchar *name_p = NULL;
+                if (strtok (NULL, "(,") && (name_p = strtok (NULL, "),")))
                 {
-                    name = name_p;
+                    // if we parse the ")," following the gene name, name_p
+                    // will be NULL and we should look for the transcript
+                    // variant
+                    if (name_p)
+                    {
+                        gene_name = name_p;
+                    }
                 }
+
+                /* unfortunately, that's the best information we get from the FASTA */
+                gene_accession = gene_name;
+
+                /* construct the gene name with its variant number */
+                guint variant = 0;
+                sscanf (strtok (NULL, ","), " transcript variant %u", &variant);
+                g_sprintf (name_buffer, "%s-%03u", gene_name, 200 + variant);
+                name = name_buffer;
             }
             else
             {
