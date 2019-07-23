@@ -1,9 +1,9 @@
 project('mirbooking', 'c',
-        version: '2.2.1',
+        version: '2.3.0-dev',
         default_options: 'c_std=gnu11',
         meson_version: '>=0.46.0')
 
-api_version = '2.2'
+api_version = '2.3'
 
 glib_dep = dependency('glib-2.0', version: '>=2.44')
 gobject_dep = dependency('gobject-2.0', version: '>=2.44')
