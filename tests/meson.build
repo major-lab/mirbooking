@@ -14,7 +14,8 @@ mirbooking_integration_tests = [
     ['mkl-dss',     ['--sparse-solver', 'mkl-dss'],     get_option('with_mkl_dss')],
     ['mkl-cluster', ['--sparse-solver', 'mkl-cluster'], get_option('with_mkl_cluster')],
     ['cusolver',    ['--sparse-solver', 'cusolver'],    get_option('with_cusolver')],
-    ['pardiso',     ['--sparse-solver', 'pardiso'],     get_option('with_pardiso')]
+    ['pardiso',     ['--sparse-solver', 'pardiso'],     get_option('with_pardiso')],
+    ['refseq',       ['--targets', join_paths(meson.current_source_dir(), 'data/GCF_000001405.39_GRCh38.p13_rna.fna'), '--input', join_paths(meson.current_source_dir(), 'data/quantifications-refseq.tsv')], true]
 ]
 
 mirbooking_integration_test_args = [
