@@ -386,7 +386,7 @@ write_output_to_tsv (MirbookingBroker *mirbooking,
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
                        COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
                        mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna)) + mirbooking_broker_get_bound_mirna_quantity (mirbooking, occupant->mirna),
-                       MIRBOOKING_SCORE_KM (occupant->score),
+                       MIRBOOKING_SCORE_KM (occupant->score) + (mirbooking_broker_get_target_site_kother (mirbooking, target_site) / occupant->score.kf),
                        mirbooking_broker_get_occupant_quantity (mirbooking, occupant));
         }
     }
