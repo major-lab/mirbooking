@@ -605,13 +605,19 @@ test_mirbooking_target_knock_out ()
     }
     while (error_ratio >= 1);
 
+    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), 10, 1e-3);
+
     // stop target transcription
     mirbooking_broker_set_target_transcription_rate (broker, target, 0);
 
-    mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 3600, NULL);
+    // ensure that target concentration gradually decreases over time
+    mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 60, NULL);
     mirbooking_broker_evaluate (broker, &error_ratio, NULL);
+    g_assert_cmpfloat (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), <, 7);
 
-    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), 0, 1e-3);
+    mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 60, NULL);
+    mirbooking_broker_evaluate (broker, &error_ratio, NULL);
+    g_assert_cmpfloat (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), <, 5);
 }
 
 static void
