@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+
+#
+# This scripts reproduce the default biochemical model used by miRBooking to
+# characterize individual interactions in such a way we can fit the free
+# parameters with experimental data.
+#
+
+from subprocess import check_output, DEVNULL
+import yaml
+import re
+from math import isfinite, isnan
+from scipy.optimize import minimize
+import numpy as np
+
+R = 1.987203611e-3
+T = 310.5
+
+with open('data/single-molecule-experimental-measurements.yaml') as f:
+    data = yaml.load(f)
+
+def fold(a, b):
+    vienna_binding_energy_re = 'delta G binding=\s*(.+)$'
+    stdout = check_output(['RNAcofold', '--noPS', '-p'], input=f'{a}&{b}', universal_newlines=True)
+    match = re.search(vienna_binding_energy_re, stdout)
+    ret = float(match.group(1))
+    if not isfinite(ret) or ret == 999.:
+        return float('nan')
+    else:
+        return ret
+
+def rc(a):
+    return {'A': 'U', 'U': 'A', 'G': 'C', 'C': 'G', 'T': 'A'}[a]
+
+X = []
+Y = []
+for experiment in data:
+    target, position, mirna = experiment['target'], experiment['position'], experiment['mirna']
+    X.append([
+        fold(target[position:position+7], mirna[1:8]),         # seed
+        fold(target[position-3:position-3+3], mirna[8:11]),    # A
+        fold(target[position-6:position-6+3], mirna[11:14]),   # B
+        fold(target[position-9:position-9+3], mirna[14:17]),   # C
+        fold(target[position-12:position-12+3], mirna[17:20]), # D
+        (target[position + 6] != rc(mirna[1])) +
+        (target[position + 5] != rc(mirna[2])) +
+        (target[position + 4] != rc(mirna[3])) +
+        (target[position + 3] != rc(mirna[4])) + # seed core mismatch
+        (target[position + 2] != rc(mirna[5])),
+        (target[position + 1] != rc(mirna[6])) +
+        (target[position + 0] != rc(mirna[7])), # seed-supp mismatch
+        target[position + 7] == 'A',            # t1 adenosine
+        ])
+
+    score = experiment['score']
+
+    kf = float(score.get('kf', ['nan'])[0])
+    kr = float(score.get('kr', ['nan'])[0])
+    kcat = float(score.get('kcat', ['nan'])[0])
+    Kd = float(score.get('Kd', ['nan'])[0])
+    Km = float(score.get('Km', ['nan'])[0])
+
+    if isnan(kr):
+        kr = kf * Kd
+
+    if isnan(kf):
+        kf = kr / Kd
+
+    if isnan(Kd):
+        Kd = kr / kf
+
+    Y.append([kf, kr, kcat, Kd, Km])
+
+X = np.array(X)
+Y = np.array(Y)
+
+def binding_energy(G):
+    G = np.array(G)
+    Z = np.sum(np.exp(-G / (R * T)), axis=1)
+    return np.sum(np.exp(-G/(R*T)) * G, axis=1) / Z
+
+def binding_probability(G):
+    G = np.array(G)
+    Z = np.sum(np.exp(-G / (R * T)), axis=1).reshape((-1, 1))
+    return np.exp(-G/(R*T)) / Z
+
+def f(X, weights):
+    # model weights
+    base_kf, base_kcat, ago2_deltaG, seed_core_mismatch_penalty, seed_supp_mismatch_penalty, t1_adenosine_score = weights
+    base_kf = np.exp(base_kf)
+    base_kcat = np.exp(base_kcat)
+    seed_core_mismatch_penalty = np.exp(seed_core_mismatch_penalty)
+    seed_supp_mismatch_penalty = np.exp(seed_supp_mismatch_penalty)
+
+    # model features
+    seed, A, B, C, D, seed_core_mismatches, seed_supp_mismatches, t1_adenosine = X.T
+
+    canonical_ensemble = np.column_stack([np.zeros_like(B), B, B + C, B + C + A, B + C + A + D])
+
+    deltaG = ago2_deltaG + (t1_adenosine * t1_adenosine_score) + seed + binding_energy(canonical_ensemble)
+
+    kf = base_kf * np.ones_like(X[:,0]) * np.power(seed_core_mismatch_penalty, seed_core_mismatches) * np.power(seed_supp_mismatch_penalty, seed_supp_mismatches)
+
+    kcat = base_kcat * np.ones_like(seed) * np.sum(binding_probability(canonical_ensemble)[:,3:], axis=1)
+    Kd = 1e12 * np.exp(deltaG / (R * T))
+    kr = kf * Kd
+    Km = Kd + (kcat/kf)
+    return np.column_stack([kf, kr, kcat, Kd, Km])
+
+def log_mse(x, y):
+    return np.linalg.norm(np.where(np.isfinite(x) & np.isfinite(y), np.log(x) - np.log(y), 0))
+
+def loss(X, y, weights):
+    return log_mse(f(X, weights), y)
+
+func = lambda weights: loss(X, Y, weights)
+
+result = minimize(func, x0=np.array([np.log(1e-5), np.log(1.), -5., np.log(1.), np.log(1.), -1]))
+weights = result['x']
+print('Loss', result['fun'])
+print('Optimal Parameters:', f'base kf = {np.exp(weights[0]):.2e}, base kcat = {np.exp(weights[1]):.2e}, AGO2 entropy = {weights[2]:.2f} kcal/mol, seed mismatch weights = {np.exp(weights[3]):.2f} and {np.exp(weights[4]):.2f}, t1 adenosine contribution = {weights[5]:.2f} kcal/mol')

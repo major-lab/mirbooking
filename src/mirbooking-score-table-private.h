@@ -9,10 +9,12 @@
 #define SEED_LENGTH 7
 
 /*
- * Forward rate constant for the [E] + [S] -> [ES] reaction, which is
- * indistinguishable from seed types or supplementary bindings (Wee et al. 2012
- * and Salomon et al. 2015). We picked the value from the latest publication
- * for the seed-only setup.
+ * Base forward rate constant for the complex formation reaction.
+ *
+ * Salomon et al. 2015 reported a value of 2.4e-4 s^-1pM^-1.
+ *
+ * The reported value results from a maximum likelihood fit on a broad set of
+ * experimental data.
  *
  * Reference:
  * Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into Domains
@@ -23,20 +25,23 @@
  * Reshapes the Binding Properties of Its Nucleic Acid Guides,” Cell 162, no. 1
  * (July 2, 2015): 84–95, https://doi.org/10.1016/j.cell.2015.06.029.
  */
-#define KF 2.4e-4 // pM^-1s^-1
+#define KF 6.45e-05 // pM^-1s^-1
 
 /*
- * Base turnover rate of the complex.
+ * Base catalytic and turnover rate of the complex.
  *
  * This is modulated by the binding probability of the cleavage site, so the
  * actual catalytic rate is much slower.
+ *
+ * The reported value results from a maximum likelihood fit on a broad set of
+ * experimental data.
  *
  * Reference:
  * William E. Salomon et al., “Single-Molecule Imaging Reveals That Argonaute
  * Reshapes the Binding Properties of Its Nucleic Acid Guides,” Cell 162, no. 1
  * (July 2, 2015): 84–95, https://doi.org/10.1016/j.cell.2015.06.029.
  */
-#define KCAT 3.53 // s^-1
+#define KCAT 2.62 // s^-1
 
 /*
  * Half life of an average microRNA is is ~119 hours.
@@ -84,8 +89,10 @@
  * Yan et al. 2018 model.
  *
  * For Wee et al. we have an entropic contribution of -5.69 kcal/mol which is
- * consistent with the -5.47 kcal/mol obtained from Salomon et al. We take the
- * average of the two values.
+ * consistent with the -5.47 kcal/mol obtained from Salomon et al.
+ *
+ * The reported value results from a maximum likelihood fit on a broad set of
+ * experimental data.
  *
  * Reference:
  * Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into
@@ -96,17 +103,22 @@
  * Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4 (September
  * 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
  */
-#define AGO2_SCORE (-5.58)
+#define AGO2_SCORE (-6.03)
 
 /*
  * AGO2 has a slight preference for sites starting with 'A' at position t1.
+ *
+ * The expected value from Schirle et al. 2015 was -0.56 kcal/mol.
+ *
+ * The reported value results from a maximum likelihood fit on a broad set of
+ * experimental data.
  *
  * Reference:
  * Nicole T Schirle et al., “Water-Mediated Recognition of T1-Adenosine
  * Anchors Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4
  * (September 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
  */
-#define T1_ADENOSINE_SCORE (-0.56)
+#define T1_ADENOSINE_SCORE (-0.38)
 
 /*
  * We allow a 'G' nucleation bulge at position t5.
