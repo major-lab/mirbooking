@@ -37,19 +37,14 @@ Y = []
 for experiment in data:
     target, position, mirna = experiment['target'], experiment['position'], experiment['mirna']
     X.append([
-        fold(target[position:position+7], mirna[1:8]),         # seed
-        fold(target[position-3:position-3+3], mirna[8:11]),    # A
-        fold(target[position-6:position-6+3], mirna[11:14]),   # B
-        fold(target[position-9:position-9+3], mirna[14:17]),   # C
-        fold(target[position-12:position-12+3], mirna[17:20]), # D
-        (target[position + 6] != rc(mirna[1])) +
-        (target[position + 5] != rc(mirna[2])) +
-        (target[position + 4] != rc(mirna[3])) +
-        (target[position + 3] != rc(mirna[4])) + # seed core mismatch
-        (target[position + 2] != rc(mirna[5])),
-        (target[position + 1] != rc(mirna[6])) +
-        (target[position + 0] != rc(mirna[7])), # seed-supp mismatch
-        target[position + 7] == 'A',            # t1 adenosine
+        fold(target[position:position+7], mirna[1:8]),                        # seed
+        fold(target[position-3:position-3+3], mirna[8:11]),                   # A
+        fold(target[position-6:position-6+3], mirna[11:14]),                  # B
+        fold(target[position-9:position-9+3], mirna[14:17]),                  # C
+        fold(target[position-12:position-12+3], mirna[17:20]),                # D
+        sum((target[position + 7 - i] != rc(mirna[i])) for i in range(1, 5)), # seed core mismatch
+        sum((target[position + 7 - i] != rc(mirna[i])) for i in range(5, 8)), # seed supp mismatch
+        target[position + 7] == 'A',                                          # t1 adenosine
         ])
 
     score = experiment['score']
