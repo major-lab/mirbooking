@@ -451,7 +451,7 @@
   score:
     kf: [3.3e-4, 0.35e-4]
 
-# Figure 1A and 1B
+# Figure 4C
 # seed-only
 - reference: Sheu-Gruttadauria et al. 2019
   target: AAAAAAAACACTCCTAA
@@ -488,7 +488,7 @@
   score:
     Kd: [103, 0]
 
-# Figure 1C and 1D
+# Figure 4D
 # seed only
 - reference: Sheu-Gruttadauria et al. 2019
   target: AAAAAAAAACACTCCTAA

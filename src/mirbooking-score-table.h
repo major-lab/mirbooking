@@ -12,11 +12,23 @@ G_BEGIN_DECLS
 #define MIRBOOKING_TYPE_SCORE_TABLE mirbooking_score_table_get_type ()
 G_DECLARE_DERIVABLE_TYPE (MirbookingScoreTable, mirbooking_score_table, MIRBOOKING, SCORE_TABLE, GObject)
 
+/**
+ * MirbookingScore:
+ * @t1_adenosine: Indicate that the target presents an adenosine at t1
+ * @seed_g_bulge: Indicate that the seed allows a G-bulged secondary structure
+ * @central_bulge_size: Number of bulged nucleotides on the target facing the
+ * central portion of the guide. If negative, that means the guide is itself
+ * bulged.
+ */
 typedef struct _MirbookingScore
 {
     gdouble kf;
     gdouble kr;
     gdouble kcat;
+    /* extra optional fields */
+    gboolean t1_adenosine;
+    gboolean seed_g_bulge;
+    gssize   central_bulge_size;
 } MirbookingScore;
 
 #define MIRBOOKING_SCORE_KD(score) (score.kr / score.kf)

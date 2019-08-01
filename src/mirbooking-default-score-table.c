@@ -243,13 +243,14 @@ compute_score (MirbookingScoreTable *score_table,
 {
     MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
 
-    MirbookingScore ret = {.kf = KF, .kcat = 0};
+    MirbookingScore ret = {0};
 
     gdouble A_score = 0.0f;
     if (position + SEED_LENGTH + 1 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
         toupper (*mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (target), position + SEED_LENGTH, 1)) == 'A')
     {
         A_score = T1_ADENOSINE_SCORE;
+        ret.t1_adenosine = TRUE;
     }
 
     gfloat seed_score = _get_subsequence_score (&self->priv->seed_scores,
@@ -266,7 +267,8 @@ compute_score (MirbookingScoreTable *score_table,
     // experimental data. The expected values were around 0.4 and 0.9 for the 4
     // first and 3 last nucleotides of the seed respectively, which are quite
     // consistent with the obtained ones.
-    gdouble w[7] = {0.38, 0.38, 0.38, 0.38, 0.93, 0.93, 0.93};
+    gdouble w[7] = {0.50425622, 0.463789,   0.17376327, 0.13690256, 0.61599331,
+                    0.51380835, 0.7487489};
 
     const guint8 *_seed = mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna),
                                                                SEED_OFFSET,
@@ -279,7 +281,7 @@ compute_score (MirbookingScoreTable *score_table,
                                                                            position ,
                                                                            SEED_LENGTH);
 
-    //
+    ret.kf = KF;
     guint i;
     for (i = 0; i < 7; i++)
     {
@@ -298,25 +300,53 @@ compute_score (MirbookingScoreTable *score_table,
 
         gdouble Z[2] = {seed_score, sparse_matrix_get_float (&self->priv->seed_scores, i, j) + G_BULGED_SEED_SCORE};
         seed_score = binding_energy (Z, 2);
+        ret.seed_g_bulge = TRUE;
     }
 
     gdouble supplementary_score = 0;
     if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_WEE_ET_AL_2012)
     {
-        if (self->priv->supplementary_scores_bytes != NULL)
+        gssize central_bulge_size;
+        gfloat best_supplementary_score_ = INFINITY;
+        for (central_bulge_size = CENTRAL_BULGE_MIN_SIZE; central_bulge_size <= CENTRAL_BULGE_MAX_SIZE; central_bulge_size++)
         {
+            gfloat central_score_;
+            if (central_bulge_size == 0)
+            {
+                central_score_ = _get_subsequence_score (&self->priv->supplementary_scores,
+                                                     mirna,
+                                                     target,
+                                                     position,
+                                                     SEED_OFFSET + SEED_LENGTH - 1,
+                                                     SEED_OFFSET + SEED_LENGTH,
+                                                     4);
+            }
+            else
+            {
+                central_score_ = 0.;
+            }
+
             gfloat supplementary_score_ = _get_subsequence_score (&self->priv->supplementary_scores,
                                                                   mirna,
                                                                   target,
                                                                   position,
-                                                                  SEED_OFFSET + SEED_LENGTH - 1,
+                                                                  SEED_OFFSET + SEED_LENGTH - 1 - central_bulge_size,
                                                                   SEED_OFFSET + SEED_LENGTH + 4,
                                                                   4);
-            gdouble z[2] = {0, supplementary_score_};
-            supplementary_score = binding_energy (z, 2);
+            if (supplementary_score_ < best_supplementary_score_)
+            {
+                best_supplementary_score_ = supplementary_score_;
 
-            // require at least the 3' supplementary bindings for cleavage
-            ret.kcat = binding_probability (z, 5, 1) * KCAT;
+                gdouble z[3] = {0,
+                                supplementary_score_,
+                                supplementary_score_ + central_score_};
+                supplementary_score = binding_energy (z, 3);
+
+                // require the central region bound for cleavage
+                ret.kcat = central_bulge_size == 0 ? binding_probability (z, 3, 2) * KCAT : 0;
+
+                ret.central_bulge_size = central_bulge_size;
+            }
         }
     }
     else if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018)
@@ -328,23 +358,32 @@ compute_score (MirbookingScoreTable *score_table,
          * Research, June 22, 2018, https://doi.org/10.1093/nar/gky546.
          */
         gfloat A_box = 0, B_box = 0, C_box = 0, D_box = 0;
-        if (self->priv->supplementary_scores_bytes != NULL)
+        gfloat best_B_box = INFINITY;
+        gssize central_bulge_size;
+        for (central_bulge_size = CENTRAL_BULGE_MIN_SIZE; central_bulge_size <= CENTRAL_BULGE_MAX_SIZE; central_bulge_size++)
         {
-            // A box
-            A_box = _get_subsequence_score (&self->priv->supplementary_scores,
-                                            mirna,
-                                            target,
-                                            position,
-                                            SEED_OFFSET + SEED_LENGTH - 1,
-                                            SEED_OFFSET + SEED_LENGTH,
-                                            3);
+            // A box (remains right after the seed)
+            if (central_bulge_size == 0)
+            {
+                A_box = _get_subsequence_score (&self->priv->supplementary_scores,
+                                                mirna,
+                                                target,
+                                                position,
+                                                SEED_OFFSET + SEED_LENGTH - 1,
+                                                SEED_OFFSET + SEED_LENGTH,
+                                                3);
+            }
+            else
+            {
+                A_box = 0.;
+            }
 
             // B box
             B_box = _get_subsequence_score (&self->priv->supplementary_scores,
                                             mirna,
                                             target,
                                             position,
-                                            SEED_OFFSET + SEED_LENGTH - 1,
+                                            SEED_OFFSET + SEED_LENGTH - 1 - central_bulge_size,
                                             SEED_OFFSET + SEED_LENGTH + 3,
                                             3);
 
@@ -353,7 +392,7 @@ compute_score (MirbookingScoreTable *score_table,
                                             mirna,
                                             target,
                                             position,
-                                            SEED_OFFSET + SEED_LENGTH - 1,
+                                            SEED_OFFSET + SEED_LENGTH - 1 - central_bulge_size,
                                             SEED_OFFSET + SEED_LENGTH + 6,
                                             3);
 
@@ -363,20 +402,26 @@ compute_score (MirbookingScoreTable *score_table,
                                             mirna,
                                             target,
                                             position,
-                                            SEED_OFFSET + SEED_LENGTH - 1,
+                                            SEED_OFFSET + SEED_LENGTH - 1 - central_bulge_size,
                                             SEED_OFFSET + SEED_LENGTH + 9,
                                             3);
 
-            gdouble z[5] = {0,
-                            B_box,
-                            B_box + C_box,
-                            B_box + C_box + A_box,
-                            B_box + C_box + A_box + D_box};
+            if (B_box < best_B_box)
+            {
+                best_B_box = B_box;
+                gdouble z[5] = {0,
+                                B_box,
+                                B_box + C_box,
+                                B_box + C_box + A_box,
+                                B_box + C_box + A_box + D_box};
 
-            supplementary_score = binding_energy (z, 5);
+                supplementary_score = binding_energy (z, 5);
 
-            // at least A-box for slicing
-            ret.kcat = (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * KCAT;
+                // at least A-box for slicing
+                ret.kcat = central_bulge_size == 0 ? (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * KCAT : 0;
+
+                ret.central_bulge_size = central_bulge_size;
+            }
         }
     }
 

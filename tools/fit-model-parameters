@@ -6,46 +6,133 @@
 # parameters with experimental data.
 #
 
-from subprocess import check_output, DEVNULL
-import yaml
-import re
+from concurrent.futures import ProcessPoolExecutor
 from math import isfinite, isnan
+from random import sample, seed
 from scipy.optimize import minimize
+from scipy.special import logit, expit
+from scipy.stats import pearsonr
+from subprocess import check_output, DEVNULL
+from tqdm import tqdm
+import argparse
 import numpy as np
+import re
+import sys
+import warnings
+import yaml
+
+warnings.filterwarnings('ignore')
+
+seed(123)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--supplementary-model', choices=['wee-et-al-2012', 'yan-et-al-2018'])
+parser.add_argument('--min-central-bulge-size', type=int, default=0)
+parser.add_argument('--max-central-bulge-size', type=int, default=0)
+parser.add_argument('--sample-size', type=int)
+parser.add_argument('input')
+args = parser.parse_args()
 
 R = 1.987203611e-3
 T = 310.5
 
-with open('data/single-molecule-experimental-measurements.yaml') as f:
-    data = yaml.load(f)
-
 def fold(a, b):
     vienna_binding_energy_re = 'delta G binding=\s*(.+)$'
-    stdout = check_output(['RNAcofold', '--noPS', '-p'], input=f'{a}&{b}', universal_newlines=True)
+    input_fasta = f'{a}&{b}'
+    stdout = check_output(['RNAcofold', '--noPS', '-p'], input=input_fasta, universal_newlines=True, stderr=DEVNULL)
     match = re.search(vienna_binding_energy_re, stdout)
     ret = float(match.group(1))
-    if not isfinite(ret) or ret == 999.:
-        return float('nan')
+    if not isfinite(ret):
+        return 0
     else:
         return ret
 
 def rc(a):
-    return {'A': 'U', 'U': 'A', 'G': 'C', 'C': 'G', 'T': 'A'}[a]
+    return a.upper().translate(str.maketrans('ACGT', 'TGCA'))
 
-X = []
-Y = []
-for experiment in data:
+def binding_energy(G, axis=None):
+    G = np.array(G)
+    Z = np.sum(np.exp(-G / (R * T)), axis=axis)
+    return np.sum(np.exp(-G/(R*T)) * G, axis=axis) / Z
+
+def binding_probability(G):
+    G = np.array(G)
+    Z = np.sum(np.exp(-G / (R * T)))
+    return np.exp(-G/(R*T)) / Z
+
+def process_experiment(experiment):
     target, position, mirna = experiment['target'], experiment['position'], experiment['mirna']
-    X.append([
-        fold(target[position:position+7], mirna[1:8]),                        # seed
-        fold(target[position-3:position-3+3], mirna[8:11]),                   # A
-        fold(target[position-6:position-6+3], mirna[11:14]),                  # B
-        fold(target[position-9:position-9+3], mirna[14:17]),                  # C
-        fold(target[position-12:position-12+3], mirna[17:20]),                # D
-        sum((target[position + 7 - i] != rc(mirna[i])) for i in range(1, 5)), # seed core mismatch
-        sum((target[position + 7 - i] != rc(mirna[i])) for i in range(5, 8)), # seed supp mismatch
-        target[position + 7] == 'A',                                          # t1 adenosine
-        ])
+
+    min_bulge = args.min_central_bulge_size
+    max_bulge = args.max_central_bulge_size
+    central_bulge_size = 0
+
+    seed_energy = fold(target[position:position+7], mirna[1:8])
+
+    # look for G nucleation bulge
+    if target[position+3] == 'G':
+        seed_energy = binding_energy([seed_energy, fold(target[position:position+3] + target[position+4:position+8], mirna[1:8]) + 1.2])
+
+    # Wee et al. 2012
+    if args.supplementary_model == 'wee-et-al-2012':
+        # find the best bulge to anchor the supplementary
+        best_supplementary = float('inf')
+        for bulge_size in range(min_bulge, max_bulge + 1):
+            supplementary = fold(target[position-8-bulge_size:position-8-bulge_size+4], mirna[12:16])
+            if supplementary < best_supplementary:
+                best_supplementary = supplementary
+                central_bulge_size = bulge_size
+
+                if central_bulge_size == 0:
+                    central = fold(target[position-bulge_size-4:position-4+4], mirna[8:12])
+                else:
+                    central = 0.
+
+                tail_canonical_ensemble = [supplementary, supplementary + central]
+
+        tail_energy = binding_energy(tail_canonical_ensemble)
+        if central_bulge_size == 0:
+            cleavage_probability = binding_probability(tail_canonical_ensemble)[1]
+        else:
+            cleavage_probability = 0
+
+    # Yan et al. 2018
+    elif args.supplementary_model == 'yan-et-al-2018':
+        # find the best bulge to anchor the B-box and zip the remaining nucleotides
+        best_B = float('inf')
+        for bulge_size in range(min_bulge, max_bulge + 1):
+            B = fold(target[position-bulge_size-6:position-bulge_size-6+3], mirna[11:14])
+            if B < best_B:
+                best_B = B
+                central_bulge_size = bulge_size
+
+                if central_bulge_size == 0:
+                    A = fold(target[position-bulge_size-4:position-4+4], mirna[8:12])
+                else:
+                    A = 0.
+
+                C = fold(target[position-bulge_size-9:position-bulge_size-9+3], mirna[14:17])
+                D = fold(target[position-bulge_size-12:position-bulge_size-12+3], mirna[17:17+3])
+                tail_canonical_ensemble = [B, B + C, B + C + A, B + C + A + D]
+
+        tail_energy = binding_energy(tail_canonical_ensemble)
+        if central_bulge_size == 0:
+            cleavage_probability = np.sum(binding_probability(tail_canonical_ensemble)[2:])
+        else:
+            cleavage_probability = 0
+
+    else:
+        tail_energy = 0
+        cleavage_probability = 0
+
+    X = [target[position + 7] == 'A', # t1 adenosine
+         seed_energy,                 # seed
+         central_bulge_size,              # central bulge size on target
+         tail_energy,                 # supplementary energy
+         cleavage_probability]        # fraction of cleavage-competent secondary structures
+
+    # kf mismatch penalties
+    X.extend(target[position + 7 - i] != rc(mirna[i]) for i in range(0, 8))
 
     score = experiment['score']
 
@@ -59,58 +146,84 @@ for experiment in data:
         kr = kf * Kd
 
     if isnan(kf):
-        kf = kr / Kd
+        kf = kr/Kd
 
     if isnan(Kd):
-        Kd = kr / kf
+        Kd = kr/kf
 
-    Y.append([kf, kr, kcat, Kd, Km])
+    if isnan(Km):
+        Km = Kd + kcat/kf
 
-X = np.array(X)
-Y = np.array(Y)
+    Y = [kf, kr, kcat, Kd, Km]
 
-def binding_energy(G):
-    G = np.array(G)
-    Z = np.sum(np.exp(-G / (R * T)), axis=1)
-    return np.sum(np.exp(-G/(R*T)) * G, axis=1) / Z
+    return X, Y
 
-def binding_probability(G):
-    G = np.array(G)
-    Z = np.sum(np.exp(-G / (R * T)), axis=1).reshape((-1, 1))
-    return np.exp(-G/(R*T)) / Z
+with open(args.input) as f:
+    data = yaml.load(f, Loader=yaml.FullLoader)
+    if args.sample_size is not None:
+        data = sample(data, k=args.sample_size)
+
+X, Y = [], []
+with ProcessPoolExecutor() as executor:
+    for x, y in tqdm(executor.map(process_experiment, data), total=len(data)):
+        X.append(x)
+        Y.append(y)
+X = np.asarray(X)
+Y = np.asarray(Y)
 
 def f(X, weights):
     # model weights
-    base_kf, base_kcat, ago2_deltaG, seed_core_mismatch_penalty, seed_supp_mismatch_penalty, t1_adenosine_score = weights
-    base_kf = np.exp(base_kf)
-    base_kcat = np.exp(base_kcat)
-    seed_core_mismatch_penalty = np.exp(seed_core_mismatch_penalty)
-    seed_supp_mismatch_penalty = np.exp(seed_supp_mismatch_penalty)
+    base_kf = np.exp(weights[0])
+    base_kcat = np.exp(weights[1])
+    t1_adenosine_score = weights[2]
+    ago2_deltaG = weights[3]
+    kf_mismatches_penalties = expit(weights[4:])
 
     # model features
-    seed, A, B, C, D, seed_core_mismatches, seed_supp_mismatches, t1_adenosine = X.T
+    t1_adenosine = X[:,0]
+    seed_energy = X[:,1]
+    central_bulge_size = X[:,2]
+    tail_energy = X[:,3]
+    cleavage_probability = X[:,4]
+    kf_mismatches = X[:,5:]
 
-    canonical_ensemble = np.column_stack([np.zeros_like(B), B, B + C, B + C + A, B + C + A + D])
+    canonical_ensemble = [seed_energy, seed_energy + tail_energy]
 
-    deltaG = ago2_deltaG + (t1_adenosine * t1_adenosine_score) + seed + binding_energy(canonical_ensemble)
+    # free energy model
+    deltaG = ago2_deltaG + (t1_adenosine * t1_adenosine_score) + binding_energy(canonical_ensemble, axis=0)
 
-    kf = base_kf * np.ones_like(X[:,0]) * np.power(seed_core_mismatch_penalty, seed_core_mismatches) * np.power(seed_supp_mismatch_penalty, seed_supp_mismatches)
-
-    kcat = base_kcat * np.ones_like(seed) * np.sum(binding_probability(canonical_ensemble)[:,3:], axis=1)
+    kf = base_kf * np.prod(np.where(kf_mismatches, kf_mismatches_penalties, 1.), axis=1)
+    # FIXME: this kcat should be conditioned on a supplementary bound
+    kcat = base_kcat * cleavage_probability
     Kd = 1e12 * np.exp(deltaG / (R * T))
     kr = kf * Kd
     Km = Kd + (kcat/kf)
     return np.column_stack([kf, kr, kcat, Kd, Km])
 
-def log_mse(x, y):
-    return np.linalg.norm(np.where(np.isfinite(x) & np.isfinite(y), np.log(x) - np.log(y), 0))
+def log_rmse(x, y):
+    ix = np.isfinite(np.log(x)) & np.isfinite(np.log(y))
+    return np.linalg.norm((np.log(x[ix]) - np.log(y[ix])) / np.count_nonzero(ix))
+
+def log_r2(x, y):
+    ix = np.isfinite(np.log(x)) & np.isfinite(np.log(y))
+    return pearsonr(np.log(x)[ix], np.log(y)[ix])[0]**2
 
 def loss(X, y, weights):
-    return log_mse(f(X, weights), y)
+    return log_rmse(f(X, weights), y)
 
 func = lambda weights: loss(X, Y, weights)
 
-result = minimize(func, x0=np.array([np.log(1e-5), np.log(1.), -5., np.log(1.), np.log(1.), -1]))
+result = minimize(func, x0=np.asarray([np.log(1e-5), np.log(1.), -1., -5.] + 8 * [logit(0.5)]))
 weights = result['x']
-print('Loss', result['fun'])
-print('Optimal Parameters:', f'base kf = {np.exp(weights[0]):.2e}, base kcat = {np.exp(weights[1]):.2e}, AGO2 entropy = {weights[2]:.2f} kcal/mol, seed mismatch weights = {np.exp(weights[3]):.2f} and {np.exp(weights[4]):.2f}, t1 adenosine contribution = {weights[5]:.2f} kcal/mol')
+
+print(f'RMSE: {result["fun"]:.2f}')
+
+for i, constant in enumerate(['kf', 'kr', 'kcat', 'Kd', 'Km']):
+    r2 = log_r2(f(X, weights)[:,i], Y[:,i])
+    print(f'{constant} R²: {r2:.2f}')
+print(f'''Optimal Parameters:
+    base kf = {np.exp(weights[0]):.2e}
+    base kcat = {np.exp(weights[1]):.2e}
+    t1 adenosine contribution = {weights[2]:.2f} kcal/mol
+    AGO2 entropy = {weights[3]:.2f} kcal/mol
+    seed mismatch penalties = {expit(weights[4:])}''')

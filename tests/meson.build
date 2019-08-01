@@ -9,6 +9,8 @@ foreach name : mirbooking_tests
 endforeach
 
 mirbooking_integration_tests = [
+    ['wee-et-al-2012', ['--supplementary-model', 'wee-et-al-2012', '--supplementary-scores', join_paths(meson.current_source_dir(), '../data/scores-4mer')], true],
+    ['yan-et-al-2012', ['--supplementary-model', 'yan-et-al-2018', '--supplementary-scores', join_paths(meson.current_source_dir(), '../data/scores-3mer')], true],
     ['superlu',      ['--sparse-solver', 'superlu'],      get_option('with_superlu')],
     ['umfpack',      ['--sparse-solver', 'umfpack'],      get_option('with_umfpack')],
     ['mkl-dss',      ['--sparse-solver', 'mkl-dss'],      get_option('with_mkl_dss')],
@@ -26,7 +28,6 @@ mirbooking_integration_test_args = [
     '--targets', join_paths(meson.current_source_dir(), 'data/gencode.v29.transcripts.fa'),
     '--mirnas', join_paths(meson.current_source_dir(), 'data/mature.fa'),
     '--seed-scores', join_paths(meson.current_source_dir(), '../data/scores-7mer-3mismatch-ending'),
-    '--supplementary-scores', join_paths(meson.current_source_dir(), '../data/scores-3mer'),
     '--cutoff', '0',
     '--input', join_paths(meson.current_source_dir(), 'data/quantifications.tsv'),
     '--output', '/dev/null']
