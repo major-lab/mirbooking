@@ -150,14 +150,14 @@ _get_subsequence_score (SparseMatrix     *scores,
                         MirbookingMirna  *mirna,
                         MirbookingTarget *target,
                         gsize             position,
-                        gsize             mirna_position_offset,
+                        gsize             mirna_position,
                         gsize             subsequence_offset,
                         gsize             subsequence_len)
 {
     g_return_val_if_fail (_pow4 (subsequence_len) == scores->shape[0], INFINITY);
 
     // the subsequence does not fit in the target
-    if (position + mirna_position_offset - subsequence_offset + subsequence_len > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)))
+    if (position + mirna_position - subsequence_offset + 1 > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)))
     {
         return INFINITY;
     }
@@ -169,7 +169,7 @@ _get_subsequence_score (SparseMatrix     *scores,
     }
 
     gssize subsequence_i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), subsequence_offset, subsequence_len);
-    gssize subsequence_j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position + mirna_position_offset - subsequence_offset, subsequence_len);
+    gssize subsequence_j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), position + mirna_position - subsequence_offset - subsequence_len + 1, subsequence_len);
 
     if (subsequence_i == -1 || subsequence_j == -1)
     {
@@ -256,7 +256,7 @@ compute_score (MirbookingScoreTable *score_table,
                                                 mirna,
                                                 target,
                                                 position,
-                                                SEED_OFFSET,
+                                                SEED_OFFSET + SEED_LENGTH - 1,
                                                 SEED_OFFSET,
                                                 SEED_LENGTH);
 
@@ -315,7 +315,7 @@ compute_score (MirbookingScoreTable *score_table,
                                                                   mirna,
                                                                   target,
                                                                   position,
-                                                                  4,
+                                                                  SEED_OFFSET + SEED_LENGTH - 1,
                                                                   SEED_OFFSET + SEED_LENGTH + 4,
                                                                   4);
             gdouble z[2] = {0, supplementary_score_};
@@ -341,7 +341,7 @@ compute_score (MirbookingScoreTable *score_table,
                                             mirna,
                                             target,
                                             position,
-                                            5,
+                                            SEED_OFFSET + SEED_LENGTH - 1,
                                             SEED_OFFSET + SEED_LENGTH,
                                             3);
 
@@ -350,7 +350,7 @@ compute_score (MirbookingScoreTable *score_table,
                                             mirna,
                                             target,
                                             position,
-                                            5,
+                                            SEED_OFFSET + SEED_LENGTH - 1,
                                             SEED_OFFSET + SEED_LENGTH + 3,
                                             3);
 
@@ -359,7 +359,7 @@ compute_score (MirbookingScoreTable *score_table,
                                             mirna,
                                             target,
                                             position,
-                                            5,
+                                            SEED_OFFSET + SEED_LENGTH - 1,
                                             SEED_OFFSET + SEED_LENGTH + 6,
                                             3);
 
@@ -369,7 +369,7 @@ compute_score (MirbookingScoreTable *score_table,
                                             mirna,
                                             target,
                                             position,
-                                            5,
+                                            SEED_OFFSET + SEED_LENGTH - 1,
                                             SEED_OFFSET + SEED_LENGTH + 9,
                                             3);
 
