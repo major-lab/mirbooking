@@ -613,3 +613,55 @@
   score:
     Km: [0.9e3, 0.1e3]
     kcat: [0.0088, 0.0002]
+
+# Lima et al.
+# Table 1
+- reference: Lima et al. 2009
+  target: AAGUAAGGACCAGAGACAA
+  position: 11
+  mirna: UUGUCUCUGGUCCUUACUU
+  score:
+    Kd: [61.e3, 13.e3]
+
+# Table 2
+- reference: Lima et al. 2009
+  target: AAGUAAGGACCAGAGACAA
+  position: 11
+  mirna: UUGUCUCUGGUCCUUACUU
+  score:
+    Kd: [83.e3, 5.e3] # Mg2+
+- reference: Lima et al. 2009
+  target: AAGUAAGGACCAGAGACAA
+  position: 11
+  mirna: UUGUCUCUGGUCCUUACUU
+  score:
+    Kd: [116.e3, 9.e3] # Mn2+
+
+# Table 3
+- reference: Lima et al. 2009
+  target: AAGUAAGGACCAGAGACAA
+  position: 11
+  mirna: UUGUCUCUGGUCCUUACUU
+  score:
+    kf: [1.2e-7, 0]
+    kr: [6.8e-3, 0]
+
+# Table 5
+- reference: Lima et al. 2009
+  target: AAGUAAGGACCAGAGACAA
+  position: 11
+  mirna: UUGUCUCUGGUCCUUACUU
+  score:
+    Kd: [204.e3, 9.e3]
+- reference: Lima et al. 2009
+  target: AAGUAAGGACCAGAGACAAA
+  position: 11
+  mirna: UUGUCUCUGGUCCUUACUU
+  score:
+    Kd: [104.e3, 14.e3]
+- reference: Lima et al. 2009
+  target: AAGUAAGGACCAGAGACAAAAAGG
+  position: 11
+  mirna: UUGUCUCUGGUCCUUACUU
+  score:
+    Kd: [43.e3, 7.e3]
