@@ -1,7 +1,7 @@
 # siRNA 28 nt
-- target: GAUACUAUACAACCUACUACCUCAACCU
+- target: GATACTATACAACCTACTACCTCAACCT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAUGU
+  mirna: TGAGGTAGTAGGTTGTATATGT
   score:
     Kd: [20, 10]
     Km: [100, 60]
@@ -9,67 +9,67 @@
     kcat: [8.1e-4, 0.1e-4]
   reference: Wee et al. 2012
 # seed-only
-- target: GAAAAAAAAAAAAAAUCUACCUCUAAAU
+- target: GAAAAAAAAAAAAAATCTACCTCTAAAT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAUGU
+  mirna: TGAGGTAGTAGGTTGTATATGT
   score:
     Kd: [26, 2]
     kr: [4.6e-4, 0]
   reference: Wee et al. 2012
 # seed + 3' supp
-- target: GAAAAAAAACAAAAAUCUACCUCUAAAU
+- target: GAAAAAAAACAAAAATCTACCTCTAAAT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAUGU
+  mirna: TGAGGTAGTAGGTTGTATATGT
   score:
     Kd: [13, 1]
     kr: [5.1e-4, 0]
   reference: Wee et al. 2012
 # g10g11 central loop
-- target: GAUACUAUACAACGAACUACCUCAACCU
+- target: GATACTATACAACGAACTACCTCAACCT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAUGU
+  mirna: TGAGGTAGTAGGTTGTATATGT
   score:
     Kd: [50, 30]
   reference: Wee et al. 2012
 # g15g16 mismatch
-- target: GAUACUAUCGAACCUACUACCUCAACCU
+- target: GATACTATCGAACCTACTACCTCAACCT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAUGU
+  mirna: TGAGGTAGTAGGTTGTATATGT
   score:
     Kd: [30, 20]
   reference: Wee et al. 2012
 # g1-g19 complementary
-- target: GAUUAUAUACAACCUACUACCUCAACCU
+- target: GATTATATACAACCTACTACCTCAACCT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAUGU
+  mirna: TGAGGTAGTAGGTTGTATATGT
   score:
     Kd: [40, 20]
   reference: Wee et al. 2012
 # seed-only
-- target: GAAAAAAAAAAAAAAUCUACCUCUAAAU
+- target: GAAAAAAAAAAAAAATCTACCTCTAAAT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAUGU
+  mirna: TGAGGTAGTAGGTTGTATATGT
   score:
     Kd: [30, 20]
   reference: Wee et al. 2012
 # seed + 3' supplementary
-- target: GAAAAAAAACAAAAAUCUACCUCUAAAU
+- target: GAAAAAAAACAAAAATCTACCTCTAAAT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAUGU
+  mirna: TGAGGTAGTAGGTTGTATATGT
   score:
     Kd: [20, 10]
   reference: Wee et al. 2012
 # g4g5 mismatches
-- target: GAUACUAUACAACCUACUAUUUCAACCU
+- target: GATACTATACAACCTACTATTTCAACCT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAUGU
+  mirna: TGAGGTAGTAGGTTGTATATGT
   score:
     Kd: [1.0e3, 0.6e3]
   reference: Wee et al. 2012
 # non-complementary luciferase target
-- target: GAUAAGGCAUUUCAUUAUAGCUAUACCU
+- target: GATAAGGCATTTCATTATAGCTATACCT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAUGU
+  mirna: TGAGGTAGTAGGTTGTATATGT
   score:
     Kd: [2.0e3, 1.0e3]
   reference: Wee et al. 2012
@@ -77,169 +77,169 @@
 # Salomon et al. 2015
 
 # siRNA use for dye control (Figure 1B)
-- target: ACUAUACAACCUACUACCUCA
+- target: ACTATACAACCTACTACCTCA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       Km: [1.7e3, 0.1e3]
       kcat: [7.8e-2, 0.2e-2]
   reference: Salomon et al. 2015
 # siRNA
-- target: ACUAUACAACCUACUACCUCA
+- target: ACTATACAACCTACTACCTCA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       kf: [3.9e-4, 0.5e-2]
       kcat: [6.6e-2, 0.4e-2]
   reference: Salomon et al. 2015
-# Seed + 3'UTR
-- target: UGAUAACAAGGAUCUACCUCA
+# Seed + 3'TTR
+- target: TGATAACAAGGATCTACCTCA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       Kd: [11, 2]
       kf: [2.8e-4, 0.5e-2]
       kr: [3.0e-3, 0.4e-4]
   reference: Salomon et al. 2015
 # Disrupted seed
-- target: ACUAUACAACCAAAAAAAAAA
+- target: ACTATACAACCAAAAAAAAAA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       Kd: [22e3, 3e3]
       kf: [3.6e-5, 0.2e-5]
       kr: [0.79, 0.08]
   reference: Salomon et al. 2015
 # miR-21
-- target: CAACAUCAGUCUGAUAAGCUA
+- target: CAACATCAGTCTGATAAGCTA
   position: 13
-  mirna: UAGCUUAUCAGACUGAUGUUG
+  mirna: TAGCTTATCAGACTGATGTTG
   score:
     kf: [1.3e-4, 0.1e-4]
   reference: Salomon et al. 2015
 # Seed-only
-- target: UGAUAUGUUGGAUCUACCUCA
+- target: TGATATGTTGGATCTACCTCA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       Kd: [15, 2]
       kf: [2.4e-4, 0.1e-4]
       kr: [0.0036, 0.0003]
   reference: Salomon et al. 2015
 # g2g3 mismatches
-- target: UGAUAUGUUGGAUCUACCAGA
+- target: TGATATGTTGGATCTACCAGA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       Kd: [280.0e3, 40.0e3]
       kf: [3.8e-5, 0.1e-5]
       kr: [11, 1]
   reference: Salomon et al. 2015
 # g3g4 mismatches
-- target: UGAUAUGUUGGAUCUACGACA
+- target: TGATATGTTGGATCTACGACA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       Kd: [220.0e3, 30.0e3]
       kf: [3.4e-5, 0.2e-5]
       kr: [7.3, 0.5]
   reference: Salomon et al. 2015
 # g4g5 mismatches
-- target: UGAUAUGUUGGAUCUAAAUCA
+- target: TGATATGTTGGATCTAAATCA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       Kd: [250.0e3, 40.0e3]
       kf: [2.4e-5, 0.1e-5]
       kr: [6.0, 0.4]
   reference: Salomon et al. 2015
 # g5g6
-- target: UGAUAUGUUGGAUCUUGCUCA
+- target: TGATATGTTGGATCTTGCTCA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       Kd: [300.0e3, 40.0e3]
       kf: [3.9e-5, 0.1e-5]
       kr: [12, 1]
   reference: Salomon et al. 2015
 # g6g7 mismatches
-- target: UGAUAUGUUGGAUCAUCCUCA
+- target: TGATATGTTGGATCATCCTCA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       Kd: [18.0e3, 2.0e3]
       kf: [2.0e-4, 0.1e-4]
       kr: [3.5, 0.1]
   reference: Salomon et al. 2015
 # g7g8 mismatches
-- target: UGAUAUGUUGGAUGAACCUCA
+- target: TGATATGTTGGATGAACCTCA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       Kd: [1.2e3, 0.2e3]
       kf: [2.0e-4, 0.1e-4]
       kr: [0.24, 0.01]
   reference: Salomon et al. 2015
 # g8 mismatch
-- target: UGAUAUGUUGGAUGAACCUCA
+- target: TGATATGTTGGATGAACCTCA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
       Kd: [0.48e3, 0.06e3]
       kf: [1.8e-4, 0.1e-4]
       kr: [0.086, 0.002]
   reference: Salomon et al. 2015
 # Figure 5A
-- target: ACUAUACAACCUACUACCUCA
+- target: ACTATACAACCTACTACCTCA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
     kcat: [0.036, 0.002]
   reference: Salomon et al. 2015
-- target: CAACAUCAGUCUGAUAAGCUA
+- target: CAACATCAGTCTGATAAGCTA
   position: 13
-  mirna: UAGCUUAUCAGACUGAUGUUG
+  mirna: TAGCTTATCAGACTGATGTTG
   score:
     kcat: [0.16, 0.1]
   reference: Salomon et al. 2015
-- target: ACUAUACAACCUACUAGGUCA
+- target: ACTATACAACCTACTAGGTCA
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
     kcat: [0.13, 0.1]
   reference: Salomon et al. 2015
 
 # Schirle et al. 2015
-- target: CAAUGUGAAAA
+- target: CAATGTGAAAA
   position: 1
-  mirna: UUCACAUUGCCCAAGUCUCUU
+  mirna: TTCACATTGCCCAAGTCTCTT
   score:
       Kd: [0.75e3, 0.04e3]
   reference: Schirle et al. 2015
-- target: CAAUGUGAUAA
+- target: CAATGTGATAA
   position: 1
-  mirna: UUCACAUUGCCCAAGUCUCUU
+  mirna: TTCACATTGCCCAAGTCTCTT
   score:
       Kd: [1.9e3, 0.09e3]
   reference: Schirle et al. 2015
-- target: CAAUGUGACAA
+- target: CAATGTGACAA
   position: 1
-  mirna: UUCACAUUGCCCAAGUCUCUU
+  mirna: TTCACATTGCCCAAGTCTCTT
   score:
       Kd: [1.9e3, 0.10e3]
   reference: Schirle et al. 2015
-- target: CAAUGUGAGAA
+- target: CAATGTGAGAA
   position: 1
-  mirna: UUCACAUUGCCCAAGUCUCUU
+  mirna: TTCACATTGCCCAAGTCTCTT
   score:
       Kd: [1.8e3, 0.12e3]
   reference: Schirle et al. 2015
 
 # Jo et al. 2015
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
     kf: [1.66e-5, 0.317e-5]
     kr: [0.011797, 0] # weighted ensemble of transient, stable and unloading koff
@@ -247,351 +247,351 @@
 
 # 3' product dissociation
 #- reference: Jo et al. 2015
-#  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+#  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
 #  position: 13
-#  mirna: UGAGGUAGUAGGUUGUAUAGU
+#  mirna: TGAGGTAGTAGGTTGTATAGT
 #  score:
 #    kcat: [4.3e-2, 0]
 
 # g2g3 mismatches
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UCUGGUAGUAGGUUGUAUAGU
+  mirna: TCTGGTAGTAGGTTGTATAGT
   score:
     kf: [8.21e-6, 3.39e-6]
 # g3g4
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGUCGUAGUAGGUUGUAUAGU
+  mirna: TGTCGTAGTAGGTTGTATAGT
   score:
     kf: [5.77e-6, 1.55e-6]
 # g4g5
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAAAUAGUAGGUUGUAUAGU
+  mirna: TGAAATAGTAGGTTGTATAGT
   score:
     kf: [2.84e-6, 0.81e-6]
 # g5g6
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGCAAGUAGGUUGUAUAGU
+  mirna: TGAGCAAGTAGGTTGTATAGT
   score:
     kf: [3.39e-6, 0.96e-6]
 # g6g7
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGAUGUAGGUUGUAUAGU
+  mirna: TGAGGATGTAGGTTGTATAGT
   score:
     kf: [1.703e-5, 0.594e-5]
 # g7g8
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUUCUAGGUUGUAUAGU
+  mirna: TGAGGTTCTAGGTTGTATAGT
   score:
     kf: [1.7831e-5, 0.656e-5]
 # g8g9
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUACAAGGUUGUAUAGU
+  mirna: TGAGGTACAAGGTTGTATAGT
   score:
     kf: [1.8484e-5, 0.3134e-5]
 # g9g10
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGAUGGUUGUAUAGU
+  mirna: TGAGGTAGATGGTTGTATAGT
   score:
     kf: [2.2456e-5, 0.6984e-5]
 # g10g11
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUUCGUUGUAUAGU
+  mirna: TGAGGTAGTTCGTTGTATAGT
   score:
     kf: [1.2317e-5, 0.2619e-5]
 # g11g12
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUAAAUUGUAUAGU
+  mirna: TGAGGTAGTAAATTGTATAGT
   score:
     kf: [1.0243e-5, 0.1877e-5]
 # g12g13
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUAGCAUGUAUAGU
+  mirna: TGAGGTAGTAGCATGTATAGT
   score:
     kf: [1.7897e-5, 0.2857e-5]
 # g13g14
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUAGGAAGUAUAGU
+  mirna: TGAGGTAGTAGGAAGTATAGT
   score:
     kf: [2.1058e-5, 0.6544e-5]
 # g14g15
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUAGGUACUAUAGU
+  mirna: TGAGGTAGTAGGTACTATAGT
   score:
     kf: [1.3369e-5, 0.3036e-5]
 # g15g16
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUAGGUUCAAUAGU
+  mirna: TGAGGTAGTAGGTTCAATAGT
   score:
     kf: [2.2641e-5, 0.6544e-5]
 # g16g17
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUAGGUUCAAUAGU
+  mirna: TGAGGTAGTAGGTTCAATAGT
   score:
     kf: [2.2641e-5, 0.6544e-5]
 # g17g18
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUAGGUUCAAUAGU
+  mirna: TGAGGTAGTAGGTTCAATAGT
   score:
     kf: [2.2641e-5, 0.6544e-5]
 
 # g18g19
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAAUGU
+  mirna: TGAGGTAGTAGGTTGTAATGT
   score:
     kf: [1.1465e-5, 0.4625e-5]
 # g19g20
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUAGGUUGUAUUCU
+  mirna: TGAGGTAGTAGGTTGTATTCT
   score:
     kf: [1.6093e-5, 0.2326e-5]
 # g20g21
 - reference: Jo et al. 2015
-  target: ACUAUACAACCUACUACCUCGUUUUUUUUUUUUUUUU
+  target: ACTATACAACCTACTACCTCGTTTTTTTTTTTTTTTT
   position: 13
-  mirna: UGAGGUAGUAGGUUCAAUAGU
+  mirna: TGAGGTAGTAGGTTCAATAGT
   score:
     kf: [1.6627e-5, 0.6151e-5]
 
 # Figure 2A and 2B
 - reference: Klum et al. 2018
-  target: AAAACACUCCUA
+  target: AAAACACTCCTA
   position: 3
-  mirna: UGGAGUGUGACAAUGGUGUUUG
+  mirna: TGGAGTGTGACAATGGTGTTTG
   score:
     Kd: [0.28e3, 0.03e3]
     kr: [0.008666667, 0.0005]
 # Figure 3D
 - reference: Klum et al. 2018
-  target: UUUUUUUUUUUUUACUACCUCU
+  target: TTTTTTTTTTTTTACTACCTCT
   position: 14
-  mirna: UGAGGAUUUUUUUUUUUUUUUU
+  mirna: TGAGGATTTTTTTTTTTTTTTT
   score:
     kr: [1.25, 0]
 - reference: Klum et al. 2018
-  target: UUUUUUUUUUUUUACUACCUCU
+  target: TTTTTTTTTTTTTACTACCTCT
   position: 14
-  mirna: UGAGGUUUUUUUUUUUUUUUUU
+  mirna: TGAGGTTTTTTTTTTTTTTTTT
   score:
     kr: [0.769230769, 0]
 - reference: Klum et al. 2018
-  target: UUUUUUUUUUUUUACUACCUCU
+  target: TTTTTTTTTTTTTACTACCTCT
   position: 14
-  mirna: UGAGGUAUUUUUUUUUUUUUUU
+  mirna: TGAGGTATTTTTTTTTTTTTTT
   score:
     kr: [0.5, 0]
-# 2-7 G:U (Figure 4A)
+# 2-7 G:T (Figure 4A)
 - reference: Klum et al. 2018
-  target: AAAGCACUCCUA
+  target: AAAGCACTCCTA
   position: 3
-  mirna: UGGAGUGUGACAAUGGUGUUUG
+  mirna: TGGAGTGTGACAATGGTGTTTG
   score:
     Kd: [0.30e3, 0.03e3]
-# 2-6 G:U (Figure 4B)
+# 2-6 G:T (Figure 4B)
 - reference: Klum et al. 2018
-  target: AAAGUACUCCUA
+  target: AAAGTACTCCTA
   position: 3
-  mirna: UGGAGUGUGACAAUGGUGUUUG
+  mirna: TGGAGTGTGACAATGGTGTTTG
   score:
     Kd: [25.0e3, 0.03e3]
-# 2-5 G:U (Figure 4C)
+# 2-5 G:T (Figure 4C)
 - reference: Klum et al. 2018
-  target: AAAGUGCUCCUA
+  target: AAAGTGCTCCTA
   position: 3
-  mirna: UGGAGUGUGACAAUGGUGUUUG
+  mirna: TGGAGTGTGACAATGGTGTTTG
   score:
     Kd: [100.0e3, 0.03e3] # it's actually >100nM
 # 2-5 mismatches (Figure 4D)
 - reference: Klum et al. 2018
-  target: AAAUGUCUCCUA
+  target: AAATGTCTCCTA
   position: 3
-  mirna: UGGAGUGUGACAAUGGUGUUUG
+  mirna: TGGAGTGTGACAATGGTGTTTG
   score:
     Kd: [100.0e3, 0.03e3] # it's actually >100nM
 # Figure 6B
 - reference: Klum et al. 2018
-  target: AAAACACUCCCA
+  target: AAAACACTCCCA
   position: 3
-  mirna: UGGAGUGUGACAAUGGUGUUUG
+  mirna: TGGAGTGTGACAATGGTGTTTG
   score:
     kf: [3.3e-4, 0.35e-4]
 
 # Figure 1A and 1B
 # seed-only
 - reference: Sheu-Gruttadauria et al. 2019
-  target: AAAAAAAACACUCCUAA
+  target: AAAAAAAACACTCCTAA
   position: 7
-  mirna: UGGAGUGUGACACUAUCGAAAG
+  mirna: TGGAGTGTGACACTATCGAAAG
   score:
     Kd: [190, 0]
 # 1 nt bridge
 - reference: Sheu-Gruttadauria et al. 2019
-  target: AUAGAACACUCCUAA
+  target: ATAGAACACTCCTAA
   position: 5
-  mirna: UGGAGUGUGACACUAUCGAAAG
+  mirna: TGGAGTGTGACACTATCGAAAG
   score:
     Kd: [141, 0]
 # 2 nt bridge
 - reference: Sheu-Gruttadauria et al. 2019
-  target: AUAGAAACACUCCUAA
+  target: ATAGAAACACTCCTAA
   position: 6
-  mirna: UGGAGUGUGACACUAUCGAAAG
+  mirna: TGGAGTGTGACACTATCGAAAG
   score:
     Kd: [73, 0]
 # 4 nt bridge
 - reference: Sheu-Gruttadauria et al. 2019
-  target: AUAGAAAAACACUCCUAA
+  target: ATAGAAAAACACTCCTAA
   position: 8
-  mirna: UGGAGUGUGACACUAUCGAAAG
+  mirna: TGGAGTGTGACACTATCGAAAG
   score:
     Kd: [16, 0]
 # 10 nt bridge
 - reference: Sheu-Gruttadauria et al. 2019
-  target: AUAGAAAAAAAAAAACACUCCUAA
+  target: ATAGAAAAAAAAAAACACTCCTAA
   position: 14
-  mirna: UGGAGUGUGACACUAUCGAAAG
+  mirna: TGGAGTGTGACACTATCGAAAG
   score:
     Kd: [103, 0]
 
 # Figure 1C and 1D
 # seed only
 - reference: Sheu-Gruttadauria et al. 2019
-  target: AAAAAAAAACACUCCUAA
+  target: AAAAAAAAACACTCCTAA
   position: 8
-  mirna: UGGAGUGUGACAGCGGCGAAAG
+  mirna: TGGAGTGTGACAGCGGCGAAAG
   score:
     Kd: [270, 0]
 # 1 nt bridge
 - reference: Sheu-Gruttadauria et al. 2019
-  target: CCGCAACACUCCUAA
+  target: CCGCAACACTCCTAA
   position: 5
-  mirna: UGGAGUGUGACAGCGGCGAAAG
+  mirna: TGGAGTGTGACAGCGGCGAAAG
   score:
     Kd: [33, 0]
 # 2 nt bridge
 - reference: Sheu-Gruttadauria et al. 2019
-  target: CCGCAAACACUCCUAA
+  target: CCGCAAACACTCCTAA
   position: 6
-  mirna: UGGAGUGUGACAGCGGCGAAAG
+  mirna: TGGAGTGTGACAGCGGCGAAAG
   score:
     Kd: [12, 0]
 # 4 nt bridge
 - reference: Sheu-Gruttadauria et al. 2019
-  target: CCGCAAAAACACUCCUAA
+  target: CCGCAAAAACACTCCTAA
   position: 8
-  mirna: UGGAGUGUGACAGCGGCGAAAG
+  mirna: TGGAGTGTGACAGCGGCGAAAG
   score:
     Kd: [12, 0]
 # 10 nt bridge
 - reference: Sheu-Gruttadauria et al. 2019
-  target: CCGCAAAAAAAAAAACACUCCUAA
+  target: CCGCAAAAAAAAAAACACTCCTAA
   position: 14
-  mirna: UGGAGUGUGACAGCGGCGAAAG
+  mirna: TGGAGTGTGACAGCGGCGAAAG
   score:
     Kd: [16, 0]
 # 15 nt bridge
 - reference: Sheu-Gruttadauria et al. 2019
-  target: CCGCAAAAAAAAAAAAAAAACACUCCUAA
+  target: CCGCAAAAAAAAAAAAAAAACACTCCTAA
   position: 19
-  mirna: UGGAGUGUGACAGCGGCGAAAG
+  mirna: TGGAGTGTGACAGCGGCGAAAG
   score:
     Kd: [24, 0]
 
 # Figure 3A and 3B
 # Note: these are taken directly from the plot
 - reference: Sheu-Gruttadauria et al. 2019
-  target: AAAAAAAAACACUCCUAA
+  target: AAAAAAAAACACTCCTAA
   position: 8
-  mirna: UGGAGUGUGACACCGGCGAAAG
+  mirna: TGGAGTGTGACACCGGCGAAAG
   score:
     Kd: [40, 0]
 - reference: Sheu-Gruttadauria et al. 2019
-  target: AAAAUGAAACACUCCUAA
+  target: AAAATGAAACACTCCTAA
   position: 8
-  mirna: UGGAGUGUGACACCGGCGAAAG
+  mirna: TGGAGTGTGACACCGGCGAAAG
   score:
     Kd: [15, 0]
 - reference: Sheu-Gruttadauria et al. 2019
-  target: GGCAAAACACUCCUAA
+  target: GGCAAAACACTCCTAA
   position: 6
-  mirna: UGGAGUGUGACACCGGCGAAAG
+  mirna: TGGAGTGTGACACCGGCGAAAG
   score:
     Kd: [7, 0]
 - reference: Sheu-Gruttadauria et al. 2019
-  target: CCAAAAAAACACUCCUAA
+  target: CCAAAAAAACACTCCTAA
   position: 8
-  mirna: UGGAGUGUGACACCGGCGAAAG
+  mirna: TGGAGTGTGACACCGGCGAAAG
   score:
     Kd: [23, 0]
 - reference: Sheu-Gruttadauria et al. 2019
-  target: CGAAAAAAAAACACUCCUAA
+  target: CGAAAAAAAAACACTCCTAA
   position: 10
-  mirna: UGGAGUGUGACACCGGCGAAAG
+  mirna: TGGAGTGTGACACCGGCGAAAG
   score:
     Kd: [20, 0]
 
 # Figure 5A and 5B
 - reference: Sheu-Gruttadauria et al. 2019
-  target: GAAAAAAAAAAAAAAUCUACCUCUAAAU
+  target: GAAAAAAAAAAAAAATCTACCTCTAAAT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
     Kd: [42, 2]
 - reference: Sheu-Gruttadauria et al. 2019
-  target: GAAAAAAAACAAAAAUCUACCUCUAAAU
+  target: GAAAAAAAACAAAAATCTACCTCTAAAT
   position: 16
-  mirna: UGAGGUAGUAGGUUGUAUAGU
+  mirna: TGAGGTAGTAGGTTGTATAGT
   score:
     Kd: [23, 3]
 
 # S21
 - reference: Martinez et Tuschl 2004
-  target: CGUACGCGGAAUACUUCGAAA
+  target: CGTACGCGGAATACTTCGAAA
   position: 11
-  mirna: UCGAAGUAUUCCGCGUACGUU
+  mirna: TCGAAGTATTCCGCGTACGTT
   score:
     Km: [1.1e3, 0.3e3]
 #   kcat: [1.7e-2, 0]
 # S21 (independant replicate)
 - reference: Martinez et Tuschl 2004
-  target: CGUACGCGGAAUACUUCGAAA
+  target: CGTACGCGGAATACTTCGAAA
   position: 11
-  mirna: UCGAAGUAUUCCGCGUACGUU
+  mirna: TCGAAGTATTCCGCGTACGTT
   score:
     Km: [2.3e3, 0.3e3]
 #   kcat: [0.012, 0.001]
@@ -599,17 +599,17 @@
 # was used.
 # S21dG9
 - reference: Martinez et Tuschl 2004
-  target: CGUACGCGGGAUACUUCGAAA
+  target: CGTACGCGGGATACTTCGAAA
   position: 11
-  mirna: UCGAAGUAUUCCGCGUACGUU
+  mirna: TCGAAGTATTCCGCGTACGTT
   score:
     Km: [0.9e3, 0.1e3]
     kcat: [0.012, 0.001]
 # S21dA10
 - reference: Martinez et Tuschl 2004
-  target: CGUACGCGAAAUACUUCGAAA
+  target: CGTACGCGAAATACTTCGAAA
   position: 11
-  mirna: UCGAAGUAUUCCGCGUACGUU
+  mirna: TCGAAGTATTCCGCGTACGTT
   score:
     Km: [0.9e3, 0.1e3]
     kcat: [0.0088, 0.0002]
