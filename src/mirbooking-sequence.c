@@ -31,8 +31,6 @@ mirbooking_sequence_set_property (GObject *object, guint property_id, const GVal
 {
     MirbookingSequencePrivate *priv = mirbooking_sequence_get_instance_private (MIRBOOKING_SEQUENCE (object));
 
-    const gchar *seq;
-
     switch (property_id)
     {
         case PROP_ACCESSION:
@@ -42,9 +40,8 @@ mirbooking_sequence_set_property (GObject *object, guint property_id, const GVal
             priv->name = g_value_dup_string (value);
             break;
         case PROP_SEQUENCE:
-            seq = g_value_get_string (value);
-            mirbooking_sequence_set_raw_sequence (MIRBOOKING_SEQUENCE (object),
-                                                  g_bytes_new (seq, strlen (seq)));
+            mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (object),
+                                              g_value_get_string (value));
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -203,11 +200,18 @@ mirbooking_sequence_get_sequence (MirbookingSequence *self)
     return ret;
 }
 
+/**
+ * mirbooking_sequence_set_sequence:
+ * @self: A #MirbookingSequence
+ * @sequence: A sequence of nucleotides
+ *
+ * To avoid copying @sequence, see #mirbooking_sequence_set_raw_sequence.
+ */
 void
 mirbooking_sequence_set_sequence (MirbookingSequence *self, const gchar *sequence)
 {
-    mirbooking_sequence_set_raw_sequence (self,
-                                          g_bytes_new_static (sequence, strlen (sequence)));
+    g_autoptr (GBytes) bytes = g_bytes_new (sequence, strlen (sequence));
+    mirbooking_sequence_set_raw_sequence (self, bytes);
 }
 
 /**
