@@ -17,8 +17,8 @@ const gchar * mirbooking_sequence_get_accession         (MirbookingSequence *sel
 const gchar * mirbooking_sequence_get_name              (MirbookingSequence *self);
 const gchar * mirbooking_sequence_get_gene_accession    (MirbookingSequence *self);
 const gchar * mirbooking_sequence_get_gene_name         (MirbookingSequence *self);
-void          mirbooking_sequence_set_gene_accession    (MirbookingSequence *self, const gchar * );
-void          mirbooking_sequence_set_gene_name         (MirbookingSequence *self, const gchar * );
+void          mirbooking_sequence_set_gene_accession    (MirbookingSequence *self, const gchar *accession);
+void          mirbooking_sequence_set_gene_name         (MirbookingSequence *self, const gchar *name);
 gchar       * mirbooking_sequence_get_sequence          (MirbookingSequence *self);
 void          mirbooking_sequence_set_sequence          (MirbookingSequence *self,
                                                          const gchar *sequence);
