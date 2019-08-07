@@ -1,0 +1,1568 @@
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.001507154
+    - 0
+  target: AAACATTCCA
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.004550594
+    - 0
+  target: AAACATTCCT
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.008171943
+    - 0
+  target: AATCATTCCA
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.024129068
+    - 0
+  target: AATCATTCCT
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.13188603
+    - 0
+  target: AAAAATTCCA
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.069359251
+    - 0
+  target: AACATTTCCA
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.301772885
+    - 0
+  target: AATAATTCCT
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.126349436
+    - 0
+  target: ATACGTTCCA
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.232602261
+    - 0
+  target: ACCACACACA
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.288430092
+    - 0
+  target: TATACATTCT
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.205655351
+    - 0
+  target: ATACACTCCA
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.212150961
+    - 0
+  target: CGCTTCCGCT
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.177241945
+    - 0
+  target: ATCATTTCCA
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.241037894
+    - 0
+  target: ATACTTTCCA
+- mirna: TGGAATGTAAAGAAGTATGTAT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.293885429
+    - 0
+  target: TATACGTTCC
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.0004771815
+    - 0
+  target: ATCTACCTCA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.0013278213
+    - 0
+  target: ATCTACCTCT
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.0047843814
+    - 0
+  target: ATATACCTCA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.0122523603
+    - 0
+  target: AATATACCTC
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.0396899931
+    - 0
+  target: TCTAACCTCA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.0809899007
+    - 0
+  target: ATCTACCTTA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.10234873
+    - 0
+  target: ATCTAACCTC
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.0700741815
+    - 0
+  target: ATGCACTTTA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.0991129561
+    - 0
+  target: ATCTATCTCA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.109238594
+    - 0
+  target: ATCTACTTCA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: TAGCACTTTA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.1281073181
+    - 0
+  target: ATCTAGCTCA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.1087164326
+    - 0
+  target: TCTACACTCA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.2937583098
+    - 0
+  target: ATATTCCTCA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ACGCACTTTA
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.2198924261
+    - 0
+  target: TATCTACTTC
+- mirna: TGAGGTAGTAGGTTGTATAGTT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.2124898045
+    - 0
+  target: TATCTATCTC
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.002962688
+    - 0
+  target: ATAGCATTAA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.015753809
+    - 0
+  target: AATGCATTAA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.011446603
+    - 0
+  target: CATAGCATTA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.012494954
+    - 0
+  target: CCCCTATCAC
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.0543764
+    - 0
+  target: AAATGCATTA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.011438289
+    - 0
+  target: CCCCTATCAC
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.117565455
+    - 0
+  target: TAACGAGGAA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.012494954
+    - 0
+  target: CCCTATCACG
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.074143086
+    - 0
+  target: ATAGCTTTAA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.075186987
+    - 0
+  target: ATAGTATTAA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.138378393
+    - 0
+  target: CAACTCAGCA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.030954339
+    - 0
+  target: CCCTATCACG
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.140181921
+    - 0
+  target: AAAATAAAGA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.05071354
+    - 0
+  target: CCCTATCACA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ATAACGAGGA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.041087067
+    - 0
+  target: ACCCCTATCA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ATAATAAAGA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.149622547
+    - 0
+  target: AAGACGACAA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.230257245
+    - 0
+  target: AATGCTTTAA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ATACTCAGCA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: AACGAGGATA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: AAACGAGGAG
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: AATAAAGAAA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.207419241
+    - 0
+  target: AATGACAACA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: AAAAATAAAG
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.076184429
+    - 0
+  target: ACCCCTATCC
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: AATAAAGATA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.155050542
+    - 0
+  target: ATAGCGTTAA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.052359391
+    - 0
+  target: CCCCTATCAT
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ACACTCAGCA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: AAACGACAAC
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ACAATAAAGA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.105592325
+    - 0
+  target: ATAGCATTTA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.04513144
+    - 0
+  target: CCCCTGTCAC
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.334281477
+    - 0
+  target: ATAGCATTCA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.341665371
+    - 0
+  target: ATAACATTAA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: CTCAGCAATA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ACAACTCAGC
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.069912454
+    - 0
+  target: CCCCTATCAT
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.34032294
+    - 0
+  target: CGACAACTCA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ATCGACAACA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.233993106
+    - 0
+  target: ATAGCTTTAC
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.075096006
+    - 0
+  target: CCTATCACGA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: AACGACAACA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.076840018
+    - 0
+  target: CCTCTATCAC
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ATAACGAGGT
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ACGACAACTA
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.077136899
+    - 0
+  target: CCCCTGTCAC
+- mirna: TTAATGCTAATCGTGATAGGGGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.073446085
+    - 0
+  target: CCCCTATCGC
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.001313404
+    - 0
+  target: AAGTGCCTTA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.00453198
+    - 0
+  target: TAAGTGCCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.00816096
+    - 0
+  target: TAAGTGCCTA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.001612308
+    - 0
+  target: AAGTGTCCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.006999775
+    - 0
+  target: AAGTGTCCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.004117805
+    - 0
+  target: AAGTGCCCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.017620021
+    - 0
+  target: AGTTGCCTTA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.016560173
+    - 0
+  target: GTGGCCTTAT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.002712978
+    - 0
+  target: AAGTGCACTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.079648154
+    - 0
+  target: TAATGTGCCT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.020102056
+    - 0
+  target: AAGTGCCCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.005719201
+    - 0
+  target: GCATTCACCG
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.004295319
+    - 0
+  target: AAGTGACCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.049212253
+    - 0
+  target: ATGCCTTATT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.004429318
+    - 0
+  target: ATGCCTTATT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.017985636
+    - 0
+  target: AAGTGCACTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.006522638
+    - 0
+  target: AAGTGCCATT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.007456219
+    - 0
+  target: AAGTGCTCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.012653796
+    - 0
+  target: GCATTCACCG
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.053275535
+    - 0
+  target: TAGTTGCCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.031017103
+    - 0
+  target: GCATTCACCa
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.042848525
+    - 0
+  target: GCATTCACCa
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.014467095
+    - 0
+  target: TGGCATTCAC
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.022987568
+    - 0
+  target: GCATTCACCa
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.029723677
+    - 0
+  target: AAGCGCCTTA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.053772009
+    - 0
+  target: AGTGGCCTTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.040635063
+    - 0
+  target: TGAGGCCTTA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.026049392
+    - 0
+  target: AAGTGCAATT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.026944006
+    - 0
+  target: CATTCACCGC
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.030956796
+    - 0
+  target: AAGTGCCATT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.041485221
+    - 0
+  target: AAGTGCTCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.148160067
+    - 0
+  target: CCTAAGTGCC
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.146957808
+    - 0
+  target: ATATTGCCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.048002892
+    - 0
+  target: AAGTGTCTTA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.094391908
+    - 0
+  target: TAAGCGCCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.203394231
+    - 0
+  target: CCGCCACAGA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.171585506
+    - 0
+  target: TAGCCTTATT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.131106652
+    - 0
+  target: TGAGGCCTTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.058388562
+    - 0
+  target: AAGTGCTTTA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.061730929
+    - 0
+  target: AAGTGCATTA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.025403107
+    - 0
+  target: AAGTGCGCTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.212071664
+    - 0
+  target: GTCACCCGCA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.175255076
+    - 0
+  target: ATGTGTCTTA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.155273864
+    - 0
+  target: AGTGTCCTTA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.034834928
+    - 0
+  target: TATTCACCGC
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.027408627
+    - 0
+  target: AAGTGTACTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.064734908
+    - 0
+  target: CATTCACCGT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.084881415
+    - 0
+  target: GCATTCACTG
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.201211186
+    - 0
+  target: AGggGCCTTT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.182630856
+    - 0
+  target: aGTGcCCTTA
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: CCTCCGCCAC
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ATCGCCACAC
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.101069126
+    - 0
+  target: ATTCACCGCT
+- mirna: TAAGGCACGCGGTGAATGCCAA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.075595811
+    - 0
+  target: TTCACCGCGT
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.003932639
+    - 0
+  target: ATATACAAAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.021879788
+    - 0
+  target: ATATACAAAT
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.039295085
+    - 0
+  target: AAGTACAAAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.044124358
+    - 0
+  target: AATTACAAAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.022361316
+    - 0
+  target: TATAACAAAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.147278687
+    - 0
+  target: CCGCCACAGA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.045916652
+    - 0
+  target: AATGACAAAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.066581279
+    - 0
+  target: TATAACAAAC
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.228663882
+    - 0
+  target: CCTCCGCCAC
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.29039033
+    - 0
+  target: CCACAGAAAT
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ATCCGCCACA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: CGCCACAGAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.190007281
+    - 0
+  target: TAAGTACAAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: AATCCGCCAC
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: CGCCACAGAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.022982638
+    - 0
+  target: GAAATGCGTC
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.141879232
+    - 0
+  target: TAACGAGGAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.219232087
+    - 0
+  target: AAAACAAAAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.342883598
+    - 0
+  target: AGAAATACAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.184373259
+    - 0
+  target: TAATTACAAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.199908141
+    - 0
+  target: ATCTTCCTAT
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ATTCTTCCTA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.149814226
+    - 0
+  target: TAATGACAAA
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.053954643
+    - 0
+  target: AATGCGTCTC
+- mirna: TTTTGTATGAGACGCATTTCGA
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ATCCTTCCTA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.000958251
+    - 0
+  target: AAGTCTTCCA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.002704531
+    - 0
+  target: AGTCTTCCTA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.004138532
+    - 0
+  target: AGTGCTTCCA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.006976186
+    - 0
+  target: ATCTTCCATT
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.006865615
+    - 0
+  target: AGTGCTTCCT
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.005156323
+    - 0
+  target: AGTTCTTCCA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.00675484
+    - 0
+  target: AGGGCTTCCA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.016864887
+    - 0
+  target: TTCTTCCATA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.015659265
+    - 0
+  target: ATCTTCCTTT
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.015012113
+    - 0
+  target: CGCTTCCGCT
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.009845608
+    - 0
+  target: AGAGCTTCCA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.012104615
+    - 0
+  target: TTGTTCTTCC
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.010028224
+    - 0
+  target: CGCGCTTCCA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.022257647
+    - 0
+  target: AATGCTTCCA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.030306569
+    - 0
+  target: TTCTTCCTTA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.0213354
+    - 0
+  target: GAGCTTCCTT
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.016934041
+    - 0
+  target: CGCGCTTCCT
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.247588675
+    - 0
+  target: CTTCCGCTGC
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.021025553
+    - 0
+  target: TGGGCTTCCT
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.030301872
+    - 0
+  target: ATATGCTTCC
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.035397006
+    - 0
+  target: TATACTTCCA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ACGCTTCCGC
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: CGCTTCCGTT
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.056834084
+    - 0
+  target: TCCGCACCAC
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.150922068
+    - 0
+  target: TCCGCACCAC
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: TTTCCGCTGC
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.050794181
+    - 0
+  target: AGTCTTTCCA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: ACGCACCACA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: TCCGCACCAT
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.156093939
+    - 0
+  target: CGTTTCCGCT
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - .nan
+    - 0
+  target: TCCGCTGCGC
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.154915442
+    - 0
+  target: ATTTGTCTTC
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.183841371
+    - 0
+  target: CGCTTTCGCT
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.05474796
+    - 0
+  target: CCTCCGCACC
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.090830483
+    - 0
+  target: AAACGACTAA
+- mirna: TGGAAGACTAGTGATTTTGTTGT
+  position: 2
+  reference: McGeary et al. 2018
+  score:
+    Kd:
+    - 0.057952062
+    - 0
+  target: AATACGGCTA
