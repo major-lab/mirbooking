@@ -11,17 +11,19 @@
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
-static gchar  *mcff   = "mcff";
-static gchar  *mask   = NULL;
-static gchar  *output = NULL;
+static gchar  *RNAcofold = "RNAcofold";
+static gchar  *mask      = "||||...";
+static gchar  *hard_mask = NULL; /* defaults to mask */
+static gchar  *output    = NULL;
 
 static gchar *nt = "ACGT";
 
 static const GOptionEntry MIRBOOKING_GENERATE_SCORE_TABLE_OPTIONS[] =
 {
-    {"mcff",   0, 0, G_OPTION_ARG_FILENAME, &mcff,   NULL, "mcff"},
-    {"mask",   0, 0, G_OPTION_ARG_STRING,   &mask,   NULL, "||||..."},
-    {"output", 0, 0, G_OPTION_ARG_FILENAME, &output, NULL, "FILE"},
+    {"RNAcofold", 0, 0, G_OPTION_ARG_FILENAME, &RNAcofold, NULL, "RNAcofold"},
+    {"mask",      0, 0, G_OPTION_ARG_STRING,   &mask,      NULL, "||||..."},
+    {"hard-mask", 0, 0, G_OPTION_ARG_STRING,   &hard_mask, NULL, "||||..."},
+    {"output",    0, 0, G_OPTION_ARG_FILENAME, &output,    NULL, "FILE"},
     {0}
 };
 
@@ -55,6 +57,8 @@ pow4 (gsize k)
 gint
 main (gint argc, gchar **argv)
 {
+    g_autoptr (GRegex) vienna_binding_energy_regex = g_regex_new ("delta G binding=\\s?(.+)", 0, 0, NULL);
+
     g_autoptr (GOptionContext) parser = g_option_context_new ("");
 
     g_option_context_add_main_entries (parser,
@@ -77,10 +81,33 @@ main (gint argc, gchar **argv)
         return EXIT_FAILURE;
     }
 
+    if (!hard_mask)
+    {
+        hard_mask = mask;
+    }
+
+    if (strlen (mask) != strlen (hard_mask))
+    {
+        g_printerr ("The hard mask must be the same size as the mask.");
+        return EXIT_FAILURE;
+    }
+
     if (output == NULL)
     {
         g_printerr ("The '--output' argument is required.\n");
         return EXIT_FAILURE;
+    }
+
+    // convert the mask into a symmetric mask for folding
+    g_autofree gchar *mre_mask = g_new0 (gchar, seed_length + 1);
+    g_autofree gchar *mir_mask = g_new0 (gchar, seed_length + 1);
+    {
+        gint i;
+        for (i = 0; i < seed_length; i++)
+        {
+            mir_mask[i] = (mask[i] == '|') ? ')' : mask[i];
+            mre_mask[seed_length - i - 1] = (mask[i] == '|') ? '(' : mask[i];
+        }
     }
 
     gsize n   = pow4 (seed_length);
@@ -88,7 +115,7 @@ main (gint argc, gchar **argv)
     gsize z;
     for (z = 0; z < seed_length; z++)
     {
-        switch (mask[z])
+        switch (hard_mask[z])
         {
             case '|':
                 nnz *= 4; /* canonical match */
@@ -100,7 +127,7 @@ main (gint argc, gchar **argv)
                 nnz *= 16; /* no constraint */
                 break;
             default:
-                g_printerr ("Unknown symbol '%c' in mask at position %lu.", mask[z], z);
+                g_printerr ("Unknown symbol '%c' in mask at position %lu.", hard_mask[z], z);
                 return EXIT_FAILURE;
         }
     }
@@ -182,7 +209,7 @@ main (gint argc, gchar **argv)
             gint distance = 0;
             for (z = 0; z < seed_length; z++)
             {
-                switch (mask[z])
+                switch (hard_mask[z])
                 {
                     case '|':
                         distance += mir_seed[z] != rc(mre_seed[seed_length - z - 1]);
@@ -196,37 +223,49 @@ main (gint argc, gchar **argv)
             if (distance <= 0)
             {
                 gfloat mfe;
-                gchar *mcff_argv[] = {mcff, "-seq", mre_seed, "-zzd", mir_seed, NULL};
+                g_autofree gchar *standard_input = g_strdup_printf ("%s&%s\n%s&%s", mre_seed, mir_seed, mre_mask, mir_mask);
                 g_autofree gchar *standard_output;
                 g_autofree gchar *standard_error;
-                gint exit_status;
-                GError *err = NULL;
-                if (!g_spawn_sync (NULL,
-                                   mcff_argv,
-                                   NULL,
-                                   G_SPAWN_DEFAULT | G_SPAWN_SEARCH_PATH,
-                                   NULL,
-                                   NULL,
-                                   &standard_output,
-                                   &standard_error,
-                                   &exit_status,
-                                   &err))
+
+                g_autoptr (GError) err = NULL;
+                g_autoptr (GSubprocess) proc = g_subprocess_new (G_SUBPROCESS_FLAGS_STDIN_PIPE | G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_PIPE,
+                                                                 &err,
+                                                                 RNAcofold, "--noPS", "-p", "-C", NULL);
+
+                if (!proc)
                 {
                     g_printerr ("%s (%s, %u).\n", err->message, g_quark_to_string (err->domain), err->code);
                     exit (EXIT_FAILURE);
                 }
 
-                if (g_spawn_check_exit_status (exit_status,
-                                               &err))
+                if (!g_subprocess_communicate_utf8 (proc,
+                                                    standard_input,
+                                                    NULL,
+                                                    &standard_output,
+                                                    &standard_error,
+                                                    &err))
                 {
-                    sscanf (standard_output, "%f", &mfe);
+                    g_printerr ("%s (%s, %u).\n", err->message, g_quark_to_string (err->domain), err->code);
+                    exit (EXIT_FAILURE);
                 }
-                else
+
+                if (!g_subprocess_wait_check (proc,
+                                              NULL,
+                                              &err))
                 {
                     g_printerr ("%s (%s, %u).\n", err->message, g_quark_to_string (err->domain), err->code);
                     g_printerr ("%s", standard_error);
                     exit (EXIT_FAILURE);
                 }
+
+                g_autoptr (GMatchInfo) match_info;
+                if (!g_regex_match (vienna_binding_energy_regex, standard_output, 0, &match_info))
+                {
+                    exit (EXIT_FAILURE);
+                }
+
+                g_autofree gchar *mfe_str = g_match_info_fetch (match_info, 1);
+                sscanf (mfe_str, "%f", &mfe);
 
                 sm.s.csr.colind[sm.s.csr.rowptr[i] + k] = j;
                 data[sm.s.csr.rowptr[i] + k]            = mfe;

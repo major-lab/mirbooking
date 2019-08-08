@@ -150,10 +150,11 @@ In addition to the `mirbooking` binary, this package ship a number of
 utilities.
 
 Te `mirbooking-generate-score-table` compute a hybridization energy table for
-a given seed mask. [MC-Flashfold](https://major.iric.ca/mc-tools/) is required.
+a given seed mask. [ViennaRNA](https://www.tbi.univie.ac.at/RNA/) is required
+to compute accurate energies.
 
 ```bash
-mirbooking-generate-score-table [--mcff=mcff]
+mirbooking-generate-score-table [--RNAcofold=RNAcofold]
                                 [--mask=||||...]
                                 --output scores
 ```

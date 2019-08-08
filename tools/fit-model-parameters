@@ -19,15 +19,13 @@ T = 310.5
 with open('data/single-molecule-experimental-measurements.yaml') as f:
     data = yaml.load(f)
 
-def fold(a, b):
+def fold(a, b, mask):
+    if len(a) + 1 + len(b) != len(mask):
+        return 999.
     vienna_binding_energy_re = 'delta G binding=\s*(.+)$'
-    stdout = check_output(['RNAcofold', '--noPS', '-p'], input=f'{a}&{b}', universal_newlines=True)
+    stdout = check_output(['RNAcofold', '--noPS', '-p', '-C'], input=f'{a}&{b}\n{mask}', universal_newlines=True)
     match = re.search(vienna_binding_energy_re, stdout)
-    ret = float(match.group(1))
-    if not isfinite(ret) or ret == 999.:
-        return float('nan')
-    else:
-        return ret
+    return float(match.group(1))
 
 def rc(a):
     return {'A': 'U', 'U': 'A', 'G': 'C', 'C': 'G', 'T': 'A'}[a]
@@ -37,11 +35,11 @@ Y = []
 for experiment in data:
     target, position, mirna = experiment['target'], experiment['position'], experiment['mirna']
     X.append([
-        fold(target[position:position+7], mirna[1:8]),                        # seed
-        fold(target[position-3:position-3+3], mirna[8:11]),                   # A
-        fold(target[position-6:position-6+3], mirna[11:14]),                  # B
-        fold(target[position-9:position-9+3], mirna[14:17]),                  # C
-        fold(target[position-12:position-12+3], mirna[17:20]),                # D
+        fold(target[position:position+7], mirna[1:8], '...((((&))))...'),     # seed
+        fold(target[position-3:position-3+3], mirna[8:11], '(((&)))'),        # A
+        fold(target[position-6:position-6+3], mirna[11:14], '(((&)))'),       # B
+        fold(target[position-9:position-9+3], mirna[14:17], '(((&)))'),       # C
+        fold(target[position-12:position-12+3], mirna[17:20], '(((&)))'),     # D
         sum((target[position + 7 - i] != rc(mirna[i])) for i in range(1, 5)), # seed core mismatch
         sum((target[position + 7 - i] != rc(mirna[i])) for i in range(5, 8)), # seed supp mismatch
         target[position + 7] == 'A',                                          # t1 adenosine

@@ -266,7 +266,7 @@ compute_score (MirbookingScoreTable *score_table,
     // experimental data. The expected values were around 0.4 and 0.9 for the 4
     // first and 3 last nucleotides of the seed respectively, which are quite
     // consistent with the obtained ones.
-    gdouble w[7] = {0.38, 0.38, 0.38, 0.38, 0.93, 0.93, 0.93};
+    gdouble w[7] = {0.44, 0.44, 0.44, 0.34, 0.84, 0.84, 0.84};
 
     const guint8 *_seed = mirbooking_sequence_get_subsequence (MIRBOOKING_SEQUENCE (mirna),
                                                                SEED_OFFSET,
