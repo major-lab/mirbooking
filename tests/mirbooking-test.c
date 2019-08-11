@@ -165,7 +165,7 @@ test_mirbooking ()
 
     MirbookingOccupant *occupant = target_site->occupants->data;
 
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (occupant->score), 1e12 * exp ((-9.37f + AGO2_SCORE) / (R*T)), 1e-12);
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (occupant->score), 1e12 * exp ((-9.15f + AGO2_SCORE) / (R*T)), 1e-12);
 
     /* analytical solution for a single reaction */
     gdouble z = occupant->score.kf * (E0 + S0) + occupant->score.kr + occupant->score.kcat;
