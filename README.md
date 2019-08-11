@@ -149,12 +149,12 @@ numerical integration of the microtargetome using the programming API.
 In addition to the `mirbooking` binary, this package ship a number of
 utilities.
 
-Te `mirbooking-generate-score-table` compute a hybridization energy table for
-a given seed mask. [ViennaRNA](https://www.tbi.univie.ac.at/RNA/) is required
-to compute accurate energies.
+Te `mirbooking-generate-score-table` compute a hybridization energy table for a
+given seed mask. Either [ViennaRNA](https://www.tbi.univie.ac.at/RNA/) or
+[mcff](https://major.iric.ca/mc-tools) is required to compute energies.
 
 ```bash
-mirbooking-generate-score-table [--RNAcofold=RNAcofold]
+mirbooking-generate-score-table [--method=RNAcofold]
                                 [--mask=||||...]
                                 --output scores
 ```

@@ -19,13 +19,26 @@ T = 310.5
 with open('data/single-molecule-experimental-measurements.yaml') as f:
     data = yaml.load(f)
 
-def fold(a, b, mask):
+def fold_duplex_mcff(a, b, mask=None):
+    if mask is None:
+        mask = (len(a) * '(') + '&' + (len(b) * ')')
+    if len(a) + 1 + len(b) != len(mask):
+        return 999.
+    mask = 'xx'.join(mask.replace('.', 'x').split('&'))
+    stdout = check_output(['mcff', '-seq', a, '-sd', b, '-mask', mask])
+    return float(stdout)
+
+def fold_duplex_RNAcofold(a, b, mask=None):
+    if mask is None:
+        mask = (len(a) * '(') + '&' + (len(b) * ')')
     if len(a) + 1 + len(b) != len(mask):
         return 999.
     vienna_binding_energy_re = 'delta G binding=\s*(.+)$'
-    stdout = check_output(['RNAcofold', '--noPS', '-p', '-C'], input=f'{a}&{b}\n{mask}', universal_newlines=True)
+    stdout = check_output(['RNAcofold', '--noPS', '-p', '-C', '-T', str(T - 273.15)], input=f'{a}&{b}\n{mask}', universal_newlines=True)
     match = re.search(vienna_binding_energy_re, stdout)
     return float(match.group(1))
+
+fold = fold_duplex_RNAcofold
 
 def rc(a):
     return {'A': 'U', 'U': 'A', 'G': 'C', 'C': 'G', 'T': 'A'}[a]

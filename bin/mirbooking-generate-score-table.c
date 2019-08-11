@@ -6,24 +6,33 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <string.h>
+#if HAVE_OPENMP
+#include <omp.h>
+#else
+static int omp_get_thread_num (void) { return 0; }
+#endif
 
 #include <sparse.h>
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
-static gchar  *RNAcofold = "RNAcofold";
-static gchar  *mask      = "||||...";
-static gchar  *hard_mask = NULL; /* defaults to mask */
-static gchar  *output    = NULL;
+static gchar  *method      = "RNAcofold";
+static gdouble temperature = 310.5;
+static gchar  *mask        = "||||...";
+static gchar  *hard_mask   = NULL; /* defaults to mask */
+static gchar  *output      = NULL;
 
 static gchar *nt = "ACGT";
 
+static gfloat (*fold_duplex) (gchar *a, gchar *b, gchar *a_mask, gchar *b_mask, GError **err);
+
 static const GOptionEntry MIRBOOKING_GENERATE_SCORE_TABLE_OPTIONS[] =
 {
-    {"RNAcofold", 0, 0, G_OPTION_ARG_FILENAME, &RNAcofold, NULL, "RNAcofold"},
-    {"mask",      0, 0, G_OPTION_ARG_STRING,   &mask,      NULL, "||||..."},
-    {"hard-mask", 0, 0, G_OPTION_ARG_STRING,   &hard_mask, NULL, "||||..."},
-    {"output",    0, 0, G_OPTION_ARG_FILENAME, &output,    NULL, "FILE"},
+    {"method",      0, 0, G_OPTION_ARG_STRING,   &method,      NULL, "RNAcofold"},
+    {"temperature", 0, 0, G_OPTION_ARG_DOUBLE,   &temperature, NULL, "310.5"},
+    {"mask",        0, 0, G_OPTION_ARG_STRING,   &mask,        NULL, "||||..."},
+    {"hard-mask",   0, 0, G_OPTION_ARG_STRING,   &hard_mask,   NULL, "||||..."},
+    {"output",      0, 0, G_OPTION_ARG_FILENAME, &output,      NULL, "FILE"},
     {0}
 };
 
@@ -54,11 +63,111 @@ pow4 (gsize k)
     return 1l << 2 * k;
 }
 
+static gfloat
+fold_duplex_RNAcofold (gchar *a, gchar *b, gchar *a_mask, gchar *b_mask, GError **err)
+{
+    gfloat binding_energy;
+    g_autofree gchar *standard_input = g_strdup_printf ("%s&%s\n%s&%s", a, b, a_mask, b_mask);
+    g_autofree gchar *standard_output;
+    g_autofree gchar *standard_error;
+    g_autofree gchar *temperature_str = g_strdup_printf ("%f", temperature - 272.15); // Kelvin -> Celsius
+
+    g_autoptr (GRegex) vienna_binding_energy_regex = g_regex_new ("delta G binding=\\s?(.+)", 0, 0, NULL);
+
+    g_autoptr (GSubprocess) proc = g_subprocess_new (G_SUBPROCESS_FLAGS_STDIN_PIPE | G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_PIPE,
+                                                     err,
+                                                     "RNAcofold", "--noPS", "-p", "-C", "-T", temperature_str, NULL);
+
+    if (!proc)
+    {
+        return NAN;
+    }
+
+    if (!g_subprocess_communicate_utf8 (proc,
+                                        standard_input,
+                                        NULL,
+                                        &standard_output,
+                                        &standard_error,
+                                        err))
+    {
+        return NAN;
+    }
+
+    if (!g_subprocess_wait_check (proc,
+                                  NULL,
+                                  err))
+    {
+        return NAN;
+    }
+
+    g_autoptr (GMatchInfo) match_info;
+    if (!g_regex_match (vienna_binding_energy_regex, standard_output, 0, &match_info))
+    {
+        return NAN;
+    }
+
+    g_autofree gchar *binding_energy_str = g_match_info_fetch (match_info, 1);
+
+    sscanf (binding_energy_str, "%f", &binding_energy);
+
+    return binding_energy;
+}
+
+static gfloat
+fold_duplex_mcff (gchar *a, gchar *b, gchar *a_mask, gchar *b_mask, GError **err)
+{
+    g_autofree gchar *standard_output;
+    gfloat mfe;
+    g_autofree gchar *mask = g_strdup_printf ("%sxx%s", a_mask, b_mask);
+
+    gint i;
+    for (i = 0; i < strlen (mask); i++)
+    {
+        switch (mask[i])
+        {
+            case 'x':
+                mask[i] = '.';
+                break;
+            case '.':
+                mask[i] = 'x';
+                break;
+        }
+    }
+
+    g_autoptr (GSubprocess) proc = g_subprocess_new (G_SUBPROCESS_FLAGS_STDOUT_PIPE,
+                                                     err,
+                                                     "mcff", "-seq", a, "-sd", b, "-mask", mask, NULL);
+
+    if (!proc)
+    {
+        return NAN;
+    }
+
+    if (!g_subprocess_communicate_utf8 (proc,
+                                        NULL,
+                                        NULL,
+                                        &standard_output,
+                                        NULL,
+                                        err))
+    {
+        return NAN;
+    }
+
+    if (!g_subprocess_wait_check (proc,
+                                  NULL,
+                                  err))
+    {
+        return NAN;
+    }
+
+    sscanf (standard_output, "%f", &mfe);
+
+    return mfe;
+}
+
 gint
 main (gint argc, gchar **argv)
 {
-    g_autoptr (GRegex) vienna_binding_energy_regex = g_regex_new ("delta G binding=\\s?(.+)", 0, 0, NULL);
-
     g_autoptr (GOptionContext) parser = g_option_context_new ("");
 
     g_option_context_add_main_entries (parser,
@@ -70,6 +179,21 @@ main (gint argc, gchar **argv)
                                  &argv,
                                  NULL))
     {
+        return EXIT_FAILURE;
+    }
+
+    if (g_strcmp0 (method, "RNAcofold") == 0)
+    {
+        fold_duplex = fold_duplex_RNAcofold;
+
+    }
+    else if (g_strcmp0 (method, "mcff") == 0)
+    {
+        fold_duplex = fold_duplex_mcff;
+    }
+    else
+    {
+        g_printerr ("Unknown folding method '%s'.\n", method);
         return EXIT_FAILURE;
     }
 
@@ -222,69 +346,36 @@ main (gint argc, gchar **argv)
 
             if (distance <= 0)
             {
-                gfloat mfe;
-                g_autofree gchar *standard_input = g_strdup_printf ("%s&%s\n%s&%s", mre_seed, mir_seed, mre_mask, mir_mask);
-                g_autofree gchar *standard_output;
-                g_autofree gchar *standard_error;
-
                 g_autoptr (GError) err = NULL;
-                g_autoptr (GSubprocess) proc = g_subprocess_new (G_SUBPROCESS_FLAGS_STDIN_PIPE | G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_PIPE,
-                                                                 &err,
-                                                                 RNAcofold, "--noPS", "-p", "-C", NULL);
+                gfloat binding_energy = fold_duplex (mre_seed,
+                                                     mir_seed,
+                                                     mre_mask,
+                                                     mir_mask,
+                                                     &err);
 
-                if (!proc)
+                if (binding_energy == NAN)
                 {
                     g_printerr ("%s (%s, %u).\n", err->message, g_quark_to_string (err->domain), err->code);
                     exit (EXIT_FAILURE);
                 }
-
-                if (!g_subprocess_communicate_utf8 (proc,
-                                                    standard_input,
-                                                    NULL,
-                                                    &standard_output,
-                                                    &standard_error,
-                                                    &err))
-                {
-                    g_printerr ("%s (%s, %u).\n", err->message, g_quark_to_string (err->domain), err->code);
-                    exit (EXIT_FAILURE);
-                }
-
-                if (!g_subprocess_wait_check (proc,
-                                              NULL,
-                                              &err))
-                {
-                    g_printerr ("%s (%s, %u).\n", err->message, g_quark_to_string (err->domain), err->code);
-                    g_printerr ("%s", standard_error);
-                    exit (EXIT_FAILURE);
-                }
-
-                g_autoptr (GMatchInfo) match_info;
-                if (!g_regex_match (vienna_binding_energy_regex, standard_output, 0, &match_info))
-                {
-                    exit (EXIT_FAILURE);
-                }
-
-                g_autofree gchar *mfe_str = g_match_info_fetch (match_info, 1);
-                sscanf (mfe_str, "%f", &mfe);
 
                 sm.s.csr.colind[sm.s.csr.rowptr[i] + k] = j;
-                data[sm.s.csr.rowptr[i] + k]            = mfe;
+                data[sm.s.csr.rowptr[i] + k]            = binding_energy;
 
                 ++k;
-            }
 
-            #pragma omp atomic
-            ++completed;
-
-            if (completed % n == 0)
-            {
-                #pragma omp critical
-                g_print ("\r%.2f%% %lu/%lu [%.2fit/sec]",
-                         100.0 * (gdouble) completed / pow (n, 2),
-                         completed,
-                         n * n,
-                         completed / ((gdouble) (g_get_monotonic_time () - begin) / (gdouble) G_USEC_PER_SEC));
+                #pragma omp atomic
+                ++completed;
             }
+        }
+
+        if (omp_get_thread_num () == 0)
+        {
+            g_print ("\r%.2f%% %lu/%lu [%.2fit/sec]",
+                     100.0 * (gdouble) completed / (gdouble) nnz,
+                     completed,
+                     nnz,
+                     completed / ((gdouble) (g_get_monotonic_time () - begin) / (gdouble) G_USEC_PER_SEC));
         }
     }
 
