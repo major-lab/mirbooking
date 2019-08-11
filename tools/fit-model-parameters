@@ -100,15 +100,16 @@ def f(X, weights):
     Km = Kd + (kcat/kf)
     return np.column_stack([kf, kr, kcat, Kd, Km])
 
-def log_mse(x, y):
-    return np.linalg.norm(np.where(np.isfinite(x) & np.isfinite(y), np.log(x) - np.log(y), 0))
+def log_rmse(x, y):
+    n = np.count_nonzero(np.isfinite(x) & np.isfinite(y))
+    return np.sqrt(np.sum(np.square(np.where(np.isfinite(x) & np.isfinite(y), np.log10(x) - np.log10(y), 0))) / n)
 
 def loss(X, y, weights):
-    return log_mse(f(X, weights), y)
+    return log_rmse(f(X, weights), y)
 
 func = lambda weights: loss(X, Y, weights)
 
 result = minimize(func, x0=np.array([np.log(1e-5), np.log(1.), -5., np.log(1.), np.log(1.), -1]))
 weights = result['x']
-print('Loss', result['fun'])
+print('RMSE:', '{:.2f}'.format(result['fun']))
 print('Optimal Parameters:', f'base kf = {np.exp(weights[0]):.2e}, base kcat = {np.exp(weights[1]):.2e}, AGO2 entropy = {weights[2]:.2f} kcal/mol, seed mismatch weights = {np.exp(weights[3]):.2f} and {np.exp(weights[4]):.2f}, t1 adenosine contribution = {weights[5]:.2f} kcal/mol')
