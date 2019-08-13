@@ -540,13 +540,13 @@ mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *kla
 
     g_object_class_install_property (object_class,
                                      PROP_SEED_SCORES,
-                                     g_param_spec_boxed ("seed-scores", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+                                     g_param_spec_boxed ("seed-scores", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_SUPPLEMENTARY_MODEL,
-                                     g_param_spec_uint ("supplementary-model", "", "", 0, 2, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+                                     g_param_spec_uint ("supplementary-model", "", "", 0, 2, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_SUPPLEMENTARY_SCORES,
-                                     g_param_spec_boxed ("supplementary-scores", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+                                     g_param_spec_boxed ("supplementary-scores", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 }
 
 /**
