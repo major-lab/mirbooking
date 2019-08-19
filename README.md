@@ -213,6 +213,9 @@ and excluding weak interactions in subsequent models.
 It takes the same arguments as `mirbooking` with the slight distinction that
 the `--cutoff` now indicates the target cutoff.
 
+The `mirdesign` tool implements an parallel informed best-first search
+algorithm to
+
 ## C API
 
 The API is conform to the GLib style and enable a wide range of use. It is fairly easy to use and a typical

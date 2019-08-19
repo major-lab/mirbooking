@@ -1,39 +1,36 @@
 #!/usr/bin/env python3
 
 import argparse
-from itertools import product
-import subprocess
-from subprocess import check_output
+import numpy as np
+import os
 import pandas as pd
-from io import StringIO
-from tqdm import tqdm
+import random
+import subprocess
+import sys
 import tempfile
+import threading
+
 from Bio.Seq import Seq
 from Bio.SeqIO import SeqRecord, write
-import sys
-from itertools import combinations
-from math import log
-import random
-from queue import PriorityQueue, Empty
-from threading import Thread, Lock
-import os
-from os.path import join, exists
-import numpy as np
-from functools import partial
-from scipy.stats.mstats import gmean
 from collections import defaultdict
+from io import StringIO
+from os.path import join, exists
+from queue import PriorityQueue, Empty
 from scipy.special import logit
+from subprocess import check_output
+from threading import Thread, Lock
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--target', action='append', help='Target transcripts or everything if not specified')
 parser.add_argument('--non-target', action='append', help='Non-target transcripts')
-parser.add_argument('--initial-candidate', action='append', help='Initial candidates')
-parser.add_argument('--alpha', type=float, default=1.0, help='Heuristic weight')
+parser.add_argument('--initial-candidate', help='Initial candidate')
+parser.add_argument('--alpha', type=float, default=0.1, help='Heuristic weight')
 parser.add_argument('--workers', type=int, default=2, help='Number of workers spawning processes')
 parser.add_argument('--threads-per-worker', type=int, default=1, help='Number of threads per worker')
-parser.add_argument('--max-sequences', type=int, default=1, help='Maximum number of sequences per design')
-parser.add_argument('--designs-output-dir')
+parser.add_argument('--design-quantity', type=float, default=1e4, help='Design concentration')
+parser.add_argument('--designs-output-dir', required=True)
 
 parser.add_argument('--mirbooking', default='mirbooking', help='Location of miRBooking binary')
 parser.add_argument('--input', required=True, help=argparse.SUPPRESS)
@@ -41,17 +38,16 @@ parser.add_argument('--input', required=True, help=argparse.SUPPRESS)
 args, mirbooking_args = parser.parse_known_args()
 
 if args.initial_candidate is None:
-    args.initial_candidate = [','.join(22*'N' for _ in range(args.max_sequences))]
+    args.initial_candidate = 22 * 'N'
 
 os.environ['OMP_NUM_THREADS'] = str(args.threads_per_worker)
 
-def run_mirbooking(candidate, quantities, q=1e4):
+def run_mirbooking(candidate, quantities, q=args.design_quantity):
     quantities = quantities.copy()
-    for d in candidate:
-        quantities.loc[d.id,'quantity'] = q / len(candidate)
+    quantities.loc['smart','quantity'] = q
     # TODO: use a named pipe to bypass the filesystem
     with tempfile.NamedTemporaryFile(dir='/dev/shm') as design_file:
-        write(candidate, design_file.name, format='fasta')
+        write([SeqRecord(Seq(candidate), 'smart')], design_file.name, format='fasta')
         return pd.read_csv(StringIO(check_output([args.mirbooking] + mirbooking_args + ['--mirnas', design_file.name], input=quantities.to_csv(sep='\t'), universal_newlines=True)), index_col=['target_accession', 'position', 'mirna_accession'], sep='\t')
 
 def expressed_fraction(df):
@@ -60,92 +56,82 @@ def expressed_fraction(df):
     assert (target_with_pos.quantity <= target_with_pos.target_quantity).all()
     return (1 - (target_with_pos.quantity / target_with_pos.target_quantity)).groupby(level=0).prod()
 
+def seed(design):
+    return str(design[1:8])
+
 quantities = pd.read_csv(args.input, index_col=0, sep='\t')
 def evaluate(candidate):
+    if 'N' in seed(candidate):
+        return 0
+
     df = run_mirbooking(candidate, quantities)
 
     if args.target is None and args.non_target is None:
         # if no target/non-target are specified, default to target everything mode
-        t_ef = expressed_fraction(df).reindex(quantities.index).fillna(1.0)
+        t_ef = expressed_fraction(df).reindex(quantities.index).fillna(0.5)
     elif args.target is None:
-        t_ef = [1.0]
+        t_ef = np.array([0.5])
     else:
-        t_ef = expressed_fraction(df).reindex(args.target).fillna(1.0)
+        t_ef = expressed_fraction(df).reindex(args.target).fillna(0.5)
 
     if args.non_target is None:
-        nt_ef = [1.0]
+        nt_ef = np.array([0.5])
     else:
-        nt_ef = expressed_fraction(df).reindex(args.non_target).fillna(1.0)
+        nt_ef = expressed_fraction(df).reindex(args.non_target).fillna(0.5)
 
-    return logit(t_ef - 1e-15).mean() - logit(nt_ef - 1e-15).mean()
+    return logit(t_ef).mean() - logit(nt_ef).mean()
 
-def heuristic(s, score):
-    return score * (sum(19 - (len(seq.seq) - seq.seq.count('N')) for seq in s) / (sum(len(seq.seq) - seq.seq.count('N') for seq in s) + 1e-15))
+positions = list(range(1, 8)) + list(range(11, 14)) + list(range(14,17)) + list(range(8, 11)) + list(range(17, 20))
 
-def generate_kmers(design, pos, k):
-    for seed in (''.join(s) for s in product('ACGT', repeat=k)):
-        yield design[:pos] + seed + design[pos + k:]
+def heuristic(seq, score):
+    if 'N' in seed(seq):
+        return float('-inf')
+    chosen = sum(seq[p] != 'N' for p in positions)
+    remaining = sum(seq[p] == 'N' for p in positions)
+    if chosen == 0:
+        return score
+    return score * (remaining / chosen)
 
-generate_seeds = partial(generate_kmers, pos=1, k=7)
-generate_abox = partial(generate_kmers, pos=8, k=3)
-generate_bbox = partial(generate_kmers, pos=11, k=3)
-generate_cbox = partial(generate_kmers, pos=14, k=3)
-generate_dbox = partial(generate_kmers, pos=17, k=3)
-
-def successors(design):
-    z = []
-    for i, seq in enumerate(design):
-        # seed expansion
-        if seq.seq[1:8] == 'NNNNNNN':
-            s = generate_seeds(seq)
-        elif seq.seq[11:14] == 'NNN':
-            s = generate_bbox(seq)
-        elif seq.seq[14:17] == 'NNN':
-            s = generate_cbox(seq)
-        elif seq.seq[8:11] == 'NNN':
-            s = generate_abox(seq)
-        elif seq.seq[17:20] == 'NNN':
-            s = generate_dbox(seq)
-        else:
-            # the sequence does not have any successors
-            break
-        for succ_seq in s:
-            z.append([succ_seq if i == j else orig_seq for j, orig_seq in enumerate(design)])
-    random.shuffle(z)
-    return z
-
-def seed(design):
-    return str(design[0].seq[1:8])
+def successors(candidate):
+    for p in positions:
+        if candidate[p] == 'N':
+            s = [candidate[:p] + nt + candidate[p+1:]
+                       for nt in ['A', 'C', 'G', 'T']]
+            random.shuffle(s)
+            return s
+    return [] # no successors
 
 best_candidate = None
 best_score = float('inf')
-# seed-wise pruning to obtain the best candidate for each seed
-best_score_by_seed = defaultdict(lambda: float('inf'))
 
 counter = 1
+pruned = 0
 def work(candidates, pb, designs_out):
-    global counter, best_candidate, best_score
+    global counter, best_candidate, best_score, pruned
     while True:
         item = candidates.get()
         heuristic_score, candidate_score, _, candidate = item
 
-        if candidate is None:
-            return
+        if candidate_score < best_score:
+            best_candidate = candidate
+            best_score = candidate_score
 
         if best_candidate:
-            pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=f'{candidate_score:.2f} ({heuristic_score:.2f})', best_design=','.join(str(c.seq) for c in best_candidate), best_score=best_score)
+            pb.set_postfix(current_design=candidate, current_score=f'{candidate_score:.2f} ({heuristic_score:.2f})', best_design=best_candidate, best_score=best_score, queued=candidates.qsize(), pruned=pruned)
         else:
-            pb.set_postfix(current_design=','.join(str(c.seq) for c in candidate), current_score=f'{candidate_score:.2f} ({heuristic_score:.2f})')
+            pb.set_postfix(current_design=candidate, current_score=f'{candidate_score:.2f} ({heuristic_score:.2f})', queued=candidates.qsize(), pruned=pruned)
 
-        succ = []
+        has_successor = False
         for s in successors(candidate):
             try:
                 successor_score = evaluate(s)
             except Exception as err:
-                pb.write('Failed to process candidate: {}'.format(', '.join(str(c.seq) for c in s)))
+                pb.write(f'Failed to process candidate: {s}')
                 if hasattr(err, 'output'):
                     pb.write(err.output)
                 continue
+            finally:
+                pb.update()
 
             # The heuristic simply project linearly the gain so far on the
             # remaining nucleotides. With the monotonicity condition that
@@ -153,29 +139,23 @@ def work(candidates, pb, designs_out):
             # admissible.
             heuristic_score = successor_score + args.alpha * heuristic(s, successor_score)
 
-            # here we do some alpha pruning
-            if heuristic_score < best_score_by_seed[seed(s)]:
-                succ.append(s)
+            if heuristic_score < best_score or 'N' in seed(candidate):
+                # It's possible that all successors end-up pruned (or fail to
+                # evaluate), in which case we would have a terminal node.
+                has_successor = True
                 candidates.put((heuristic_score, successor_score, counter, s))
                 counter += 1
-                pb.update()
+            else:
+                pruned += 1
 
         # terminal design
-        if not succ:
-            if candidate_score < best_score:
-                best_candidate = candidate
-                best_score = candidate_score
-
-            if candidate_score < best_score_by_seed[seed(candidate)]:
-                best_score_by_seed[seed(candidate)] = candidate_score
-
-            microtargetome_out = join(args.designs_output_dir, '-'.join(str(c.seq) for c in candidate))
-
+        if not has_successor:
+            microtargetome_out = join(args.designs_output_dir, candidate)
             # It's possible that the design has already been found in a
             # previous execution
             if not exists(microtargetome_out):
                 run_mirbooking(candidate, quantities).to_csv(microtargetome_out, sep='\t')
-                print(*[str(c.seq) for c in candidate], candidate_score, sep='\t', file=designs_out, flush=True)
+                print(candidate, candidate_score, sep='\t', file=designs_out, flush=True)
 
         candidates.task_done()
 
@@ -183,26 +163,16 @@ with tqdm() as pb, open(join(args.designs_output_dir, 'designs.tsv'), 'a') as f:
     candidates = PriorityQueue()
 
     # prepare workers
-    threads = [Thread(target=work, args=(candidates, pb, f)) for t in range(args.workers)]
+    threads = [Thread(target=work, args=(candidates, pb, f), daemon=True) for t in range(args.workers)]
     for t in threads:
         t.start()
 
     # add initial candidates
-    for candidate in args.initial_candidate:
-        candidate = [SeqRecord(Seq(seq), id='smart{}'.format(i+1))
-                         for i, seq in enumerate(candidate.split(','))]
-        score = evaluate(candidate)
-        candidates.put((score + args.alpha * heuristic(candidate, score), score, counter, candidate))
-        counter += 1
-        pb.update()
+    candidate = args.initial_candidate
+    score = evaluate(candidate)
+    candidates.put((score + args.alpha * heuristic(candidate, score), score, counter, candidate))
+    counter += 1
+    pb.update()
 
     # wait until all workers are done
     candidates.join()
-
-    # stop all workers
-    for t in threads:
-        candidates.put((float('inf'), float('inf'), counter, None))
-        counter += 1
-
-    for t in threads:
-        t.join()
