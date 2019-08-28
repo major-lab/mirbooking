@@ -758,6 +758,11 @@ main (gint argc, gchar **argv)
         }
     }
 
+    gdouble target_factor_num = 0,
+            target_factor = 0,
+            mirna_factor_num = 0,
+            mirna_factor = 0;
+
     gchar line[1024];
     guint lineno = 0;
     while (lineno++, fgets (line, sizeof (line), input_f))
@@ -785,11 +790,29 @@ main (gint argc, gchar **argv)
             return EXIT_FAILURE;
         }
 
+        if (MIRBOOKING_IS_TARGET (sequence))
+        {
+            target_factor += mirbooking_sequence_get_sequence_length (sequence) * quantity;
+        }
+        else
+        {
+            mirna_factor += quantity;
+        }
+
         if (quantity >= cutoff)
         {
             mirbooking_broker_set_sequence_quantity (mirbooking,
                                                      sequence,
                                                      quantity);
+
+            if (MIRBOOKING_IS_TARGET (sequence))
+            {
+                target_factor_num += mirbooking_sequence_get_sequence_length (sequence) * quantity;
+            }
+            else
+            {
+                mirna_factor_num += quantity;
+            }
         }
         else
         {
@@ -800,6 +823,10 @@ main (gint argc, gchar **argv)
             g_hash_table_remove (sequences_hash, accession);
         }
     }
+
+    g_debug ("Target fraction: %.2f%%, miRNA fraction %.2f%%",
+             100.0 * target_factor_num / target_factor,
+             100.0 * mirna_factor_num / mirna_factor);
 
     // mark targets with  scores
     if (accessibility_scores_file != NULL)
