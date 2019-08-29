@@ -1,4 +1,10 @@
-install_data(['scores-7mer-3mismatch-ending', 'scores-4mer', 'scores-3mer'], install_dir: 'share/mirbooking-@0@'.format(api_version))
+install_data(['scores-7mer',
+              'scores-7mer-1mismatch-ending',
+              'scores-7mer-2mismatch-ending',
+              'scores-7mer-3mismatch-ending',
+              'scores-4mer',
+              'scores-3mer'],
+             install_dir: 'share/mirbooking-@0@'.format(api_version))
 
 help2man_bin = find_program('help2man', required: false)
 if help2man_bin.found()
