@@ -122,7 +122,7 @@ set_sparse_solver(const gchar   *key,
                   gpointer       data,
                   GError      **error)
 {
-    GEnumClass *sparse_solver_class = g_type_class_ref (MIRBOOKING_BROKER_SPARSE_SOLVER_ENUM);
+    g_autoptr (GEnumClass) sparse_solver_class = g_type_class_ref (MIRBOOKING_BROKER_SPARSE_SOLVER_ENUM);
     GEnumValue *eval = g_enum_get_value_by_nick (sparse_solver_class,
                                                  value);
 
@@ -604,6 +604,16 @@ main (gint argc, gchar **argv)
     }
 
     g_autoptr (MirbookingBroker) mirbooking = mirbooking_broker_new_with_rank (rank);
+
+    if (!mirbooking_broker_sparse_solver_is_available (sparse_solver))
+    {
+        g_autoptr (GEnumClass) sparse_solver_class = g_type_class_ref (MIRBOOKING_BROKER_SPARSE_SOLVER_ENUM);
+        GEnumValue *eval = g_enum_get_value (sparse_solver_class,
+                                             sparse_solver);
+        g_printerr ("The sparse solver '%s' is not available.\n",
+                    eval->value_nick);
+        return EXIT_FAILURE;
+    }
 
     mirbooking_broker_set_5prime_footprint (mirbooking, prime5_footprint);
     mirbooking_broker_set_3prime_footprint (mirbooking, prime3_footprint);
