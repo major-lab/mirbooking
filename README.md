@@ -38,7 +38,7 @@ The command line program expects a number of inputs:
  - `--mirnas`, a FASTA containing mature miRNAs where the first token in the
    comment is the accession (i.e. MIMAT0004792)
  - `--seed-scores`, a sparse score table of seed free energies which can be
-   generated using `mirbooking-generate-score-table` program described below
+   generated using `generate-score-table` program described below
  - `--accessibilitiy-scores` contains entries with position-wise free energy
    contribution (or penalty) on the targets
  - `--supplementary-scores` contains either 4mer or 3mer
@@ -149,14 +149,14 @@ numerical integration of the microtargetome using the programming API.
 In addition to the `mirbooking` binary, this package ship a number of
 utilities.
 
-Te `mirbooking-generate-score-table` compute a hybridization energy table for a
-given seed mask. Either [ViennaRNA](https://www.tbi.univie.ac.at/RNA/) or
+Te `generate-score-table` compute a hybridization energy table for a given seed
+mask. Either [ViennaRNA](https://www.tbi.univie.ac.at/RNA/) or
 [mcff](https://major.iric.ca/mc-tools) is required to compute energies.
 
 ```bash
-mirbooking-generate-score-table [--method=RNAcofold]
-                                [--mask=||||...]
-                                --output scores
+generate-score-table [--method=RNAcofold]
+                     [--mask=||||...]
+                      --output scores
 ```
 
 The seed mask defines constraints on the target with `|` for a canonical match,
