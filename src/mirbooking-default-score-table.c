@@ -303,21 +303,18 @@ compute_score (MirbookingScoreTable *score_table,
     gdouble supplementary_score = 0;
     if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_WEE_ET_AL_2012)
     {
-        if (self->priv->supplementary_scores_bytes != NULL)
-        {
-            gfloat supplementary_score_ = _get_subsequence_score (&self->priv->supplementary_scores,
-                                                                  mirna,
-                                                                  target,
-                                                                  position,
-                                                                  SEED_OFFSET + SEED_LENGTH - 1,
-                                                                  SEED_OFFSET + SEED_LENGTH + 4,
-                                                                  4);
-            gdouble z[2] = {0, supplementary_score_};
-            supplementary_score = binding_energy (z, 2);
+        gfloat supplementary_score_ = _get_subsequence_score (&self->priv->supplementary_scores,
+                                                              mirna,
+                                                              target,
+                                                              position,
+                                                              SEED_OFFSET + SEED_LENGTH - 1,
+                                                              SEED_OFFSET + SEED_LENGTH + 4,
+                                                              4);
+        gdouble z[2] = {0, supplementary_score_};
+        supplementary_score = binding_energy (z, 2);
 
-            // require at least the 3' supplementary bindings for cleavage
-            ret.kcat = binding_probability (z, 5, 1) * KCAT;
-        }
+        // require at least the 3' supplementary bindings for cleavage
+        ret.kcat = binding_probability (z, 5, 1) * KCAT;
     }
     else if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018)
     {
@@ -328,56 +325,54 @@ compute_score (MirbookingScoreTable *score_table,
          * Research, June 22, 2018, https://doi.org/10.1093/nar/gky546.
          */
         gfloat A_box = 0, B_box = 0, C_box = 0, D_box = 0;
-        if (self->priv->supplementary_scores_bytes != NULL)
-        {
-            // A box
-            A_box = _get_subsequence_score (&self->priv->supplementary_scores,
-                                            mirna,
-                                            target,
-                                            position,
-                                            SEED_OFFSET + SEED_LENGTH - 1,
-                                            SEED_OFFSET + SEED_LENGTH,
-                                            3);
 
-            // B box
-            B_box = _get_subsequence_score (&self->priv->supplementary_scores,
-                                            mirna,
-                                            target,
-                                            position,
-                                            SEED_OFFSET + SEED_LENGTH - 1,
-                                            SEED_OFFSET + SEED_LENGTH + 3,
-                                            3);
+        // A box
+        A_box = _get_subsequence_score (&self->priv->supplementary_scores,
+                                        mirna,
+                                        target,
+                                        position,
+                                        SEED_OFFSET + SEED_LENGTH - 1,
+                                        SEED_OFFSET + SEED_LENGTH,
+                                        3);
 
-            // C box
-            C_box = _get_subsequence_score (&self->priv->supplementary_scores,
-                                            mirna,
-                                            target,
-                                            position,
-                                            SEED_OFFSET + SEED_LENGTH - 1,
-                                            SEED_OFFSET + SEED_LENGTH + 6,
-                                            3);
+        // B box
+        B_box = _get_subsequence_score (&self->priv->supplementary_scores,
+                                        mirna,
+                                        target,
+                                        position,
+                                        SEED_OFFSET + SEED_LENGTH - 1,
+                                        SEED_OFFSET + SEED_LENGTH + 3,
+                                        3);
 
-            // D box
-            // TODO: consider all remaining nucleotides
-            D_box = _get_subsequence_score (&self->priv->supplementary_scores,
-                                            mirna,
-                                            target,
-                                            position,
-                                            SEED_OFFSET + SEED_LENGTH - 1,
-                                            SEED_OFFSET + SEED_LENGTH + 9,
-                                            3);
+        // C box
+        C_box = _get_subsequence_score (&self->priv->supplementary_scores,
+                                        mirna,
+                                        target,
+                                        position,
+                                        SEED_OFFSET + SEED_LENGTH - 1,
+                                        SEED_OFFSET + SEED_LENGTH + 6,
+                                        3);
 
-            gdouble z[5] = {0,
-                            B_box,
-                            B_box + C_box,
-                            B_box + C_box + A_box,
-                            B_box + C_box + A_box + D_box};
+        // D box
+        // TODO: consider all remaining nucleotides
+        D_box = _get_subsequence_score (&self->priv->supplementary_scores,
+                                        mirna,
+                                        target,
+                                        position,
+                                        SEED_OFFSET + SEED_LENGTH - 1,
+                                        SEED_OFFSET + SEED_LENGTH + 9,
+                                        3);
 
-            supplementary_score = binding_energy (z, 5);
+        gdouble z[5] = {0,
+            B_box,
+            B_box + C_box,
+            B_box + C_box + A_box,
+            B_box + C_box + A_box + D_box};
 
-            // at least A-box for slicing
-            ret.kcat = (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * KCAT;
-        }
+        supplementary_score = binding_energy (z, 5);
+
+        // at least A-box for slicing
+        ret.kcat = (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * KCAT;
     }
 
     gdouble Kd = 1e12 * exp ((A_score + seed_score + supplementary_score + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE) / (R * T));

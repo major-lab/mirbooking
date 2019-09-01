@@ -642,6 +642,12 @@ main (gint argc, gchar **argv)
     g_autoptr (GBytes) supplementary_scores_map_bytes = NULL;
     if (supplementary_scores_file != NULL)
     {
+        if (supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_NONE)
+        {
+            g_printerr ("The '--supplementary-model' argument must be set in order to provide a supplementary score file.\n");
+            return EXIT_FAILURE;
+        }
+
         supplementary_scores_file_map = g_mapped_file_new (supplementary_scores_file, TRUE, &error);
         if (supplementary_scores_file_map == NULL)
         {

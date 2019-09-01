@@ -26,6 +26,7 @@ mirbooking_integration_test_args = [
     '--targets', join_paths(meson.current_source_dir(), 'data/gencode.v29.transcripts.fa'),
     '--mirnas', join_paths(meson.current_source_dir(), 'data/mature.fa'),
     '--seed-scores', join_paths(meson.current_source_dir(), '../data/scores-7mer-3mismatch-ending'),
+    '--supplementary-model', 'yan-et-al-2018',
     '--supplementary-scores', join_paths(meson.current_source_dir(), '../data/scores-3mer'),
     '--cutoff', '0',
     '--input', join_paths(meson.current_source_dir(), 'data/quantifications.tsv'),
