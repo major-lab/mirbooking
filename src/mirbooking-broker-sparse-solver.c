@@ -29,6 +29,32 @@ mirbooking_broker_sparse_solver_get_type (void)
     return type_id_once;
 }
 
+static MirbookingBrokerSparseSolver MIRBOOKING_BROKER_SPARSE_SOLVER_WITH_PRIORITY[] =
+{
+    MIRBOOKING_BROKER_SPARSE_SOLVER_MKL_DSS,
+    MIRBOOKING_BROKER_SPARSE_SOLVER_PARDISO,
+    MIRBOOKING_BROKER_SPARSE_SOLVER_UMFPACK,
+    MIRBOOKING_BROKER_SPARSE_SOLVER_SUPERLU
+};
+
+MirbookingBrokerSparseSolver
+mirbooking_broker_sparse_solver_get_default (void)
+{
+    gint i;
+    for (i = 0; i < sizeof (MIRBOOKING_BROKER_SPARSE_SOLVER_WITH_PRIORITY) / sizeof (MIRBOOKING_BROKER_SPARSE_SOLVER_WITH_PRIORITY[0]); i++)
+    {
+        if (mirbooking_broker_sparse_solver_is_available (MIRBOOKING_BROKER_SPARSE_SOLVER_WITH_PRIORITY[i]))
+        {
+            return MIRBOOKING_BROKER_SPARSE_SOLVER_WITH_PRIORITY[i];
+        }
+    }
+
+    /*
+     * This is the fallback solver even if it's not available.
+     */
+    return MIRBOOKING_BROKER_SPARSE_SOLVER_SUPERLU;
+}
+
 gboolean
 mirbooking_broker_sparse_solver_is_available (MirbookingBrokerSparseSolver sparse_solver)
 {
