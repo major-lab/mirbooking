@@ -66,6 +66,10 @@ if get_option('with_mkl')
     mkl_dep = declare_dependency(compile_args: ['-m64', '-I@0@'.format(join_paths(mkl_root, 'include'))],
                                  link_args: ['-Wl,--no-as-needed'],
                                  dependencies: [mkl_interface, mkl_thread, mkl_core, mkl_blacs, mpi_dep, mkl_pthread, mkl_m, mkl_dl])
+
+    if get_option('with_mkl_ilp64') and (get_option('with_superlu') or get_option('with_umfpack'))
+        error('MKL 64-bit interface conflicts with the following solvers: SuperLU, UMFPACK and PARDISO.')
+    endif
 else
     warning('MKL is recommended for solving sparse systems efficiently.')
 endif
