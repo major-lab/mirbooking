@@ -17,6 +17,8 @@ typedef enum _MirbookingBrokerSparseSolver
     MIRBOOKING_BROKER_SPARSE_SOLVER_PARDISO = 6
 } MirbookingBrokerSparseSolver;
 
+MirbookingBrokerSparseSolver mirbooking_broker_sparse_solver_get_default (void);
+
 gboolean mirbooking_broker_sparse_solver_is_available (MirbookingBrokerSparseSolver sparse_solver);
 
 G_END_DECLS

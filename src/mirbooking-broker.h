@@ -15,7 +15,10 @@
 
 G_BEGIN_DECLS
 
-#define MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER    MIRBOOKING_BROKER_SPARSE_SOLVER_SUPERLU
+/*
+ *
+ */
+#define MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER mirbooking_broker_sparse_solver_get_default ()
 
 /*
  * The full effect seems to be occurring with at least 17 nucleotides distance

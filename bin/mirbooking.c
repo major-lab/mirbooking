@@ -38,7 +38,7 @@ static gchar                         *accessibility_scores_file = NULL;
 static gchar                         *input_file                = NULL;
 static gchar                         *output_file               = NULL;
 static MirbookingOutputFormat         output_format             = MIRBOOKING_OUTPUT_FORMAT_TSV;
-static MirbookingBrokerSparseSolver   sparse_solver             = MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER;
+static MirbookingBrokerSparseSolver   sparse_solver;
 static guint64                        max_iterations            = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
 static gsize                          prime5_footprint          = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
 static gsize                          prime3_footprint          = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
@@ -459,6 +459,8 @@ main (gint argc, gchar **argv)
     MPI_Comm_rank (MPI_COMM_WORLD, &rank);
 #endif
 
+    sparse_solver = MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER;
+
     g_autoptr (GOptionContext) context = g_option_context_new ("[FILE]");
 
     g_option_context_add_main_entries (context,
@@ -472,6 +474,12 @@ main (gint argc, gchar **argv)
                                  &error))
     {
         g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+        return EXIT_FAILURE;
+    }
+
+    if (!mirbooking_broker_sparse_solver_is_available (sparse_solver))
+    {
+        g_printerr ("No proper sparse solver could be determined; use the '--sparse-solver' argument explicitly.\n");
         return EXIT_FAILURE;
     }
 
