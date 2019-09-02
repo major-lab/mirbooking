@@ -3,7 +3,6 @@ option('with_openmp', type: 'boolean', value: false)
 option('with_mpi', type: 'boolean', value: false)
 
 option('with_superlu', type: 'boolean', value: true)
-option('with_superlu_mt', type: 'boolean', value: false)
 option('with_umfpack', type: 'boolean', value: false)
 option('with_mkl_dss', type: 'boolean', value: false)
 option('with_mkl_cluster', type: 'boolean', value: false)
