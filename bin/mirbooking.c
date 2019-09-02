@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <gio/gio.h>
@@ -52,7 +54,7 @@ const MirbookingOutputFormatMeta MIRBOOKING_OUTPUT_FORMAT_META[] =
 
 static gchar                        **targets_files             = {NULL};
 static gchar                        **mirnas_files              = {NULL};
-static gchar                         *seed_scores_file          = NULL;
+static gchar                         *seed_scores_file          = MIRBOOKING_DEFAULT_SEED_SCORES_FILE;
 static gchar                         *supplementary_scores_file = NULL;
 static gchar                         *accessibility_scores_file = NULL;
 static gchar                         *input_file                = NULL;
@@ -76,10 +78,14 @@ set_supplementary_model (const gchar   *key,
     if (g_strcmp0 (value, "wee-et-al-2012") == 0)
     {
         supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_WEE_ET_AL_2012;
+        if (supplementary_scores_file == NULL)
+            supplementary_scores_file = MIRBOOKING_DEFAULT_WEE_ET_AL_2012_SUPPLEMENTARY_SCORES_FILE;
     }
     else if (g_strcmp0 (value, "yan-et-al-2018") == 0)
     {
         supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018;
+        if (supplementary_scores_file == NULL)
+            supplementary_scores_file = MIRBOOKING_DEFAULT_YAN_ET_AL_2018_SUPPLEMENTARY_SCORES_FILE;
     }
     else
     {
