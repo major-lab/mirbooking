@@ -102,7 +102,9 @@ test_mirbooking ()
     g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
     g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
     g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018, supplementary_scores);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table,
+                                                                                              MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018,
+                                                                                              supplementary_scores);
 
     mirbooking_broker_set_score_table (mirbooking, MIRBOOKING_SCORE_TABLE (g_object_ref (score_table)));
 
@@ -584,7 +586,7 @@ test_mirbooking_target_knock_out ()
     g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
     g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
 
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL, supplementary_scores);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table, MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018, supplementary_scores);
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM_000014.4");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT0000001");
@@ -613,11 +615,11 @@ test_mirbooking_target_knock_out ()
     // ensure that target concentration gradually decreases over time
     mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 60, NULL);
     mirbooking_broker_evaluate (broker, &error_ratio, NULL);
-    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), 9.5, 0.1);
+    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), 7.5, 0.1);
 
     mirbooking_broker_step (broker, MIRBOOKING_BROKER_STEP_MODE_INTEGRATE, 60, NULL);
     mirbooking_broker_evaluate (broker, &error_ratio, NULL);
-    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), 9.0, 0.1);
+    g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target)), 5.6, 0.1);
 }
 
 static void
