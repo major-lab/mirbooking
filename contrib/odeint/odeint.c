@@ -231,8 +231,6 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         self->h = sqrt (2.0) * pow (self->atol, 1.0 / (self->integrator_meta->order + 1)) / sqrt (y_norm);
     }
 
-    double h = self->h;
-
     size_t iteration = 0;
 
     while (fabs (tw - *self->t) >= self->rtol * fabs (tw) + self->atol)
@@ -244,7 +242,8 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
         // ensure we always land exactly on the upper integration bound
         // if we went too far, the step size will be negative and still point
         // toward the integration bound
-        h = fmin (h, tw - t);
+        #define fsign(x)((x) < 0. ? -1. : 1.)
+        self->h = fsign (tw - t) * fmin (fabs (self->h), fabs (tw - t));
 
         int step;
         for (step = 0; step < self->integrator_meta->steps; step++)
@@ -256,7 +255,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             for (prev_step = 0; prev_step < step; prev_step++)
             {
                 cblas_daxpy (self->n,
-                             h * self->integrator_meta->a[(step * step - step)/2 + prev_step],
+                             self->h * self->integrator_meta->a[(step * step - step)/2 + prev_step],
                              self->F + prev_step * self->n,
                              1,
                              y,
@@ -264,7 +263,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             }
 
             /* update from previous steps */
-            func (t + h * self->integrator_meta->c[step], y, self->F + (step * self->n), user_data);
+            func (t + self->h * self->integrator_meta->c[step], y, self->F + (step * self->n), user_data);
         }
 
         // final update
@@ -277,7 +276,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             for (step = 0; step < self->integrator_meta->steps; step++)
             {
                 cblas_daxpy (self->n,
-                             h * self->integrator_meta->b[step],
+                             self->h * self->integrator_meta->b[step],
                              self->F + step * self->n,
                              1,
                              y,
@@ -295,7 +294,7 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
             for (step = 0; step < self->integrator_meta->steps; step++)
             {
                 cblas_daxpy (self->n,
-                             h * self->integrator_meta->e[step],
+                             self->h * self->integrator_meta->e[step],
                              self->F + step * self->n,
                              1,
                              ye,
@@ -314,28 +313,19 @@ odeint_integrator_integrate (OdeIntIntegrator *self,
 
             assert (isfinite (error_ratio));
 
+            // check if the step is accepted
             if (error_ratio <= 1)
             {
-                *self->t = t + h;
+                *self->t = t + self->h;
                 cblas_dcopy (self->n, y, 1, self->y, 1);
             }
 
             // compute optimal step size
-            double optimal_h = h * pow (1.0 / error_ratio, 1.0 / self->integrator_meta->order);
-
-            // in case h get smaller than self->h (i.e. around upper
-            // integration bound) we don't update the step size such that
-            // subsequent integration can resume with an optimal step size.
-            if (h == self->h)
-            {
-                self->h = optimal_h;
-            }
-
-            h = optimal_h;
+            self->h = self->h * pow (1.0 / error_ratio, 1.0 / self->integrator_meta->order);
         }
         else
         {
-            *self->t = t + h;
+            *self->t = t + self->h;
             cblas_dcopy (self->n, y, 1, self->y, 1);
         }
     }

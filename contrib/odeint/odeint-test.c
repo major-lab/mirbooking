@@ -43,6 +43,9 @@ main (void)
             assert (fabs (t - expected_t) < ODEINT_INTEGRATOR_DEFAULT_RTOL * expected_t + ODEINT_INTEGRATOR_DEFAULT_ATOL);
         }
 
+        // negative integration
+        odeint_integrator_integrate (integrator, f, NULL, -1e-3);
+
         // at equilibrium, we have [E][S]/[ES] == kr/kf
         output[method] = y[0];
 
