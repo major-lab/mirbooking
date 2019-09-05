@@ -46,7 +46,7 @@ compute_score (MirbookingScoreTable  *score_table,
     gchar mirna_seq[SEED_LENGTH + 2]  = {0};
     gchar target_seq[SEED_LENGTH + 2] = {0};
 
-    MirbookingScore ret = {.kf = KF, .kcat = KCAT};
+    MirbookingScore ret = {.kf = KF, .kcat = KCLEAVE};
 
     if (SEED_OFFSET + SEED_LENGTH > mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (mirna)))
     {

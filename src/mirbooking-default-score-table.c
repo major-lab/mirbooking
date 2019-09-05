@@ -243,7 +243,9 @@ compute_score (MirbookingScoreTable *score_table,
 {
     MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
 
-    MirbookingScore ret = {.kf = KF, .kcat = 0};
+    MirbookingScore ret = {.kf = KF};
+
+    gdouble kcleave, krelease;
 
     gdouble A_score = 0.0f;
     if (position + SEED_LENGTH + 1 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
@@ -314,7 +316,7 @@ compute_score (MirbookingScoreTable *score_table,
         supplementary_score = binding_energy (z, 2);
 
         // require at least the 3' supplementary bindings for cleavage
-        ret.kcat = binding_probability (z, 5, 1) * KCAT;
+        kcleave = binding_probability (z, 5, 1) * KCLEAVE;
     }
     else if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018)
     {
@@ -371,13 +373,20 @@ compute_score (MirbookingScoreTable *score_table,
 
         supplementary_score = binding_energy (z, 5);
 
-        // at least A-box for slicing
-        ret.kcat = (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * KCAT;
+        // at least A-box for cleavage
+        kcleave = (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * KCLEAVE;
     }
 
     gdouble Kd = 1e12 * exp ((A_score + seed_score + supplementary_score + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE) / (R * T));
 
     ret.kr = ret.kf * Kd;
+
+    /*
+     *
+     */
+    krelease = ret.kr;
+
+    ret.kcat = 1. / (1. / kcleave + 1. / krelease);
 
     *score = ret;
 

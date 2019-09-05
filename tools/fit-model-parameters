@@ -11,13 +11,14 @@ import yaml
 import re
 from math import isfinite, isnan
 from scipy.optimize import minimize
+from scipy.stats import pearsonr, norm
 import numpy as np
 
 R = 1.987203611e-3
 T = 310.5
 
 with open('data/single-molecule-experimental-measurements.yaml') as f:
-    data = yaml.load(f)
+    data = yaml.load(f, Loader=yaml.Loader)
 
 def fold_duplex_mcff(a, b, mask=None):
     if mask is None:
@@ -34,7 +35,7 @@ def fold_duplex_RNAcofold(a, b, mask=None):
     if len(a) + 1 + len(b) != len(mask):
         return 999.
     vienna_binding_energy_re = 'delta G binding=\s*(.+)$'
-    stdout = check_output(['RNAcofold', '--noPS', '-p', '-C', '-T', str(T - 273.15)], input=f'{a}&{b}\n{mask}', universal_newlines=True)
+    stdout = check_output(['RNAcofold', '--noPS', '-p', '-C', '-T', str(T - 273.15)], input=f'{a}&{b}\n{mask}', universal_newlines=True, stderr=DEVNULL)
     match = re.search(vienna_binding_energy_re, stdout)
     return float(match.group(1))
 
@@ -92,9 +93,9 @@ def binding_probability(G):
 
 def f(X, weights):
     # model weights
-    base_kf, base_kcat, ago2_deltaG, seed_core_mismatch_penalty, seed_supp_mismatch_penalty, t1_adenosine_score = weights
+    base_kf, base_kcleave, ago2_deltaG, seed_core_mismatch_penalty, seed_supp_mismatch_penalty, t1_adenosine_score = weights
     base_kf = np.exp(base_kf)
-    base_kcat = np.exp(base_kcat)
+    base_kcleave = np.exp(base_kcleave)
     seed_core_mismatch_penalty = np.exp(seed_core_mismatch_penalty)
     seed_supp_mismatch_penalty = np.exp(seed_supp_mismatch_penalty)
 
@@ -105,17 +106,30 @@ def f(X, weights):
 
     deltaG = ago2_deltaG + (t1_adenosine * t1_adenosine_score) + seed + binding_energy(canonical_ensemble)
 
-    kf = base_kf * np.ones_like(X[:,0]) * np.power(seed_core_mismatch_penalty, seed_core_mismatches) * np.power(seed_supp_mismatch_penalty, seed_supp_mismatches)
-
-    kcat = base_kcat * np.ones_like(seed) * np.sum(binding_probability(canonical_ensemble)[:,3:], axis=1)
     Kd = 1e12 * np.exp(deltaG / (R * T))
+
+    kf = base_kf * np.ones_like(X[:,0]) * np.power(seed_core_mismatch_penalty, seed_core_mismatches) * np.power(seed_supp_mismatch_penalty, seed_supp_mismatches)
     kr = kf * Kd
+
+    kcleave = base_kcleave * np.ones_like(seed) * np.sum(binding_probability(canonical_ensemble)[:,3:], axis=1)
+    krelease = kr
+    kcat = 1. / (1. / kcleave + 1. / krelease)
+
     Km = Kd + (kcat/kf)
     return np.column_stack([kf, kr, kcat, Kd, Km])
 
 def log_rmse(x, y):
-    n = np.count_nonzero(np.isfinite(x) & np.isfinite(y))
-    return np.sqrt(np.sum(np.square(np.where(np.isfinite(x) & np.isfinite(y), np.log10(x) - np.log10(y), 0))) / n)
+    ix = np.isfinite(x) & (x != 0) & np.isfinite(y) & (y != 0)
+    n = np.count_nonzero(ix)
+    return np.linalg.norm(np.log10(x[ix]) - np.log10(y[ix])) / np.sqrt(n)
+
+def log_r2(x, y):
+    ix = np.isfinite(x) & (x != 0) & np.isfinite(y) & (y != 0)
+    n = np.count_nonzero(ix)
+    r, pvalue = pearsonr(np.log(x[ix]), np.log(y[ix]))
+    rsq = np.square(r)
+    ci = np.square(np.tanh(norm.interval(0.95, np.arctanh(r), 1. / np.sqrt(n - 3))))
+    return rsq, ci
 
 def loss(X, y, weights):
     return log_rmse(f(X, weights), y)
@@ -124,5 +138,15 @@ func = lambda weights: loss(X, Y, weights)
 
 result = minimize(func, x0=np.array([np.log(1e-5), np.log(1.), -5., np.log(1.), np.log(1.), -1]))
 weights = result['x']
+
+for i, constant in enumerate(['kf', 'kr', 'kcat', 'Kd', 'Km']):
+    r2, (r2_ci_low, r2_ci_high) = log_r2(f(X, weights)[:,i], Y[:,i])
+    print('{} R²:'.format(constant), '{:.2f} (95% CI: {:.2f}, {:.2f})'.format(r2, r2_ci_low, r2_ci_high))
+
 print('RMSE:', '{:.2f}'.format(result['fun']))
-print('Optimal Parameters:', f'base kf = {np.exp(weights[0]):.2e}, base kcat = {np.exp(weights[1]):.2e}, AGO2 entropy = {weights[2]:.2f} kcal/mol, seed mismatch weights = {np.exp(weights[3]):.2f} and {np.exp(weights[4]):.2f}, t1 adenosine contribution = {weights[5]:.2f} kcal/mol')
+print(f'''Optimal Parameters:
+    base kf = {np.exp(weights[0]):.2e} pM^-1s^-1
+    base kcleave = {np.exp(weights[1]):.2e} s^-1
+    AGO2 entropy = {weights[2]:.2f} kcal/mol
+    seed mismatch weights = {np.exp(weights[3]):.2f} and {np.exp(weights[4]):.2f}
+    t1 adenosine contribution = {weights[5]:.2f} kcal/mol''')

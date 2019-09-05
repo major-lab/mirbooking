@@ -25,10 +25,10 @@
  * Reshapes the Binding Properties of Its Nucleic Acid Guides,” Cell 162, no. 1
  * (July 2, 2015): 84–95, https://doi.org/10.1016/j.cell.2015.06.029.
  */
-#define KF 5.85e-05 // pM^-1s^-1
+#define KF 5.78e-05 // pM^-1s^-1
 
 /*
- * Base catalytic and turnover rate of the complex.
+ * Base cleavage rate of the AGO2 complex.
  *
  * This is modulated by the binding probability of the cleavage site, so the
  * actual catalytic rate is much slower.
@@ -41,7 +41,7 @@
  * Reshapes the Binding Properties of Its Nucleic Acid Guides,” Cell 162, no. 1
  * (July 2, 2015): 84–95, https://doi.org/10.1016/j.cell.2015.06.029.
  */
-#define KCAT 2.47 // s^-1
+#define KCLEAVE 2.21 // s^-1
 
 /*
  * Half life of an average microRNA is is ~119 hours.
@@ -118,7 +118,7 @@
  * Anchors Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4
  * (September 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
  */
-#define T1_ADENOSINE_SCORE (-1.08)
+#define T1_ADENOSINE_SCORE (-1.07)
 
 /*
  * We allow a 'G' nucleation bulge at position t5.
