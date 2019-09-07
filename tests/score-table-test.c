@@ -112,50 +112,6 @@ test_score_table_compute_seed_scores ()
     g_assert_null (error);
 }
 
-static void
-test_score_table_mcff ()
-{
-    if (g_find_program_in_path ("mcff") == NULL)
-    {
-        g_test_skip ("'mcff' is not found in the path.");
-        return;
-    }
-
-    g_autoptr (MirbookingMcffScoreTable) score_table = mirbooking_mcff_score_table_new ();
-    g_assert_nonnull (score_table);
-
-    g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM");
-    g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT");
-
-    gchar *target_seq = "AGGGAGTAGGGTACAATACAGTCTGTTCTCCTCCAGCTCCTTCTTTCTGCAACATGGGGA";
-    gchar *mirna_seq = "UGAGGUAGUAGGUUGUAUAGUU";
-
-    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), target_seq);
-    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), mirna_seq);
-
-    // test for a seed
-    g_autoptr (GError) error = NULL;
-    gsize *positions;
-    gsize  positions_len;
-    g_assert (mirbooking_score_table_compute_positions (MIRBOOKING_SCORE_TABLE (score_table),
-                                                        mirna,
-                                                        target,
-                                                        &positions,
-                                                        &positions_len,
-                                                        &error));
-
-
-    MirbookingScore site_score;
-    g_assert (mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (score_table),
-                                                    mirna,
-                                                    target, 26,
-                                                    &site_score,
-                                                    &error));
-
-    g_assert_null (error);
-    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (site_score), 1e12 * exp ((-13.94f + 9.01f + AGO2_SCORE) / (R * T)), 1e-6);
-}
-
 /**
  * Reference:
  * Liang Meng Wee et al., “Argonaute Divides Its RNA Guide into Domains with
@@ -608,7 +564,6 @@ int main (int argc, gchar **argv)
 
     g_test_add_func ("/score-table/compute-seed-score", test_score_table_compute_seed_score);
     g_test_add_func ("/score-table/compute-seed-scores", test_score_table_compute_seed_scores);
-    g_test_add_func ("/score-table/mcff", test_score_table_mcff);
     g_test_add_func ("/score-table/wee-et-al-2012", test_score_table_wee_et_al_2012);
     g_test_add_func ("/score-table/salomon-et-al-2016", test_score_table_salomon_et_al_2016);
     g_test_add_func ("/score-table/schirle-et-al-2015", test_score_table_schirle_et_al_2015);
