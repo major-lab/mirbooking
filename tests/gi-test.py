@@ -140,18 +140,6 @@ class MirbookingDefaultScoreTableTestCase(unittest.TestCase):
 
         self.assertListEqual(positions, [2460, 4078, 4154, 4233])
 
-class MirbookingMcffScoreTableTestCase(unittest.TestCase):
-    def test_mcff_score_table(self):
-        from shutil import which
-        if which('mcff') is None:
-            self.skipTest("'mcff' is not found in path.")
-        score_table = Mirbooking.McffScoreTable()
-        ret, positions = score_table.compute_positions(mirna, target)
-        self.assertTrue(ret)
-        self.assertTrue(len(positions) > 0)
-        for p in positions:
-            self.assertLess(score_table.compute_score(mirna, target, p).score.kr, float('inf'))
-
 class MirbookingBrokerTestCase(unittest.TestCase):
     def test_run(self):
         mirbooking = Mirbooking.Broker(score_table=SimpleScoreTable())
