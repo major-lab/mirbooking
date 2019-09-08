@@ -25,7 +25,7 @@
  * Reshapes the Binding Properties of Its Nucleic Acid Guides,” Cell 162, no. 1
  * (July 2, 2015): 84–95, https://doi.org/10.1016/j.cell.2015.06.029.
  */
-#define KF 5.78e-05 // pM^-1s^-1
+#define KF 7.06e-05 // pM^-1s^-1
 
 /*
  * Base cleavage rate of the AGO2 complex.
@@ -41,7 +41,7 @@
  * Reshapes the Binding Properties of Its Nucleic Acid Guides,” Cell 162, no. 1
  * (July 2, 2015): 84–95, https://doi.org/10.1016/j.cell.2015.06.029.
  */
-#define KCLEAVE 2.21 // s^-1
+#define KCLEAVE 1.70e1 // s^-1
 
 /*
  * Half life of an average microRNA is is ~119 hours.
@@ -118,7 +118,7 @@
  * Anchors Argonaute2 to MicroRNA Targets,” ed. Phillip D Zamore, ELife 4
  * (September 11, 2015): e07646, https://doi.org/10.7554/eLife.07646.
  */
-#define T1_ADENOSINE_SCORE (-1.07)
+#define T1_ADENOSINE_SCORE (-0.59)
 
 /*
  * We allow a 'G' nucleation bulge at position t5.
