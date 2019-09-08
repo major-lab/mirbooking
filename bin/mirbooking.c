@@ -463,6 +463,8 @@ write_output_to_tsv_detailed (MirbookingBroker *mirbooking,
                          "mirna_quantity\t"
                          "kf\t"
                          "kr\t"
+                         "kcleave\t"
+                         "krelease\t"
                          "kcat\t"
                          "kother\t"
                          "kd\t"
@@ -492,7 +494,7 @@ write_output_to_tsv_detailed (MirbookingBroker *mirbooking,
         for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
         {
             MirbookingOccupant *occupant = occupants->data;
-            g_fprintf (output_f, "%s\t%s\t%s\t%s\t%e\t%lu\t%s\t%s\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
+            g_fprintf (output_f, "%s\t%s\t%s\t%s\t%e\t%lu\t%s\t%s\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
                        COALESCE (mirbooking_sequence_get_gene_accession (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        COALESCE (mirbooking_sequence_get_gene_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
                        mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
@@ -504,6 +506,8 @@ write_output_to_tsv_detailed (MirbookingBroker *mirbooking,
                        mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna)) + mirbooking_broker_get_bound_mirna_quantity (mirbooking, occupant->mirna),
                        occupant->score.kf,
                        occupant->score.kr,
+                       occupant->score.kcleave,
+                       occupant->score.krelease,
                        occupant->score.kcat,
                        mirbooking_broker_get_target_site_kother (mirbooking, target_site),
                        MIRBOOKING_SCORE_KD (occupant->score),

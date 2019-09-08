@@ -16,6 +16,8 @@ typedef struct _MirbookingScore
 {
     gdouble kf;
     gdouble kr;
+    gdouble kcleave;
+    gdouble krelease;
     gdouble kcat;
 } MirbookingScore;
 

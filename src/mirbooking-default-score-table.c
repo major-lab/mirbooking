@@ -243,9 +243,7 @@ compute_score (MirbookingScoreTable *score_table,
 {
     MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
 
-    MirbookingScore ret = {.kf = KF};
-
-    gdouble kcleave, krelease;
+    MirbookingScore ret = {0};
 
     gdouble A_score = 0.0f;
     if (position + SEED_LENGTH + 1 <= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) &&
@@ -281,7 +279,9 @@ compute_score (MirbookingScoreTable *score_table,
                                                                            position ,
                                                                            SEED_LENGTH);
 
-    //
+    // base forward rate which is modulated by seed mismatches
+    ret.kf = KF;
+
     guint i;
     for (i = 0; i < 7; i++)
     {
@@ -316,7 +316,7 @@ compute_score (MirbookingScoreTable *score_table,
         supplementary_score = binding_energy (z, 2);
 
         // require at least the 3' supplementary bindings for cleavage
-        kcleave = binding_probability (z, 5, 1) * KCLEAVE;
+        ret.kcleave = binding_probability (z, 5, 1) * KCLEAVE;
     }
     else if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018)
     {
@@ -374,19 +374,17 @@ compute_score (MirbookingScoreTable *score_table,
         supplementary_score = binding_energy (z, 5);
 
         // at least A-box for cleavage
-        kcleave = (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * KCLEAVE;
+        ret.kcleave = (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * KCLEAVE;
     }
 
     gdouble Kd = 1e12 * exp ((A_score + seed_score + supplementary_score + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE) / (R * T));
 
     ret.kr = ret.kf * Kd;
 
-    /*
-     *
-     */
-    krelease = ret.kr;
+    ret.krelease = ret.kr;
 
-    ret.kcat = 1. / (1. / kcleave + 1. / krelease);
+    // overall turnover rate
+    ret.kcat = 1. / (1. / ret.kcleave + 1. / ret.krelease);
 
     *score = ret;
 

@@ -75,7 +75,8 @@ The output is a TSV with the following columns:
 
 The detailed TSV output which expands the score structure in its constituents
 can be used with `--output-format=tsv-detailed`. In this mode, the `score`
-column is replaced by `kf`, `kr`, `kcat`, `kother`, `kd` and `km`.
+column is replaced by `kf`, `kr`, `kcleave`, `krelease`, `kcat`, `kother`, `kd`
+and `km`.
 
 The GFF3 output can be used with `--output-format=gff3`. The score will
 indicate the complex concentration.
