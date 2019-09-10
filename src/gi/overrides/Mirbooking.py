@@ -26,7 +26,7 @@ class Broker(Mirbooking.Broker):
                            occupant.mirna.get_accession(),
                            occupant.mirna.get_name(),
                            self.get_sequence_quantity(occupant.mirna) + self.get_bound_mirna_quantity(occupant.mirna),
-                           (occupant.score.kr + occupant.score.kcat) / occupant.score.kf,
+                           (occupant.score.kr + occupant.score.kcat + self.get_target_site_kother(target_site)) / occupant.score.kf,
                            self.get_occupant_quantity(occupant)]
         columns = ['target_accession',
                    'target_name',
