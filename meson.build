@@ -16,6 +16,7 @@ if get_option('with_openmp')
 else
     openmp_dep = []
     add_project_arguments('-Wno-unknown-pragmas', language: 'c')
+    warning('OpenMP is recommended for parallelizing the workload.')
 endif
 
 if get_option('with_mpi')
