@@ -113,7 +113,10 @@ def f(X, weights):
 
     kcleave = base_kcleave * np.ones_like(seed) * np.sum(binding_probability(canonical_ensemble)[:,3:], axis=1)
     krelease = kr
-    kcat = 1. / (1. / kcleave + 1. / krelease)
+    # if any of kcleave or krelease is zero, then the corresponding kcat will
+    # be zero as well
+    with np.errstate(divide='ignore'):
+        kcat = 1. / (1. / kcleave + 1. / krelease)
 
     Km = Kd + (kcat/kf)
     return np.column_stack([kf, kr, kcat, Kd, Km])
