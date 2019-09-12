@@ -16,12 +16,12 @@ mirbooking --targets GCF_000001405.37_GRCh38.p11_rna.fna
            --mirnas mature.fa
            --seed-scores scores-7mer-3mismatch-ending
            [--accessibility-scores accessibility-scores[.gz]]
-           [--supplementary-model yan-et-al-2018]
+           [--supplementary-model none]
            [--supplementary-scores scores-3mer]
            [--input stdin]
            [--output stdout]
            [--output-format tsv]
-           [--sparse-solver superlu]
+           [--sparse-solver best-available]
            [--max-iterations 100]
            [--5prime-footprint 9]
            [--3prime-footprint 7]
@@ -48,9 +48,11 @@ The command line program expects a number of inputs:
 Tables for seed and supplementary scores are provided in the `data` folder.
 These were computed with RNAcofold binding energy from ViennaRNA package.
 
-Note that Yan et al. (`--supplementary-model=yan-et-al-2018`) model requires
-a 3mer table whereas Zamore et al. (`--supplementary-model=zamore-et-al-2012`)
+Note that Yan et al. (`--supplementary-model=yan-et-al-2018`) model requires a
+3mer table whereas Zamore et al. (`--supplementary-model=zamore-et-al-2012`)
 require a 4mer table.
+
+Tables for seed and supplementary bindings are automatically located (new in 2.3).
 
 The `--cutoff` parameter can exploit a known upper bound on the complex
 concentration to adjust the granularity of the model. Only interaction that can
@@ -63,6 +65,8 @@ The output is a TSV with the following columns:
 
 | Column           | Description                                            |
 | ---------------- | ------------------------------------------------------ |
+| gene_accession   | Gene accession with version (new in 2.3)               |
+| gene_name        | Name of the gene or N/A if unknown (new in 2.3)        |
 | target_accession | Target accession with version                          |
 | target_name      | Name of the target or N/A if unknown                   |
 | target_quantity  | Total target concentration in picomolars               |
@@ -74,12 +78,12 @@ The output is a TSV with the following columns:
 | quantity         | miRNA::MRE duplex concentration this target position   |
 
 The detailed TSV output which expands the score structure in its constituents
-can be used with `--output-format=tsv-detailed`. In this mode, the `score`
-column is replaced by `kf`, `kr`, `kcleave`, `krelease`, `kcat`, `kother`, `kd`
-and `km`.
+can be used with `--output-format=tsv-detailed` (new in 2.3). In this mode, the
+`score` column is replaced by `kf`, `kr`, `kcleave`, `krelease`, `kcat`,
+`kother`, `kd` and `km`.
 
 The GFF3 output can be used with `--output-format=gff3`. The score will
-indicate the complex concentration.
+indicate the bound fraction of the position.
 
 Wiggle output can also be produced with `--output-format=wig`. The score will
 be the position-wise bound fraction of substrate which properly account for
@@ -140,6 +144,14 @@ break other solvers as it will load a 64 bit BLAS.
 
 PARDISO cannot be used along with MKL DSS because they define common symbols.
 
+By default, the best sparse solver available among the following will be used
+(new in 2.3):
+
+ 1. MKL-DSS
+ 2. PARDISO
+ 2. UMFPACK
+ 3. SuperLU (even if not available)
+
 ## Numerical integration
 
 In addition to determine the steady state, miRBooking can also perform
@@ -156,13 +168,18 @@ mask. Either [ViennaRNA](https://www.tbi.univie.ac.at/RNA/) or
 
 ```bash
 generate-score-table [--method=RNAcofold]
+                     [--temperature=310.5]
                      [--mask=||||...]
+                     [--hard-mask=||||...]
                       --output scores
 ```
 
-The seed mask defines constraints on the target with `|` for a canonical match,
-`x` for a canonical mismatch and `.` for no constraint. It also determines the
-seed length.
+The seed mask defines folding constraints on the target with `|` for
+a canonical match, `x` for a canonical mismatch and `.` for no constraint. It
+also determines the seed length. If a hard mask is provided, unsatisfying
+interactions are filtered out (new in 2.3).
+
+It's also possible to ajust the folding temperature (new in 2.3).
 
 The number of workers can be tuned by setting `OMP_NUM_THREADS` environment
 variable.
