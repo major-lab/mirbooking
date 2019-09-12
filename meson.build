@@ -74,8 +74,10 @@ if get_option('with_mkl')
     if get_option('with_mkl_ilp64') and (get_option('with_superlu') or get_option('with_umfpack') or get_option('with_pardiso'))
         error('MKL 64-bit interface conflicts with the following solvers: SuperLU, UMFPACK and PARDISO.')
     endif
-else
-    warning('MKL is recommended for solving sparse systems efficiently.')
+endif
+
+if not (get_option('with_mkl_dss') or get_option('with_pardiso') or get_option('with_umfpack'))
+    warning('Any of MKL DSS, PARDISO or UMFPACK is recommended for solving sparse systems efficiently.')
 endif
 
 if get_option('with_mkl')
