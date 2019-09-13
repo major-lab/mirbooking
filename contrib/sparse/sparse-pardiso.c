@@ -93,6 +93,14 @@ sparse_pardiso_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
     {
         solver_storage = malloc (sizeof (SolverStorage));
 
+        int solver_ = 0;
+        pardisoinit (solver_storage->pt, &mtype, &solver_, iparm, dparm, &error);
+        if (error != 0)
+        {
+            free (solver_storage);
+            goto cleanup;
+        }
+
         solver_storage->rowptr = malloc ((A->shape[0] + 1) * sizeof (int));
         solver_storage->colind = malloc (A->s.csr.nnz * sizeof (int));
         memcpy_loop (solver_storage->rowptr, A->s.csr.rowptr, A->shape[0] + 1);
@@ -114,14 +122,6 @@ sparse_pardiso_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
 
         pardiso_chkvec (&n, &nrhs, b, &error);
         assert (error == 0);
-
-        int solver_ = 0;
-        pardisoinit (solver_storage->pt, &mtype, &solver_, iparm, dparm, &error);
-        if (error != 0)
-        {
-            free_solver_storage (solver_storage);
-            goto cleanup;
-        }
 
         // reorder
         phase = 11;
