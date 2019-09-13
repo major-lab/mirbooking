@@ -5,7 +5,8 @@
 
 typedef enum _SparseMatrixStorage
 {
-    SPARSE_MATRIX_STORAGE_CSR
+    SPARSE_MATRIX_STORAGE_CSR,
+    SPARSE_MATRIX_STORAGE_DENSE
 } SparseMatrixStorage;
 
 typedef enum _SparseMatrixType
@@ -72,6 +73,7 @@ typedef enum _SparseSolverMethod
     SPARSE_SOLVER_METHOD_UMFPACK,
     SPARSE_SOLVER_METHOD_MKL_DSS,
     SPARSE_SOLVER_METHOD_MKL_CLUSTER,
+    SPARSE_SOLVER_METHOD_MKL_LAPACK,
     SPARSE_SOLVER_METHOD_CUSOLVER,
     SPARSE_SOLVER_METHOD_PARDISO
 } SparseSolverMethod;

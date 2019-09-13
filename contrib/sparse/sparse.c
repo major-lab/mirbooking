@@ -21,6 +21,7 @@ DECLARE_SOLVER(superlu_mt)
 DECLARE_SOLVER(umfpack)
 DECLARE_SOLVER(mkl_dss)
 DECLARE_SOLVER(mkl_cluster)
+DECLARE_SOLVER(mkl_lapack)
 DECLARE_SOLVER(cusolver)
 DECLARE_SOLVER(pardiso)
 
@@ -50,10 +51,20 @@ sparse_matrix_init (SparseMatrix        *matrix,
     memcpy (matrix->shape, shape, 2 * sizeof (size_t));
 
     /* CSR */
-    assert (matrix->storage == SPARSE_MATRIX_STORAGE_CSR);
-    matrix->s.csr.nnz    = nnz;
-    matrix->s.csr.colind = calloc (nnz, sizeof (size_t));
-    matrix->s.csr.rowptr = calloc (shape[0] + 1, sizeof (size_t));
+    if (matrix->storage == SPARSE_MATRIX_STORAGE_CSR)
+    {
+        matrix->s.csr.nnz    = nnz;
+        matrix->s.csr.colind = calloc (nnz, sizeof (size_t));
+        matrix->s.csr.rowptr = calloc (shape[0] + 1, sizeof (size_t));
+    }
+    else if (matrix->storage == SPARSE_MATRIX_STORAGE_DENSE)
+    {
+        // no structure to initialize
+    }
+    else
+    {
+        assert (0);
+    }
 
     /* default is zero */
     memset (&matrix->default_data, 0, sizeof (matrix->default_data));
@@ -70,9 +81,12 @@ sparse_matrix_init (SparseMatrix        *matrix,
 void
 sparse_matrix_clear (SparseMatrix *matrix)
 {
-    free (matrix->s.csr.colind);
+    if (matrix->storage == SPARSE_MATRIX_STORAGE_CSR)
+    {
+        free (matrix->s.csr.colind);
+        free (matrix->s.csr.rowptr);
+    }
     free (matrix->data);
-    free (matrix->s.csr.rowptr);
     if (matrix->solver_storage_destroy)
     {
         matrix->solver_storage_destroy (matrix->solver_storage);
@@ -87,6 +101,9 @@ sparse_matrix_clear (SparseMatrix *matrix)
 void
 sparse_matrix_reserve_range (SparseMatrix *matrix, size_t i, size_t *colind, size_t n)
 {
+    if (matrix->storage == SPARSE_MATRIX_STORAGE_DENSE)
+        return;
+
     assert ((i == matrix->shape[0] - 1) || matrix->s.csr.rowptr[i+1] == 0);
     assert (matrix->s.csr.rowptr[i] + n <= matrix->s.csr.nnz);
 
@@ -107,6 +124,9 @@ _sparse_matrix_get_index (SparseMatrix *matrix, size_t i, size_t j)
 
     assert (i < matrix->shape[0]);
     assert (j < matrix->shape[1]);
+
+    if (matrix->storage == SPARSE_MATRIX_STORAGE_DENSE)
+        return matrix->shape[0] * i + j;
 
     k = bsearch (&j, matrix->s.csr.colind + matrix->s.csr.rowptr[i],
                  matrix->s.csr.rowptr[i+1] - matrix->s.csr.rowptr[i],
@@ -151,9 +171,13 @@ sparse_matrix_get_double (SparseMatrix *matrix, size_t i, size_t j)
 ssize_t
 _sparse_matrix_reserve_index (SparseMatrix *matrix, size_t i, size_t j)
 {
-    assert (matrix->s.csr.rowptr);
     assert (i < matrix->shape[0]);
     assert (j < matrix->shape[1]);
+
+    if (matrix->storage == SPARSE_MATRIX_STORAGE_DENSE)
+        return matrix->shape[0] * i + j;
+
+    assert (matrix->s.csr.rowptr);
 
     ssize_t k = -1;
     size_t z;
@@ -272,6 +296,9 @@ sparse_solver_new (SparseSolverMethod method)
 #endif
 #if HAVE_MKL_CLUSTER
             PREPARE_SOLVER(MKL_CLUSTER,mkl_cluster)
+#endif
+#if HAVE_MKL_LAPACK
+            PREPARE_SOLVER(MKL_LAPACK,mkl_lapack)
 #endif
 #if HAVE_CUSOLVER
             PREPARE_SOLVER(CUSOLVER,cusolver)

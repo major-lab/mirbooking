@@ -1169,7 +1169,7 @@ _prepare_J (MirbookingBroker *self)
 
     size_t shape[2] = {self->priv->occupants->len, self->priv->occupants->len};
     sparse_matrix_init (self->priv->J,
-                        SPARSE_MATRIX_STORAGE_CSR,
+                        self->priv->sparse_solver == MIRBOOKING_BROKER_SPARSE_SOLVER_MKL_LAPACK ? SPARSE_MATRIX_STORAGE_DENSE : SPARSE_MATRIX_STORAGE_CSR,
                         SPARSE_MATRIX_TYPE_DOUBLE,
                         shape,
                         nnz);
