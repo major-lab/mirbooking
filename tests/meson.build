@@ -10,6 +10,7 @@ endforeach
 
 mirbooking_integration_tests = [
     ['superlu',      ['--sparse-solver', 'superlu'],      get_option('with_superlu')],
+    ['superlu-mt',   ['--sparse-solver', 'superlu-mt'],   get_option('with_superlu_mt')],
     ['umfpack',      ['--sparse-solver', 'umfpack'],      get_option('with_umfpack')],
     ['mkl-dss',      ['--sparse-solver', 'mkl-dss'],      get_option('with_mkl_dss')],
     ['mkl-cluster',  ['--sparse-solver', 'mkl-cluster'],  get_option('with_mkl_cluster')],

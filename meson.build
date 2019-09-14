@@ -72,8 +72,8 @@ if get_option('with_mkl')
         error('MKL conflicts with the following solvers: PARDISO.')
     endif
 
-    if get_option('with_mkl_ilp64') and (get_option('with_superlu') or get_option('with_umfpack') or get_option('with_pardiso'))
-        error('MKL 64-bit interface conflicts with the following solvers: SuperLU, UMFPACK and PARDISO.')
+    if get_option('with_mkl_ilp64') and (get_option('with_superlu') or get_option('with_superlu_mt') or get_option('with_umfpack') or get_option('with_pardiso'))
+        error('MKL 64-bit interface conflicts with the following solvers: SuperLU, SuperLU-MT, UMFPACK and PARDISO.')
     endif
 endif
 

@@ -12,14 +12,15 @@ mirbooking_broker_sparse_solver_get_type (void)
     {
         static const GEnumValue values[] =
         {
-            {0, "SUPERLU",  "superlu"},
-            {2, "UMFPACK",  "umfpack"},
-            {3, "MKL_DSS",  "mkl-dss"},
+            {0, "SUPERLU",     "superlu"},
+            {1, "SUPERLU_MT",  "superlu-mt"},
+            {2, "UMFPACK",     "umfpack"},
+            {3, "MKL_DSS",     "mkl-dss"},
             {4, "MKL_CLUSTER", "mkl-cluster"},
-            {5, "MKL_LAPACK", "mkl-lapack"},
-            {6, "CUSOLVER", "cusolver"},
-            {7, "PARDISO",  "pardiso"},
-            {0, NULL,       NULL}
+            {5, "MKL_LAPACK",  "mkl-lapack"},
+            {6, "CUSOLVER",    "cusolver"},
+            {7, "PARDISO",     "pardiso"},
+            {0, NULL,          NULL}
         };
 
         GType type = g_enum_register_static ("MirbookingBrokerSparseSolver",
@@ -35,6 +36,7 @@ static MirbookingBrokerSparseSolver MIRBOOKING_BROKER_SPARSE_SOLVER_WITH_PRIORIT
     MIRBOOKING_BROKER_SPARSE_SOLVER_MKL_DSS,
     MIRBOOKING_BROKER_SPARSE_SOLVER_PARDISO,
     MIRBOOKING_BROKER_SPARSE_SOLVER_UMFPACK,
+    MIRBOOKING_BROKER_SPARSE_SOLVER_SUPERLU_MT,
     MIRBOOKING_BROKER_SPARSE_SOLVER_SUPERLU
 };
 

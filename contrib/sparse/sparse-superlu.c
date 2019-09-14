@@ -107,6 +107,7 @@ sparse_superlu_solve (SparseSolver *solver,
 
     SUPERLU_FREE (colind);
     SUPERLU_FREE (rowptr);
+
     Destroy_SuperMatrix_Store (&BB);
     Destroy_SuperMatrix_Store (&AA);
     Destroy_SuperNode_Matrix (&L);
