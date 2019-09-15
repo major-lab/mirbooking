@@ -25,7 +25,7 @@ sparse_superlu_mt_solve (SparseSolver *solver,
                          void         *b)
 {
     SuperMatrix AA, L, U, BB;
-    int *rowperm;
+    int_t *rowperm;
     int_t info;
 
     assert (A->storage == SPARSE_MATRIX_STORAGE_CSR);
@@ -34,8 +34,8 @@ sparse_superlu_mt_solve (SparseSolver *solver,
     assert (A->shape[1] < INT_MAX);
     assert (A->s.csr.nnz < INT_MAX);
 
-    int *colind = intMalloc (A->s.csr.nnz * sizeof (int));
-    int *rowptr = intMalloc ((A->shape[0] + 1) * sizeof (int));
+    int_t *colind = intMalloc (A->s.csr.nnz * sizeof (int_t));
+    int_t *rowptr = intMalloc ((A->shape[0] + 1) * sizeof (int_t));
 
     memcpy_loop (colind, A->s.csr.colind, A->s.csr.nnz);
     memcpy_loop (rowptr, A->s.csr.rowptr, A->shape[0] + 1)
@@ -65,7 +65,7 @@ sparse_superlu_mt_solve (SparseSolver *solver,
     {
         rowperm = intMalloc (A->shape[0]);
 
-        int permc_spec = 1;
+        int_t permc_spec = 1;
         get_perm_c (permc_spec, &AA, rowperm);
 
         sparse_matrix_set_solver_storage (A,
