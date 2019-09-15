@@ -124,12 +124,14 @@ MPI can be optionally used to distribute the computation across multiple
 machine on supported solvers (i.e. `mkl-cluster`) by specifying `-Dwith_mpi=true`.
 
 | Solver      | Build Options                                                                      |
-| --------    | ---------------------------------------------------------------------------------- |
+| ----------- | ---------------------------------------------------------------------------------- |
 | SuperLU     | `-Dwith_superlu=true`                                                              |
+| SuperLU MT  | `-Dwith_superlu_mt=true`                                                           |
 | UMFPACK     | `-Dwith_umfpack=true`                                                              |
 | cuSOLVER    | `-Dwith_cuda=<cuda_toolkit_api_version> -Dwith_cusolver=true`                      |
 | MKL DSS     | `-Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_dss=true`                     |
 | MKL Cluster | `-Dwith_mpi=true -Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_cluster=true` |
+| MKL LAPACK  | `-Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_lapack=true`                  |
 | PARDISO     | `-Dwith_pardiso=true`                                                              |
 
 cuSOLVER require CUDA toolkit whose API version is to be specified with
@@ -137,6 +139,10 @@ cuSOLVER require CUDA toolkit whose API version is to be specified with
 
 MKL DSS and MKL Cluster can benefit from [TBB](https://www.threadingbuildingblocks.org/)
 instead of OpenMP, which can be enabled with `-Dwith_mkl_tbb=true`.
+
+MKL LAPACK is not a sparse linear solver and thus will not handle typical
+workload very well, but it will perform orders of magnitude faster on dense
+jacobians.
 
 MKL DSS and MKL Cluster can be used with the 64 bit interface, allowing much
 larger systems to be solved with `-Dwith_mkl_ilp64=true`. However, this will
