@@ -12,6 +12,8 @@ typedef struct
     MirbookingDefaultScoreTableSupplementaryModel supplementary_model;
     GBytes       *supplementary_scores_bytes;
     SparseMatrix  supplementary_scores;
+    gdouble       base_kf;
+    gdouble       base_kcleave;
     /* hints for filtering interactions */
     MirbookingDefaultScoreTableFilter filter;
     gpointer                          filter_user_data;
@@ -280,7 +282,7 @@ compute_score (MirbookingScoreTable *score_table,
                                                                            SEED_LENGTH);
 
     // base forward rate which is modulated by seed mismatches
-    ret.kf = KF;
+    ret.kf = self->priv->base_kf;
 
     guint i;
     for (i = 0; i < 7; i++)
@@ -316,7 +318,7 @@ compute_score (MirbookingScoreTable *score_table,
         supplementary_score = binding_energy (z, 2);
 
         // require at least the 3' supplementary bindings for cleavage
-        ret.kcleave = binding_probability (z, 5, 1) * KCLEAVE;
+        ret.kcleave = binding_probability (z, 5, 1) * self->priv->base_kcleave;
     }
     else if (self->priv->supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018)
     {
@@ -374,7 +376,7 @@ compute_score (MirbookingScoreTable *score_table,
         supplementary_score = binding_energy (z, 5);
 
         // at least A-box for cleavage
-        ret.kcleave = (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * KCLEAVE;
+        ret.kcleave = (binding_probability (z, 5, 3) + binding_probability (z, 5, 4)) * self->priv->base_kcleave;
     }
 
     gdouble Kd = 1e12 * exp ((A_score + seed_score + supplementary_score + mirbooking_target_get_accessibility_score (target, position) + AGO2_SCORE) / (R * T));
@@ -476,7 +478,9 @@ enum
 {
     PROP_SEED_SCORES = 1,
     PROP_SUPPLEMENTARY_MODEL,
-    PROP_SUPPLEMENTARY_SCORES
+    PROP_SUPPLEMENTARY_SCORES,
+    PROP_BASE_KF,
+    PROP_BASE_KCLEAVE
 };
 
 static void
@@ -489,6 +493,12 @@ mirbooking_default_score_table_get_property (GObject *object, guint property_id,
             break;
         case PROP_SUPPLEMENTARY_SCORES:
             g_value_set_boxed (value, MIRBOOKING_DEFAULT_SCORE_TABLE (object)->priv->supplementary_scores_bytes);
+            break;
+        case PROP_BASE_KF:
+            g_value_set_double (value, MIRBOOKING_DEFAULT_SCORE_TABLE (object)->priv->base_kf);
+            break;
+        case PROP_BASE_KCLEAVE:
+            g_value_set_double (value, MIRBOOKING_DEFAULT_SCORE_TABLE (object)->priv->base_kcleave);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -515,6 +525,12 @@ mirbooking_default_score_table_set_property (GObject *object, guint property_id,
         case PROP_SUPPLEMENTARY_SCORES:
             score_table = g_value_get_boxed (value);
             self->priv->supplementary_scores_bytes = score_table == NULL ? NULL : g_bytes_ref (score_table);
+            break;
+        case PROP_BASE_KF:
+            self->priv->base_kf = g_value_get_double (value);
+            break;
+        case PROP_BASE_KCLEAVE:
+            self->priv->base_kcleave = g_value_get_double (value);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -543,6 +559,12 @@ mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *kla
     g_object_class_install_property (object_class,
                                      PROP_SUPPLEMENTARY_SCORES,
                                      g_param_spec_boxed ("supplementary-scores", "", "", G_TYPE_BYTES, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     PROP_BASE_KF,
+                                     g_param_spec_double ("base-kf", "", "", 0, INFINITY, KF, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     PROP_BASE_KCLEAVE,
+                                     g_param_spec_double ("base-cleave", "", "", 0, INFINITY, KCLEAVE, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 }
 
 /**
