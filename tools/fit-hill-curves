@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+
+import argparse
+import numpy as np
+import pandas as pd
+import sys
+
+from Bio.SeqIO import parse
+from scipy.stats import linregress
+
+import gi
+gi.require_version('Mirbooking', '2.3')
+from gi.repository import GLib, Mirbooking
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--targets', required=True)
+parser.add_argument('--mirnas', required=True)
+parser.add_argument('--mirna', required=True)
+parser.add_argument('--input', required=True)
+parser.add_argument('--cutoff', type=float, default=100, required=True)
+parser.add_argument('--output', default=sys.stdout)
+args = parser.parse_args()
+
+cutoff = args.cutoff
+
+def fit(X, Y):
+    X = np.array(X)
+    Y = np.array(Y)
+    assert np.isfinite(X).all()
+    assert np.isfinite(Y).all()
+    n, intercept, r_value, p_value, std_err = linregress(np.log(X), np.log(Y / (1 - Y)))
+    return n, np.exp(intercept / -n), r_value**2
+
+def bound_fraction(d):
+    bf = d.quantity / d.target_quantity
+    return 1-(1-bf).prod()
+
+mir = Mirbooking.Mirna(accession='MIMAT0000255', name='hsa-miR-34a', sequence=args.mirna)
+
+st = Mirbooking.DefaultScoreTable(seed_scores=GLib.MappedFile('/u/poirigui/mirbooking-2.3.0-dev/share/mirbooking-2.3/scores-7mer-3mismatch-ending', False).get_bytes(),
+                                  supplementary_model=Mirbooking.DefaultScoreTableSupplementaryModel.YAN_ET_AL_2018,
+                                  supplementary_scores=GLib.MappedFile('/u/poirigui/mirbooking-2.3.0-dev/share/mirbooking-2.3/scores-3mer', False).get_bytes())
+
+X = np.logspace(0, 5, num=10)
+
+quantification = pd.read_csv(args.input, sep='\t', names=('accession','quantity'), index_col='accession')
+
+with open(args.mirnas) as f:
+    for record in parse(f, 'fasta'):
+        name, accession, *_ = record.description.split()
+        if accession == args.mirna:
+            mir = Mirbooking.Mirna(accession=accession, name=name, sequence=record.seq)
+            break
+    else:
+        print(f'Could not find {args.mirna}.')
+        sys.exit(1)
+
+print('Reading targets...')
+targets = {}
+with open(args.targets) as f:
+    for record in parse(f, 'fasta'):
+        target_accession, _, _, _, target_name, *_ = record.id.split('|')
+        if target_accession in quantification.index:
+            targets[target_accession] = Mirbooking.Target(accession=target_accession,
+                    name=target_name,
+                    sequence=record.seq)
+
+print('Initializing the model...')
+broker = Mirbooking.Broker(score_table=st, sparse_solver=Mirbooking.BrokerSparseSolver.MKL_LAPACK)
+broker.set_sequence_quantity(mir, np.max(X))
+ud = Mirbooking.DefaultScoreTableCutoffFilterUserData()
+ud.broker = broker
+ud.cutoff = cutoff
+st.set_filter(Mirbooking.DefaultScoreTable.cutoff_filter, ud)
+for t, quantity in quantification.quantity[quantification.quantity >= cutoff].items():
+    broker.set_sequence_quantity(targets[t], quantity)
+broker.evaluate()
+
+print(f'This model has {len(broker.get_occupants())} interactions among {len(broker.get_targets())} targets.')
+
+print('Computing models...')
+Y = []
+for mq in X:
+    print(f'Testing {mir.get_name()} at {mq:.2e} pM...')
+    broker.set_sequence_quantity(mir, mq - broker.get_bound_mirna_quantity(mir))
+    while broker.evaluate()[1] > 1:
+        broker.step(Mirbooking.BrokerStepMode.SOLVE_STEADY_STATE, 1)
+    df = broker.get_target_sites_as_dataframe()
+    Y.append(df.groupby('target_accession').apply(bound_fraction))
+
+responses = pd.concat(Y, axis=1, sort=False).T
+
+print('Fitting models...')
+results = pd.DataFrame([(target,) + fit(X, titrations) for target, titrations in responses.iteritems()],
+                       columns=['target_accession', 'n', 'ka', 'r2'])
+results = results.set_index('target_accession')
+
+results.to_csv(args.output, sep='\t')

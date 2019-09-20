@@ -564,7 +564,7 @@ mirbooking_default_score_table_class_init (MirbookingDefaultScoreTableClass *kla
                                      g_param_spec_double ("base-kf", "", "", 0, INFINITY, KF, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_BASE_KCLEAVE,
-                                     g_param_spec_double ("base-cleave", "", "", 0, INFINITY, KCLEAVE, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+                                     g_param_spec_double ("base-kcleave", "", "", 0, INFINITY, KCLEAVE, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 }
 
 /**
