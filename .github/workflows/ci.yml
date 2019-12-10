@@ -1,0 +1,21 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: install-deps
+      run: sudo apt-get install libglib2.0-dev gobject-introspection libgirepository1.0-dev libblas-dev libfftw3-dev libsuperlu-dev python3-pip python3-wheel python3-setuptools ninja-build
+    - name: install-meson
+      run: sudo pip3 install meson
+    - name: configure
+      run: meson -Dwith_fftw3=true -Dwith_openmp=true -Dwith_introspection=true build
+    - name: build
+      run: ninja -C build
+    - name: test
+      run: ninja -C build test
