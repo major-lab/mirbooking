@@ -1,5 +1,7 @@
 # miRBooking
 
+![](https://github.com/major-lab/mirbooking/workflows/build/badge.svg)
+
 Implementation of the miRBooking algorithm and metrics in C
 
  - fast and memory efficient
