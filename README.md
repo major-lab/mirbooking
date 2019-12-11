@@ -111,6 +111,12 @@ uses a shared library. Otherwise, a static linkage can be done by calling
 To generate introspection metadata, use `meson -Dwith_introspection=true`. To
 generate Vala bindings, use `meson -Dwith_vapi=true`.
 
+CBLAS is required and you can alternatively opt for ATLAS with
+`-Dwith_atlas=true` or OpenBLAS `-Dwith_openblas=true` implementations instead
+of the default netlib CBLAS. If configured with `-Dwith_mkl=true`, MKL CBLAS
+will be used instead. The OpenMP flavour of OpenBLAS is used when configured
+with `-Dwith_openmp=true`.
+
 FFTW can be optionally used to compute more accurate silencing by specifying
 `meson -Dwith_fftw3=true`. If you redistribute miRBooking source code, be
 careful not to enable this as a default because of the GPL license covering

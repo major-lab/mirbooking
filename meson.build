@@ -84,6 +84,19 @@ endif
 if get_option('with_mkl')
     add_project_arguments('-DHAVE_MKL_CBLAS', language: 'c')
     cblas_dep = mkl_dep
+elif get_option('with_openblas')
+    add_project_arguments('-DHAVE_OPENBLAS', language: 'c')
+    if get_option('with_openmp')
+        openblas_flavour = 'o'
+    else
+        openblas_flavour = ''
+    endif
+    cblas_dep = meson.get_compiler('c').find_library('openblas' + openblas_flavour)
+elif get_option('with_atlas')
+    cblas_dep = dependency('atlas', required: false)
+    if not cblas_dep.found()
+        cblas_dep = dependency('blas-atlas')
+    endif
 else
     cblas_dep = dependency('cblas', required: false)
     if not cblas_dep.found()
