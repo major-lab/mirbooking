@@ -85,7 +85,10 @@ if get_option('with_mkl')
     add_project_arguments('-DHAVE_MKL_CBLAS', language: 'c')
     cblas_dep = mkl_dep
 else
-    cblas_dep = dependency('cblas')
+    cblas_dep = dependency('cblas', required: false)
+    if not cblas_dep.found()
+        cblas_dep = dependency('blas-netlib')
+    endif
 endif
 
 if get_option('with_mkl') and get_option('with_mkl_fftw3')
