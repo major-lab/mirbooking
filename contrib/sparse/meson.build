@@ -5,7 +5,8 @@ if get_option('with_superlu')
     superlu_dep = meson.get_compiler('c').find_library('superlu')
     if meson.get_compiler('c').has_header('SuperLU/slu_ddefs.h')
     elif meson.get_compiler('c').has_header('superlu/slu_ddefs.h')
-        sparse_solvers_compile_args += ['-DHAVE_SUPERLU_LOWERCASE_INCDIR']
+        superlu_dep = declare_dependency(dependencies: superlu_dep,
+                                         compile_args: '-DHAVE_SUPERLU_LOWERCASE_INCDIR')
     else
         error('Could not find SuperLU header.')
     endif
