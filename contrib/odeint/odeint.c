@@ -8,6 +8,8 @@
 #include <stdio.h>
 #if HAVE_MKL_CBLAS
 #include <mkl_cblas.h>
+#elif HAVE_OPENBLAS
+#include <openblas/cblas.h>
 #else
 #include <cblas.h>
 #endif

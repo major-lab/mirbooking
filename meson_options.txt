@@ -2,6 +2,10 @@ option('with_fftw3', type: 'boolean', value: false)
 option('with_openmp', type: 'boolean', value: false)
 option('with_mpi', type: 'boolean', value: false)
 
+# BLAS implementation
+option('with_openblas', type: 'boolean', value: false)
+option('with_atlas', type: 'boolean', value: false)
+
 option('with_superlu', type: 'boolean', value: true)
 option('with_umfpack', type: 'boolean', value: false)
 option('with_mkl_dss', type: 'boolean', value: false)
