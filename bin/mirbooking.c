@@ -56,20 +56,21 @@ const MirbookingOutputFormatMeta MIRBOOKING_OUTPUT_FORMAT_META[] =
     {MIRBOOKING_OUTPUT_FORMAT_WIG,          "wig",          write_output_to_wiggle}
 };
 
-static gchar                        **targets_files             = {NULL};
-static gchar                        **mirnas_files              = {NULL};
+static gchar                        **targets_files            = {NULL};
+static gchar                        **mirnas_files             = {NULL};
 static gchar                         *seed_scores_file          = MIRBOOKING_DEFAULT_SEED_SCORES_FILE;
 static gchar                         *supplementary_scores_file = NULL;
 static gchar                         *accessibility_scores_file = NULL;
 static gchar                         *input_file                = NULL;
 static gchar                         *output_file               = NULL;
-static MirbookingOutputFormat         output_format             = MIRBOOKING_OUTPUT_FORMAT_TSV;
+static MirbookingOutputFormat         output_format              = MIRBOOKING_OUTPUT_FORMAT_TSV;
 static MirbookingBrokerSparseSolver   sparse_solver;
-static guint64                        max_iterations            = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
-static gsize                          prime5_footprint          = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
-static gsize                          prime3_footprint          = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
-static gdouble                        cutoff                    = MIRBOOKING_DEFAULT_CUTOFF;
-static gdouble                        rel_cutoff                = MIRBOOKING_DEFAULT_REL_CUTOFF;
+static guint64                        max_iterations             = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
+static gsize                          prime5_footprint           = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
+static gsize                          prime3_footprint           = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
+static gdouble                        cutoff                     = MIRBOOKING_DEFAULT_CUTOFF;
+static gdouble                        rel_cutoff                 = MIRBOOKING_DEFAULT_REL_CUTOFF;
+static gboolean                       version                    = FALSE;
 
 static MirbookingDefaultScoreTableSupplementaryModel supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL;
 
@@ -167,6 +168,7 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"3prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime3_footprint,          "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
     {"cutoff",               0, 0, G_OPTION_ARG_DOUBLE,         &cutoff,                    "Cutoff on the duplex concentration",                                                              G_STRINGIFY (MIRBOOKING_DEFAULT_CUTOFF)},
     {"relative-cutoff",      0, 0, G_OPTION_ARG_DOUBLE,         &rel_cutoff,                "Relative cutoff on the bound fraction",                                                           G_STRINGIFY (MIRBOOKING_DEFAULT_REL_CUTOFF)},
+    {"version",              0, 0, G_OPTION_ARG_NONE,           &version,                   "Show version and exit",                                                                           NULL},
     {0}
 };
 
@@ -617,6 +619,12 @@ main (gint argc, gchar **argv)
     {
         g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
         return EXIT_FAILURE;
+    }
+
+    if (version)
+    {
+        g_print ("%s\n", MIRBOOKING_VERSION);
+        return EXIT_SUCCESS;
     }
 
     if (!mirbooking_broker_sparse_solver_is_available (sparse_solver))
