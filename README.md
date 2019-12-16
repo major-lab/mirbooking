@@ -65,19 +65,19 @@ ideal substrate bound fraction.
 
 The output is a TSV with the following columns:
 
-| Column           | Description                                            |
-| ---------------- | ------------------------------------------------------ |
-| gene_accession   | Gene accession with version (new in 2.3)               |
-| gene_name        | Name of the gene or N/A if unknown (new in 2.3)        |
-| target_accession | Target accession with version                          |
-| target_name      | Name of the target or N/A if unknown                   |
-| target_quantity  | Total target concentration in picomolars               |
-| position         | Site position on the target                            |
-| mirna_accession  | miRNA accession                                        |
-| mirna_name       | Name of the miRNA or N/A if unknown                    |
-| mirna_quantity   | Total miRNA concentration in picomolars                |
-| score            | Michalis-Menten constant of the miRNA::MRE duplex      |
-| quantity         | miRNA::MRE duplex concentration this target position   |
+| Column           | Description                                                        |
+| ---------------- | ------------------------------------------------------------------ |
+| gene_accession   | Gene accession with version (new in 2.3)                           |
+| gene_name        | Name of the gene or N/A if unknown (new in 2.3)                    |
+| target_accession | Target accession with version                                      |
+| target_name      | Name of the target or N/A if unknown                               |
+| target_quantity  | Total target concentration in picomolars                           |
+| position         | Site position on the target                                        |
+| mirna_accession  | miRNA accession                                                    |
+| mirna_name       | Name of the miRNA or N/A if unknown                                |
+| mirna_quantity   | Total miRNA concentration in picomolars                            |
+| score            | Michalis-Menten constant of the miRNA::MRE duplex                  |
+| quantity         | miRNA::MRE duplex concentration this target position in picomolars |
 
 The detailed TSV output which expands the score structure in its constituents
 can be used with `--output-format=tsv-detailed` (new in 2.3). In this mode, the
