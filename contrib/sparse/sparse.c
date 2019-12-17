@@ -16,12 +16,12 @@ sparse_##solver##_solve (SparseSolver *solver,  \
                          void         *x,       \
                          void         *b);
 
+DECLARE_SOLVER(lapack)
 DECLARE_SOLVER(superlu)
 DECLARE_SOLVER(superlu_mt)
 DECLARE_SOLVER(umfpack)
 DECLARE_SOLVER(mkl_dss)
 DECLARE_SOLVER(mkl_cluster)
-DECLARE_SOLVER(mkl_lapack)
 DECLARE_SOLVER(cusolver)
 DECLARE_SOLVER(pardiso)
 
@@ -282,6 +282,7 @@ sparse_solver_new (SparseSolverMethod method)
 
     switch (method)
     {
+            PREPARE_SOLVER(LAPACK,lapack)
 #if HAVE_SUPERLU
             PREPARE_SOLVER(SUPERLU,superlu)
 #endif
@@ -296,9 +297,6 @@ sparse_solver_new (SparseSolverMethod method)
 #endif
 #if HAVE_MKL_CLUSTER
             PREPARE_SOLVER(MKL_CLUSTER,mkl_cluster)
-#endif
-#if HAVE_MKL_LAPACK
-            PREPARE_SOLVER(MKL_LAPACK,mkl_lapack)
 #endif
 #if HAVE_CUSOLVER
             PREPARE_SOLVER(CUSOLVER,cusolver)

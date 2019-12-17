@@ -133,6 +133,7 @@ machine on supported solvers (i.e. `mkl-cluster`) by specifying `-Dwith_mpi=true
 
 | Solver      | Build Options                                                                      |
 | ----------- | ---------------------------------------------------------------------------------- |
+| LAPACK      | No option since this is the fallback solver.                                       |
 | SuperLU     | `-Dwith_superlu=true`                                                              |
 | SuperLU MT  | `-Dwith_superlu_mt=true`                                                           |
 | UMFPACK     | `-Dwith_umfpack=true`                                                              |
@@ -142,15 +143,14 @@ machine on supported solvers (i.e. `mkl-cluster`) by specifying `-Dwith_mpi=true
 | MKL LAPACK  | `-Dwith_mkl=true -Dmkl_root=<path to mkl> -Dwith_mkl_lapack=true`                  |
 | PARDISO     | `-Dwith_pardiso=true`                                                              |
 
+LAPACK is not a sparse linear solver and thus will not handle typical workload
+very well, but it will perform orders of magnitude faster on dense jacobians.
+
 cuSOLVER require CUDA toolkit whose API version is to be specified with
 `-Dwith_cuda=<cuda_toolkit_api_version>`.
 
 MKL DSS and MKL Cluster can benefit from [TBB](https://www.threadingbuildingblocks.org/)
 instead of OpenMP, which can be enabled with `-Dwith_mkl_tbb=true`.
-
-MKL LAPACK is not a sparse linear solver and thus will not handle typical
-workload very well, but it will perform orders of magnitude faster on dense
-jacobians.
 
 MKL DSS and MKL Cluster can be used with the 64 bit interface, allowing much
 larger systems to be solved with `-Dwith_mkl_ilp64=true`. However, this will
@@ -164,7 +164,8 @@ By default, the best sparse solver available among the following will be used
  1. MKL-DSS
  2. PARDISO
  2. UMFPACK
- 3. SuperLU (even if not available)
+ 3. SuperLU
+ 4. LAPACK
 
 ## Numerical integration
 

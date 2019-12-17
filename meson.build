@@ -117,6 +117,18 @@ else
     warning('FFTW3 is recommended to compute accurate target silencing.')
 endif
 
+if get_option('with_mkl') and get_option('with_mkl_lapack')
+    lapack_dep = declare_dependency(dependencies: mkl_dep,
+                                    compile_args: '-DHAVE_MKL_LAPACK')
+    message('MKL LAPACK will be used.')
+else
+    lapack_dep = dependency('lapacke', required: false)
+    if not lapack_dep.found()
+        lapack_dep = meson.get_compiler('c').find_library('lapacke')
+    endif
+endif
+
+
 pymod = import('python')
 python3 = pymod.find_installation('python3')
 

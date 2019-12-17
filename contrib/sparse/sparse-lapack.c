@@ -3,23 +3,27 @@
 
 #include <stdlib.h>
 #include <string.h>
+#if HAVE_MKL_LAPACK
 #include <mkl_lapacke.h>
+#else
+#include <lapacke.h>
+#endif
 #include <assert.h>
 
 void
-sparse_mkl_lapack_init (SparseSolver *solver)
+sparse_lapack_init (SparseSolver *solver)
 {
 
 }
 
 void
-sparse_mkl_lapack_clear (SparseSolver *solver)
+sparse_lapack_clear (SparseSolver *solver)
 {
 
 }
 
 int
-sparse_mkl_lapack_solve (SparseSolver *solver,
+sparse_lapack_solve (SparseSolver *solver,
                       SparseMatrix *A,
                       void         *x,
                       const void   *b)
@@ -64,3 +68,4 @@ sparse_mkl_lapack_solve (SparseSolver *solver,
 
     return ret == 0;
 }
+

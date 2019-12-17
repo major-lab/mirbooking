@@ -1,6 +1,10 @@
 sparse_solvers_compile_args = []
 sparse_solvers_modules = []
 
+sparse_lapack_lib = static_library('sparse-lapack', 'sparse-lapack.c',
+                                    dependencies: [lapack_dep])
+sparse_solvers_modules += sparse_lapack_lib
+
 if get_option('with_superlu')
     superlu_dep = meson.get_compiler('c').find_library('superlu')
     if meson.get_compiler('c').has_header('SuperLU/slu_ddefs.h')
@@ -49,14 +53,6 @@ if get_option('with_mkl_cluster')
     sparse_mkl_cluster_lib = static_library('sparse-mkl-cluster', 'sparse-mkl-cluster.c',
                                             dependencies: mkl_dep)
     sparse_solvers_modules += sparse_mkl_cluster_lib
-endif
-
-if get_option('with_mkl_lapack')
-    sparse_solvers_compile_args += ['-DHAVE_MKL_LAPACK']
-    sparse_mkl_lapack_lib = static_library('sparse-mkl-lapack', 'sparse-mkl-lapack.c',
-        dependencies: mkl_dep)
-    sparse_solvers_modules += sparse_mkl_lapack_lib
-
 endif
 
 if get_option('with_cuda') != '' and get_option('with_cusolver')
