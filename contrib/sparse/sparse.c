@@ -261,9 +261,6 @@ sparse_solver_new (SparseSolverMethod method)
 #if HAVE_SUPERLU
             PREPARE_SOLVER(SUPERLU,superlu)
 #endif
-#if HAVE_SUPERLU_MT
-            PREPARE_SOLVER(SUPERLU_MT,superlu_mt)
-#endif
 #if HAVE_UMFPACK
             PREPARE_SOLVER(UMFPACK,umfpack)
 #endif
