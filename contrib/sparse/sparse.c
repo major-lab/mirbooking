@@ -17,7 +17,6 @@ sparse_##solver##_solve (SparseSolver *solver,  \
                          void         *b);
 
 DECLARE_SOLVER(superlu)
-DECLARE_SOLVER(superlu_mt)
 DECLARE_SOLVER(umfpack)
 DECLARE_SOLVER(mkl_dss)
 DECLARE_SOLVER(mkl_cluster)
@@ -260,9 +259,6 @@ sparse_solver_new (SparseSolverMethod method)
     {
 #if HAVE_SUPERLU
             PREPARE_SOLVER(SUPERLU,superlu)
-#endif
-#if HAVE_SUPERLU_MT
-            PREPARE_SOLVER(SUPERLU_MT,superlu_mt)
 #endif
 #if HAVE_UMFPACK
             PREPARE_SOLVER(UMFPACK,umfpack)

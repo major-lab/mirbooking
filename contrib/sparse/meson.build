@@ -16,14 +16,6 @@ if get_option('with_superlu')
     sparse_solvers_modules += sparse_superlu_lib
 endif
 
-if get_option('with_superlu_mt')
-    superlu_mt_dep = meson.get_compiler('c').find_library('superlumt64_d')
-    sparse_solvers_compile_args += ['-DHAVE_SUPERLU_MT', '-D_LONG_INT']
-    sparse_superlu_mt_lib = static_library('sparse-superlu-mt', 'sparse-superlu-mt.c',
-                                           dependencies: [superlu_mt_dep])
-    sparse_solvers_modules += sparse_superlu_mt_lib
-endif
-
 if get_option('with_umfpack')
     umfpack_dep = meson.get_compiler('c').find_library('umfpack')
     sparse_solvers_compile_args += ['-DHAVE_UMFPACK']
