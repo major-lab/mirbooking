@@ -9,6 +9,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+      with:
+        lfs: true
     - name: install-deps
       run: sudo apt-get install libglib2.0-dev gobject-introspection libgirepository1.0-dev libblas-dev liblapacke-dev libfftw3-dev libsuperlu-dev python3-pip python3-wheel python3-setuptools ninja-build
     - name: install-meson
