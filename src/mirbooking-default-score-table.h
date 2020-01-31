@@ -8,15 +8,6 @@
 
 G_BEGIN_DECLS
 
-#define MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_NONE
-
-typedef enum _MirbookingDefaultScoreTableSupplementaryModel
-{
-    MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_NONE,
-    MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_WEE_ET_AL_2012,
-    MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018
-} MirbookingDefaultScoreTableSupplementaryModel;
-
 #define MIRBOOKING_TYPE_DEFAULT_SCORE_TABLE mirbooking_default_score_table_get_type ()
 G_DECLARE_FINAL_TYPE (MirbookingDefaultScoreTable, mirbooking_default_score_table, MIRBOOKING, DEFAULT_SCORE_TABLE, MirbookingScoreTable)
 
@@ -57,9 +48,7 @@ mirbooking_default_score_table_blacklist_filter (MirbookingDefaultScoreTable *sc
                                                  gssize                       position,
                                                  gpointer                     user_data);
 
-MirbookingDefaultScoreTable * mirbooking_default_score_table_new        (GBytes *seed_bytes,
-                                                                         MirbookingDefaultScoreTableSupplementaryModel supplementary_model,
-                                                                         GBytes *supp_bytes);
+MirbookingDefaultScoreTable * mirbooking_default_score_table_new        (void);
 void                          mirbooking_default_score_table_set_filter (MirbookingDefaultScoreTable       *self,
                                                                          MirbookingDefaultScoreTableFilter  filter,
                                                                          gpointer                           user_data,

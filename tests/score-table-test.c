@@ -41,9 +41,7 @@ static void
 test_score_table_compute_seed_score ()
 {
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table,
-                                                                                              MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL,
-                                                                                              NULL);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new ();
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT");
@@ -76,9 +74,7 @@ test_score_table_compute_seed_scores ()
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
     g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
     g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
-    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018,
-                                                                                                               supplementary_scores));
+    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new ());
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("MIMAT");
@@ -129,9 +125,7 @@ test_score_table_wee_et_al_2012 ()
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
     g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
     g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
-    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018,
-                                                                                                               supplementary_scores));
+    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new ());
 
     // siRNA
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna), "UGAGGUAGUAGGUUGUAUAUGU");
@@ -254,9 +248,7 @@ test_score_table_salomon_et_al_2016 ()
 
     g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
     g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
-    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018,
-                                                                                                               supplementary_scores));
+    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new ());
 
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna),  "UGAGGUAGUAGGUUGUAUAGU");
 
@@ -365,9 +357,7 @@ test_score_table_schirle_et_al_2015 ()
     g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
     g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
     g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
-    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018,
-                                                                                                               supplementary_scores));
+    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new ());
 
     // A
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "CAAUGUGAAAA");
@@ -413,9 +403,7 @@ test_score_table_yan_et_al_2018 ()
     g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
     g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
     g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
-    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                               MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018,
-                                                                                                               supplementary_scores));
+    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new ());
 
     mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GACGAAGAGCUCAUCAGAACA");
 
@@ -518,9 +506,7 @@ test_score_table_jo_et_al_2015 ()
     g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
     g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
     g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
-    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                                          MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018,
-                                                                                                                          supplementary_scores));
+    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new ());
 
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("");
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("");
@@ -540,9 +526,26 @@ test_score_table_chi_et_al_2012 ()
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
     g_autoptr (GMappedFile) mapped_supplementary_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-3mer", NULL), FALSE, NULL);
     g_autoptr (GBytes) supplementary_scores = g_mapped_file_get_bytes (mapped_supplementary_scores);
-    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new (default_table,
-                                                                                                                          MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018,
-                                                                                                                          supplementary_scores));
+    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new ());
+
+    g_autoptr (MirbookingTarget) target = mirbooking_target_new ("");
+    g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("");
+
+    // G-buldged seed
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (target), "GUGGCCUU");
+    mirbooking_sequence_set_sequence (MIRBOOKING_SEQUENCE (mirna),  "UAAGGCAC");
+
+    MirbookingScore score;
+    mirbooking_score_table_compute_score (score_table, mirna, target, 0, &score, NULL);
+
+    gfloat G_seed = (exp (6.3f/(R*T)) * (-6.3f) + exp (8.59f/(R*T)) * (-8.59f)) / (exp (6.3f/(R*T)) + exp (8.59f/(R*T)));
+    g_assert_cmpfloat_with_epsilon (MIRBOOKING_SCORE_KD (score), 1e12 * exp ((G_seed + AGO2_SCORE) / (R * T)), 1e-12);
+}
+
+static void
+test_score_table_becker_et_al_2019 ()
+{
+    g_autoptr (MirbookingScoreTable) score_table = MIRBOOKING_SCORE_TABLE (mirbooking_default_score_table_new ());
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("");
     g_autoptr (MirbookingMirna) mirna = mirbooking_mirna_new ("");
@@ -570,6 +573,7 @@ int main (int argc, gchar **argv)
     g_test_add_func ("/score-table/yan-et-al-2018", test_score_table_yan_et_al_2018);
     g_test_add_func ("/score-table/jo-et-al-2015", test_score_table_jo_et_al_2015);
     g_test_add_func ("/score-table/chi-et-al-2012", test_score_table_chi_et_al_2012);
+    g_test_add_func ("/score-table/becker-et-al-2019", test_score_table_becker_et_al_2019);
 
     return g_test_run ();
 }

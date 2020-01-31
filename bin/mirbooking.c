@@ -31,8 +31,6 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (GEnumClass, g_type_class_unref);
 
 static gchar                        **targets_files            = {NULL};
 static gchar                        **mirnas_files             = {NULL};
-static gchar                         *seed_scores_file          = MIRBOOKING_DEFAULT_SEED_SCORES_FILE;
-static gchar                         *supplementary_scores_file = NULL;
 static gchar                         *accessibility_scores_file = NULL;
 static gchar                         *input_file                = NULL;
 static gchar                         *output_file               = NULL;
@@ -45,38 +43,6 @@ static gdouble                        cutoff                     = MIRBOOKING_DE
 static gdouble                        rel_cutoff                 = MIRBOOKING_DEFAULT_REL_CUTOFF;
 static gboolean                       version                    = FALSE;
 static gchar                         *blacklist                  = NULL;
-
-static MirbookingDefaultScoreTableSupplementaryModel supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL;
-
-static gboolean
-set_supplementary_model (const gchar   *key,
-                         const gchar   *value,
-                         gpointer       data,
-                         GError      **error)
-{
-    if (g_strcmp0 (value, "wee-et-al-2012") == 0)
-    {
-        supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_WEE_ET_AL_2012;
-        if (supplementary_scores_file == NULL)
-            supplementary_scores_file = MIRBOOKING_DEFAULT_WEE_ET_AL_2012_SUPPLEMENTARY_SCORES_FILE;
-    }
-    else if (g_strcmp0 (value, "yan-et-al-2018") == 0)
-    {
-        supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_YAN_ET_AL_2018;
-        if (supplementary_scores_file == NULL)
-            supplementary_scores_file = MIRBOOKING_DEFAULT_YAN_ET_AL_2018_SUPPLEMENTARY_SCORES_FILE;
-    }
-    else
-    {
-        g_set_error (error,
-                     G_OPTION_ERROR,
-                     G_OPTION_ERROR_BAD_VALUE,
-                     "No such supplementary model %s.", value);
-        return FALSE;
-    }
-
-    return TRUE;
-}
 
 static gboolean
 set_output_format (const gchar   *key,
@@ -130,9 +96,6 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
     {"targets",              0, 0, G_OPTION_ARG_FILENAME_ARRAY, &targets_files,             "Targets FASTA files",                                                                             NULL},
     {"mirnas",               0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirnas_files,              "miRNA FASTA files",                                                                               NULL},
-    {"seed-scores",          0, 0, G_OPTION_ARG_FILENAME,       &seed_scores_file,          "Precomputed seed::MRE binding free energy duplex table",                                          "FILE"},
-    {"supplementary-model",  0, 0, G_OPTION_ARG_CALLBACK,       &set_supplementary_model,   "Supplementary bindings model to use",                                                             "none"},
-    {"supplementary-scores", 0, 0, G_OPTION_ARG_FILENAME,       &supplementary_scores_file, "Precomputed supplementary::MRE binding free energy duplex table",                                 "FILE"},
     {"accessibility-scores", 0, 0, G_OPTION_ARG_FILENAME,       &accessibility_scores_file, "Accessibility scores as a variable columns (accession, positions...) TSV file",                   "FILE"},
     {"input",                0, 0, G_OPTION_ARG_FILENAME,       &input_file,                "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
     {"output",               0, 0, G_OPTION_ARG_FILENAME,       &output_file,               "Output destination file (defaults to stdout)",                                                    "FILE"},
@@ -573,58 +536,7 @@ main (gint argc, gchar **argv)
     mirbooking_broker_set_3prime_footprint (mirbooking, prime3_footprint);
     mirbooking_broker_set_sparse_solver (mirbooking, sparse_solver);
 
-    if (seed_scores_file == NULL)
-    {
-        g_printerr ("The '--seed-scores' argument is required.\n");
-        return EXIT_FAILURE;
-    }
-
-    g_autoptr (GMappedFile) seed_scores_map = g_mapped_file_new (seed_scores_file, FALSE, &error);
-
-    if (seed_scores_map == NULL)
-    {
-        g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-        return EXIT_FAILURE;
-    }
-
-    g_autoptr (GBytes) seed_scores_map_bytes = g_mapped_file_get_bytes (seed_scores_map);
-
-    g_return_val_if_fail (seed_scores_map_bytes != NULL, EXIT_FAILURE);
-
-    gsize seed_scores_map_bytes_len;
-    const gsize *seed_scores_data = g_bytes_get_data (seed_scores_map_bytes,
-                                                      &seed_scores_map_bytes_len);
-
-    // we require at least 'n' and 'nnz'
-    if (seed_scores_map_bytes_len < 2 * sizeof (gsize) || (1l << 2 * 7) != *seed_scores_data)
-    {
-        g_printerr ("The specified seed scores file is invalid.\n");
-        return EXIT_FAILURE;
-    }
-
-    g_autoptr (GMappedFile) supplementary_scores_file_map = NULL;
-    g_autoptr (GBytes) supplementary_scores_map_bytes = NULL;
-    if (supplementary_scores_file != NULL)
-    {
-        if (supplementary_model == MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_NONE)
-        {
-            g_printerr ("The '--supplementary-model' argument must be set in order to provide a supplementary score file.\n");
-            return EXIT_FAILURE;
-        }
-
-        supplementary_scores_file_map = g_mapped_file_new (supplementary_scores_file, TRUE, &error);
-        if (supplementary_scores_file_map == NULL)
-        {
-            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-            return EXIT_FAILURE;
-        }
-
-        supplementary_scores_map_bytes = g_mapped_file_get_bytes (supplementary_scores_file_map);
-    }
-
-    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (seed_scores_map_bytes,
-                                                                                              supplementary_model,
-                                                                                              supplementary_scores_map_bytes);
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new ();
 
     MirbookingDefaultScoreTableCutoffFilterUserData cutoff_filter_ud =
     {
