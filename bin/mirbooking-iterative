@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+import pandas as pd
+import subprocess
+import sys
+import argparse
+import tempfile
+
+def main(argv):
+    parser = argparse.ArgumentParser()
+    # we need to intercept these arguments
+    parser.add_argument('--cutoff', type=float, required=True)
+    parser.add_argument('--output', required=True)
+    args, mirbooking_args = parser.parse_known_args(argv)
+    target_cutoff = args.cutoff
+    cutoff = 1000.0
+    blacklist = pd.DataFrame(columns=['target_accession', 'position', 'mirna_accession'])
+    while cutoff > target_cutoff:
+        with tempfile.NamedTemporaryFile() as blacklistf:
+            blacklist.to_csv(blacklistf.name, sep='\t', index=False)
+            mirbooking_final_args =['build/bin/mirbooking'] + mirbooking_args + ['--blacklist', blacklistf.name, '--cutoff', str(cutoff), '--output', args.output]
+            print(f'Running mirbooking with cutoff {cutoff} and {len(blacklist)} blacklisted interactions.')
+            ret = subprocess.run(mirbooking_final_args)
+            if ret.returncode != 0:
+                break
+        df = pd.read_csv(args.output, sep='\t')
+        # filter out interactions that do not meet the target cutoff
+        blacklist.append(df[df.quantity < target_cutoff][blacklist.columns])
+        cutoff /= 1.5
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))
