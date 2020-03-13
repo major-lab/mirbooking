@@ -11,3 +11,7 @@ configure_file(input: 'config.h.in',
 mirbooking_bin = executable('mirbooking', 'mirbooking.c',
                             dependencies: [glib_dep, gobject_dep, gio_dep, gio_unix_dep, mirbooking_dep, m_dep, mpi_dep],
                             install: true)
+
+install_data('mirbooking-iterative',
+             install: true,
+             install_dir: 'bin')

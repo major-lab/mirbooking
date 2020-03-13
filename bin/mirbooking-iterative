@@ -18,7 +18,7 @@ def main(argv):
     while cutoff > target_cutoff:
         with tempfile.NamedTemporaryFile() as blacklistf:
             blacklist.to_csv(blacklistf.name, sep='\t', index=False)
-            mirbooking_final_args =['build/bin/mirbooking'] + mirbooking_args + ['--blacklist', blacklistf.name, '--cutoff', str(cutoff), '--output', args.output]
+            mirbooking_final_args =['mirbooking'] + mirbooking_args + ['--blacklist', blacklistf.name, '--cutoff', str(cutoff), '--output', args.output]
             print(f'Running mirbooking with cutoff {cutoff} and {len(blacklist)} blacklisted interactions.')
             ret = subprocess.run(mirbooking_final_args)
             if ret.returncode != 0:
