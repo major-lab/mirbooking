@@ -796,11 +796,19 @@ mixed_filter (MirbookingDefaultScoreTable *score_table,
     return filter_out;
 }
 
-static void free_mixed_filter_user_data (gpointer ud)
+static void
+free_mixed_filter_user_data (gpointer ud)
 {
     MixedFilterUserData *mixed_filter_ud = ud;
     g_object_unref (mixed_filter_ud->cutoff_filter_ud.broker);
     g_hash_table_unref (mixed_filter_ud->blacklist_filter_ud.blacklist);
+}
+
+static void
+mirbooking_occupant_free (MirbookingOccupant *occupant)
+{
+    mirbooking_occupant_clear (occupant);
+    g_free (occupant);
 }
 
 int
@@ -913,7 +921,7 @@ main (gint argc, gchar **argv)
 
     GHashTable *blacklist_map = g_hash_table_new_full ((GHashFunc)      mirbooking_occupant_hash,
                                                        (GEqualFunc)     mirbooking_occupant_equal,
-                                                       (GDestroyNotify) mirbooking_occupant_clear,
+                                                       (GDestroyNotify) mirbooking_occupant_free,
                                                        NULL);
 
     MirbookingDefaultScoreTableBlacklistFilterUserdata blacklist_filter_ud =
