@@ -29,6 +29,7 @@ mirbooking --targets GCF_000001405.37_GRCh38.p11_rna.fna
            [--3prime-footprint 7]
            [--cutoff 100]
            [--relative-cutoff 0]
+           [--blacklist blacklist.tsv]
 ```
 
 To obtain detailed usage and options, launch `mirbooking --help`.
@@ -90,6 +91,12 @@ indicate the bound fraction of the position.
 Wiggle output can also be produced with `--output-format=wig`. The score will
 be the position-wise bound fraction of substrate which properly account for
 overlapping microRNA.
+
+The `--blacklist` parameter indicates a file that contains interactions that
+the model should ignore. This is particularly useful if you know beforehand
+they will be too weak at equilibrium to be worth modeling. The format is a
+three column TSV containing only the columns `target_accession`, `position` and
+`mirna_accession` from the output format.
 
 ## Installation
 
@@ -198,6 +205,13 @@ It's also possible to ajust the folding temperature (new in 2.3).
 
 The number of workers can be tuned by setting `OMP_NUM_THREADS` environment
 variable.
+
+The `mirbooking-iterative` tool is a wrapper script around miRBooking which
+takes advantage of the `--blacklist` flag by solving the equilibrium gradually
+and excluding weak interactions in subsequent models.
+
+It takes the same arguments as `mirbooking` with the slight distinction that
+the `--cutoff` now indicates the target cutoff.
 
 ## C API
 
