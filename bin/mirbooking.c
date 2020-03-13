@@ -487,7 +487,7 @@ read_interaction_blacklist (GInputStream  *is,
             g_set_error (error,
                          G_FILE_ERROR,
                          G_FILE_ERROR_FAILED,
-                         "Unknown mirna '%s' in blacklist at line %u.",
+                         "Unknown miRNA '%s' in blacklist at line %u.",
                          mirna_accession,
                          lineno);
             return FALSE;
