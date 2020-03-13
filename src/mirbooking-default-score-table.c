@@ -66,6 +66,30 @@ mirbooking_default_score_table_cutoff_filter  (MirbookingDefaultScoreTable *scor
     return ES >= cutoff_filter_user_data->cutoff && ((ES / S0) >= cutoff_filter_user_data->relative_cutoff);
 }
 
+/**
+ * mirbooking_default_score_table_blacklist_filter:
+ * @user_data: (type MirbookingDefaultScoreTableBlacklistFilterUserdata)
+ * The user_data pointer contains a GHashTable that acts as a hash set. It is
+ * sufficient for an blacklisted interaction to appear as a key to this map
+ * regardless of its associated value.
+ */
+gboolean
+mirbooking_default_score_table_blacklist_filter (MirbookingDefaultScoreTable *score_table,
+                                                 MirbookingMirna             *mirna,
+                                                 MirbookingTarget            *target,
+                                                 gssize                       position,
+                                                 gpointer                     user_data)
+{
+    MirbookingDefaultScoreTableBlacklistFilterUserdata *ud = user_data;
+
+    if (position == -1)
+        return TRUE;
+
+    MirbookingOccupant occupant = { .target = target, .position = position, .mirna = mirna };
+
+    return !g_hash_table_contains (ud->blacklist, &occupant);
+}
+
 static void
 mirbooking_default_score_table_init (MirbookingDefaultScoreTable *self)
 {

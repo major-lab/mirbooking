@@ -72,6 +72,7 @@ static gsize                          prime3_footprint           = MIRBOOKING_BR
 static gdouble                        cutoff                     = MIRBOOKING_DEFAULT_CUTOFF;
 static gdouble                        rel_cutoff                 = MIRBOOKING_DEFAULT_REL_CUTOFF;
 static gboolean                       version                    = FALSE;
+static gchar                         *blacklist                  = NULL;
 
 static MirbookingDefaultScoreTableSupplementaryModel supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL;
 
@@ -169,6 +170,7 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"3prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime3_footprint,          "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
     {"cutoff",               0, 0, G_OPTION_ARG_DOUBLE,         &cutoff,                    "Cutoff on the duplex concentration",                                                              G_STRINGIFY (MIRBOOKING_DEFAULT_CUTOFF)},
     {"relative-cutoff",      0, 0, G_OPTION_ARG_DOUBLE,         &rel_cutoff,                "Relative cutoff on the bound fraction",                                                           G_STRINGIFY (MIRBOOKING_DEFAULT_REL_CUTOFF)},
+    {"blacklist",            0, 0, G_OPTION_ARG_FILENAME,       &blacklist,                 "Interaction blacklist",                                                                           NULL},
     {"version",              0, 0, G_OPTION_ARG_NONE,           &version,                   "Show version and exit",                                                                           NULL},
     {0}
 };
@@ -392,6 +394,117 @@ read_sequence_accessibility (GInputStream     *in,
     }
 
     return TRUE;
+}
+
+
+gboolean
+read_interaction_blacklist (GInputStream  *is,
+                            GHashTable    *blacklist,
+                            GHashTable    *sequences_hash,
+                            GError       **error)
+{
+    g_autoptr (GDataInputStream) dis = g_data_input_stream_new (is);
+
+    guint lineno = 0;
+    do
+    {
+        g_autofree gchar *line = g_data_input_stream_read_line (dis,
+                                                                NULL,
+                                                                NULL,
+                                                                error);
+
+        if (!line)
+        {
+            return *error == NULL;
+        }
+
+        ++lineno;
+
+        if (lineno == 1)
+        {
+            if (!g_str_equal (line, "target_accession\tposition\tmirna_accession"))
+            {
+                g_set_error (error,
+                             G_FILE_ERROR,
+                             G_FILE_ERROR_FAILED,
+                             "Unexpected TSV header '%s' from blacklist at line %u.",
+                             line,
+                             lineno);
+                return FALSE;
+            }
+            else
+            {
+                continue;
+            }
+        }
+
+        gchar target_accession[64];
+        gsize position = 0;
+        gchar mirna_accession[64];
+        MirbookingScore score = {0};
+        if (sscanf (line, "%s\t%lu\t%s", target_accession, &position, mirna_accession) != 3)
+        {
+            g_set_error (error,
+                         G_FILE_ERROR,
+                         G_FILE_ERROR_FAILED,
+                         "Could not parse row '%s' from blacklist at line %u.",
+                         line,
+                         lineno);
+            return FALSE;
+        }
+
+        MirbookingTarget *target = g_hash_table_lookup (sequences_hash,
+                                                        target_accession);
+        MirbookingMirna *mirna = g_hash_table_lookup (sequences_hash,
+                                                      mirna_accession);
+
+        if (target == NULL)
+        {
+            g_set_error (error,
+                         G_FILE_ERROR,
+                         G_FILE_ERROR_FAILED,
+                         "Unknown target '%s' in blacklist at line %u.",
+                         target_accession,
+                         lineno);
+            return FALSE;
+        }
+
+        if (position >= mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE(target)))
+        {
+            g_set_error (error,
+                         G_FILE_ERROR,
+                         G_FILE_ERROR_FAILED,
+                         "Target '%s' does not have a site at %lu since it is only %lu nucleotides long in blacklist at line %u.",
+                         target_accession,
+                         position,
+                         mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE(target)),
+                         lineno);
+            return FALSE;
+        }
+
+        if (mirna == NULL)
+        {
+            g_set_error (error,
+                         G_FILE_ERROR,
+                         G_FILE_ERROR_FAILED,
+                         "Unknown mirna '%s' in blacklist at line %u.",
+                         mirna_accession,
+                         lineno);
+            return FALSE;
+        }
+
+        MirbookingOccupant *occupant = g_new (MirbookingOccupant, 1);
+        mirbooking_occupant_init (occupant,
+                                  target,
+                                  position - 1,
+                                  mirna,
+                                  score);
+
+        g_hash_table_insert (blacklist,
+                             occupant,
+                             NULL);
+    }
+    while (TRUE);
 }
 
 #define COALESCE(x,d) (x == NULL ? (d) : (x))
@@ -652,11 +765,42 @@ write_output_to_wiggle (MirbookingBroker *broker, GOutputStream *out, GError **e
     return TRUE;
 }
 
-static void
-free_cutoff_filter_user_data (gpointer ud)
+typedef struct _MixedFilterUserData
 {
-    MirbookingDefaultScoreTableCutoffFilterUserData *cutoff_filter_ud = ud;
-    g_object_unref (cutoff_filter_ud->broker);
+    MirbookingDefaultScoreTableCutoffFilterUserData    cutoff_filter_ud;
+    MirbookingDefaultScoreTableBlacklistFilterUserdata blacklist_filter_ud;
+} MixedFilterUserData;
+
+static gboolean
+mixed_filter (MirbookingDefaultScoreTable *score_table,
+              MirbookingMirna             *mirna,
+              MirbookingTarget            *target,
+              gssize                       position,
+              gpointer                     user_data)
+{
+    MixedFilterUserData *mixed_filter_ud = user_data;
+    gboolean filter_out = TRUE;
+
+    filter_out &= mirbooking_default_score_table_blacklist_filter (score_table,
+                                                                   mirna,
+                                                                   target,
+                                                                   position,
+                                                                   &mixed_filter_ud->blacklist_filter_ud);
+
+    filter_out &= mirbooking_default_score_table_cutoff_filter (score_table,
+                                                                mirna,
+                                                                target,
+                                                                position,
+                                                                &mixed_filter_ud->cutoff_filter_ud);
+
+    return filter_out;
+}
+
+static void free_mixed_filter_user_data (gpointer ud)
+{
+    MixedFilterUserData *mixed_filter_ud = ud;
+    g_object_unref (mixed_filter_ud->cutoff_filter_ud.broker);
+    g_hash_table_unref (mixed_filter_ud->blacklist_filter_ud.blacklist);
 }
 
 int
@@ -759,16 +903,34 @@ main (gint argc, gchar **argv)
                                                                                               supplementary_model,
                                                                                               supplementary_scores_map_bytes);
 
-    MirbookingDefaultScoreTableCutoffFilterUserData user_data = {
+    MirbookingDefaultScoreTableCutoffFilterUserData cutoff_filter_ud =
+    {
         .broker          = g_object_ref (mirbooking),
         .cutoff          = cutoff,
         .relative_cutoff = rel_cutoff
     };
 
+
+    GHashTable *blacklist_map = g_hash_table_new_full ((GHashFunc)      mirbooking_occupant_hash,
+                                                       (GEqualFunc)     mirbooking_occupant_equal,
+                                                       (GDestroyNotify) mirbooking_occupant_clear,
+                                                       NULL);
+
+    MirbookingDefaultScoreTableBlacklistFilterUserdata blacklist_filter_ud =
+    {
+        .blacklist = blacklist_map
+    };
+
+    MixedFilterUserData user_data =
+    {
+        .blacklist_filter_ud = blacklist_filter_ud,
+        .cutoff_filter_ud    = cutoff_filter_ud
+    };
+
     mirbooking_default_score_table_set_filter (score_table,
-                                               mirbooking_default_score_table_cutoff_filter,
+                                               mixed_filter,
                                                &user_data,
-                                               free_cutoff_filter_user_data);
+                                               free_mixed_filter_user_data);
 
     mirbooking_broker_set_score_table (mirbooking,
                                        MIRBOOKING_SCORE_TABLE (score_table));
@@ -848,6 +1010,19 @@ main (gint argc, gchar **argv)
                                        detect_fasta_format (*cur_sequences_file),
                                        sequences_hash,
                                        TRUE);
+        }
+    }
+
+    if (blacklist != NULL)
+    {
+        g_autoptr (GFile) bf = g_file_new_for_path (blacklist);
+        if (!read_interaction_blacklist (G_INPUT_STREAM (g_file_read (bf, NULL, NULL)),
+                                         blacklist_map,
+                                         sequences_hash,
+                                         &error))
+        {
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
         }
     }
 

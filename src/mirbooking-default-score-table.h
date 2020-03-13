@@ -45,6 +45,18 @@ mirbooking_default_score_table_cutoff_filter (MirbookingDefaultScoreTable *score
                                               gssize                       position,
                                               gpointer                     user_data);
 
+typedef struct _MirbookingDefaultScoreTableBlacklistFilterUserdata
+{
+    GHashTable *blacklist;
+} MirbookingDefaultScoreTableBlacklistFilterUserdata;
+
+gboolean
+mirbooking_default_score_table_blacklist_filter (MirbookingDefaultScoreTable *score_table,
+                                                 MirbookingMirna             *mirna,
+                                                 MirbookingTarget            *target,
+                                                 gssize                       position,
+                                                 gpointer                     user_data);
+
 MirbookingDefaultScoreTable * mirbooking_default_score_table_new        (GBytes *seed_bytes,
                                                                          MirbookingDefaultScoreTableSupplementaryModel supplementary_model,
                                                                          GBytes *supp_bytes);

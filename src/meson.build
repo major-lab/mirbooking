@@ -18,6 +18,7 @@ mirbooking_sources = [
     'mirbooking-broker-sparse-solver.c',
     'mirbooking-error.c',
     'mirbooking-mirna.c',
+    'mirbooking-occupant.c',
     'mirbooking-default-score-table.c',
     'mirbooking-score-table.c',
     'mirbooking-sequence.c',

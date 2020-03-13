@@ -180,22 +180,6 @@ mirbooking_broker_get_property (GObject *object, guint property_id, GValue *valu
     }
 }
 
-static void
-mirbooking_occupant_init (MirbookingOccupant* self, MirbookingTarget *target, gsize position, MirbookingMirna *mirna, MirbookingScore score)
-{
-    self->target = g_object_ref (target);
-    self->position = position;
-    self->mirna = g_object_ref (mirna);
-    self->score = score;
-}
-
-static void
-mirbooking_occupant_clear (MirbookingOccupant *self)
-{
-    g_object_unref (self->target);
-    g_object_unref (self->mirna);
-}
-
 static size_t
 _mirbooking_broker_get_occupant_index (MirbookingBroker *self, const MirbookingOccupant *occupant)
 {

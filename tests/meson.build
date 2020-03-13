@@ -22,7 +22,8 @@ mirbooking_integration_tests = [
     ['tsv-detailed', ['--output-format', 'tsv-detailed'], true],
     ['gff3',         ['--output-format', 'gff3'],         true],
     ['wig',          ['--output-format', 'wig'],          true],
-    ['refseq',       ['--targets', join_paths(meson.current_source_dir(), 'data/GCF_000001405.39_GRCh38.p13_rna.fna'), '--input', join_paths(meson.current_source_dir(), 'data/quantifications-refseq.tsv')], true]
+    ['refseq',       ['--targets', join_paths(meson.current_source_dir(), 'data/GCF_000001405.39_GRCh38.p13_rna.fna'), '--input', join_paths(meson.current_source_dir(), 'data/quantifications-refseq.tsv')], true],
+    ['blacklist',    ['--blacklist', join_paths(meson.current_source_dir(), 'data/blacklist.tsv')], true]
 ]
 
 mirbooking_integration_test_args = [
