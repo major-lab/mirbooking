@@ -707,21 +707,11 @@ main (gint argc, gchar **argv)
                                        MIRBOOKING_SCORE_TABLE (score_table));
 
     g_autoptr (FILE) input_f = NULL;
-    g_autoptr (FILE) output_f = NULL;
 
     if ((input_f = input_file == NULL ? stdin : g_fopen (input_file, "r")) == NULL)
     {
         g_printerr ("Could not open the quantities file '%s': %s.\n", input_file, g_strerror (errno));
         return EXIT_FAILURE;
-    }
-
-    if (rank == 0)
-    {
-        if ((output_f = output_file == NULL ? stdout : g_fopen (output_file, "w")) == NULL)
-        {
-            g_printerr ("Could not open the output file '%s': %s.\n", output_file, g_strerror (errno));
-            return EXIT_FAILURE;
-        }
     }
 
     // accession -> #MirbookingSequence
@@ -941,6 +931,14 @@ main (gint argc, gchar **argv)
 
     if (rank == 0)
     {
+        g_autoptr (FILE) output_f = NULL;
+
+        if ((output_f = output_file == NULL ? stdout : g_fopen (output_file, "w")) == NULL)
+        {
+            g_printerr ("Could not open the output file '%s': %s.\n", output_file, g_strerror (errno));
+            return EXIT_FAILURE;
+        }
+
         gint i;
         for (i = 0; i < sizeof (MIRBOOKING_OUTPUT_FORMAT_META); i++)
         {
