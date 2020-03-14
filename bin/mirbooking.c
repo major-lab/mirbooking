@@ -1014,7 +1014,7 @@ main (gint argc, gchar **argv)
                                                    &error));
             if (out == NULL)
             {
-                g_printerr ("Yup. %s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);
+                g_printerr ("%s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);
                 return EXIT_FAILURE;
             }
         }

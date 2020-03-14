@@ -32,8 +32,7 @@ mirbooking_integration_test_args = [
     '--supplementary-model', 'yan-et-al-2018',
     '--supplementary-scores', join_paths(meson.current_source_dir(), '../data/scores-3mer'),
     '--cutoff', '0',
-    '--input', join_paths(meson.current_source_dir(), 'data/quantifications.tsv'),
-    '--output', '/dev/null']
+    '--input', join_paths(meson.current_source_dir(), 'data/quantifications.tsv')]
 
 foreach t : mirbooking_integration_tests
     if t[2]
