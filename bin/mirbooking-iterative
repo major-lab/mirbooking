@@ -9,24 +9,38 @@ import tempfile
 def main(argv):
     parser = argparse.ArgumentParser()
     # we need to intercept these arguments
-    parser.add_argument('--cutoff', type=float, required=True)
+    parser.add_argument('--cutoff', type=float, default=100.0)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--output-format',  default='tsv')
     args, mirbooking_args = parser.parse_known_args(argv)
     target_cutoff = args.cutoff
+    # this is generally a good starting point
     cutoff = 1000.0
     blacklist = pd.DataFrame(columns=['target_accession', 'position', 'mirna_accession'])
-    while cutoff > target_cutoff:
-        with tempfile.NamedTemporaryFile() as blacklistf:
+    while True:
+        with tempfile.NamedTemporaryFile() as blacklistf, tempfile.NamedTemporaryFile() as output:
             blacklist.to_csv(blacklistf.name, sep='\t', index=False)
-            mirbooking_final_args =['mirbooking'] + mirbooking_args + ['--blacklist', blacklistf.name, '--cutoff', str(cutoff), '--output', args.output]
-            print(f'Running mirbooking with cutoff {cutoff} and {len(blacklist)} blacklisted interactions.')
+            mirbooking_final_args =['mirbooking'] + mirbooking_args + ['--blacklist', blacklistf.name, '--cutoff', str(cutoff)]
+            if cutoff <= target_cutoff:
+                # emit what the user is asking for
+                mirbooking_final_args.extend(['--output', args.output, '--output-format', args.output_format])
+            else:
+                # emit an intermediate output model in TSV
+                mirbooking_final_args.extend(['--output', output.name,  '--output-format', 'tsv'])
+
+            print(f'Running mirbooking with cutoff of {cutoff:.2f}pM and {len(blacklist)} blacklisted interactions.')
             ret = subprocess.run(mirbooking_final_args)
             if ret.returncode != 0:
                 break
-        df = pd.read_csv(args.output, sep='\t')
-        # filter out interactions that do not meet the target cutoff
-        blacklist.append(df[df.quantity < target_cutoff][blacklist.columns])
-        cutoff /= 1.5
+
+            # done, this is the last model we want to calculate
+            if cutoff <= target_cutoff:
+                break
+
+            # filter out interactions that do not meet the target cutoff from the intermediate output
+            df = pd.read_csv(output.name, sep='\t')
+            blacklist = blacklist.append(df[df.quantity < target_cutoff][blacklist.columns])
+            cutoff /= 1.1
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
