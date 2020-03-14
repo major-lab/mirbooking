@@ -1009,7 +1009,7 @@ main (gint argc, gchar **argv)
             out = G_OUTPUT_STREAM (g_file_replace (outputf,
                                                    NULL,
                                                    FALSE,
-                                                   G_FILE_CREATE_REPLACE_DESTINATION,
+                                                   G_FILE_CREATE_NONE,
                                                    NULL,
                                                    &error));
             if (out == NULL)
