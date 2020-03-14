@@ -13,5 +13,4 @@ mirbooking_bin = executable('mirbooking', 'mirbooking.c',
                             install: true)
 
 install_data('mirbooking-iterative',
-             install: true,
              install_dir: 'bin')
