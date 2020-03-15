@@ -17,7 +17,10 @@ def main(argv):
     target_cutoff = args.cutoff
     # this is generally a good starting point
     cutoff = 1000.0
-    blacklist = pd.DataFrame(columns=['target_accession', 'position', 'mirna_accession'])
+    try:
+        blacklist = pd.read_csv(args.blacklist, sep='\t')
+    except FileNotFoundError:
+        blacklist = pd.DataFrame(columns=['target_accession', 'position', 'mirna_accession'])
     while True:
         with tempfile.NamedTemporaryFile() as output:
             mirbooking_final_args =['mirbooking'] + mirbooking_args
