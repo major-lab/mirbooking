@@ -29,34 +29,6 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (GEnumClass, g_type_class_unref);
 #define MIRBOOKING_DEFAULT_CUTOFF         100 // pM
 #define MIRBOOKING_DEFAULT_REL_CUTOFF     0.0
 
-typedef enum _MirbookingOutputFormat
-{
-    MIRBOOKING_OUTPUT_FORMAT_TSV,
-    MIRBOOKING_OUTPUT_FORMAT_TSV_DETAILED,
-    MIRBOOKING_OUTPUT_FORMAT_GFF3,
-    MIRBOOKING_OUTPUT_FORMAT_WIG
-} MirbookingOutputFormat;
-
-typedef struct _MirbookingOutputFormatMeta
-{
-    MirbookingOutputFormat  output_format;
-    const gchar            *nick;
-    gboolean (*write) (MirbookingBroker *broker, GOutputStream *output, GError **error);
-} MirbookingOutputFormatMeta;
-
-static gboolean write_output_to_tsv (MirbookingBroker *broker, GOutputStream *out, GError **error);
-static gboolean write_output_to_tsv_detailed (MirbookingBroker *broker, GOutputStream *out, GError **error);
-static gboolean write_output_to_gff3 (MirbookingBroker *broker, GOutputStream *out, GError **error);
-static gboolean write_output_to_wiggle (MirbookingBroker *broker, GOutputStream *out, GError **error);
-
-const MirbookingOutputFormatMeta MIRBOOKING_OUTPUT_FORMAT_META[] =
-{
-    {MIRBOOKING_OUTPUT_FORMAT_TSV,          "tsv",          write_output_to_tsv},
-    {MIRBOOKING_OUTPUT_FORMAT_TSV_DETAILED, "tsv-detailed", write_output_to_tsv_detailed},
-    {MIRBOOKING_OUTPUT_FORMAT_GFF3,         "gff3",         write_output_to_gff3},
-    {MIRBOOKING_OUTPUT_FORMAT_WIG,          "wig",          write_output_to_wiggle}
-};
-
 static gchar                        **targets_files            = {NULL};
 static gchar                        **mirnas_files             = {NULL};
 static gchar                         *seed_scores_file          = MIRBOOKING_DEFAULT_SEED_SCORES_FILE;
@@ -64,7 +36,7 @@ static gchar                         *supplementary_scores_file = NULL;
 static gchar                         *accessibility_scores_file = NULL;
 static gchar                         *input_file                = NULL;
 static gchar                         *output_file               = NULL;
-static MirbookingOutputFormat         output_format              = MIRBOOKING_OUTPUT_FORMAT_TSV;
+static MirbookingBrokerOutputFormat   output_format              = MIRBOOKING_BROKER_OUTPUT_FORMAT_TSV;
 static MirbookingBrokerSparseSolver   sparse_solver;
 static guint64                        max_iterations             = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
 static gsize                          prime5_footprint           = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
@@ -112,21 +84,22 @@ set_output_format (const gchar   *key,
                    gpointer       data,
                    GError      **error)
 {
-    gint i;
-    for (i = 0; i < sizeof (MIRBOOKING_OUTPUT_FORMAT_META) / sizeof (MIRBOOKING_OUTPUT_FORMAT_META[0]); i++)
+    g_autoptr (GEnumClass) output_format_class = g_type_class_ref (MIRBOOKING_BROKER_OUTPUT_FORMAT_ENUM);
+    GEnumValue *eval = g_enum_get_value_by_nick (output_format_class,
+                                                 value);
+
+    if (eval == NULL)
     {
-        if (g_strcmp0 (value, MIRBOOKING_OUTPUT_FORMAT_META[i].nick) == 0)
-        {
-            output_format = MIRBOOKING_OUTPUT_FORMAT_META[i].output_format;
-            return TRUE;
-        }
+        g_set_error (error,
+                     G_OPTION_ERROR,
+                     G_OPTION_ERROR_BAD_VALUE,
+                     "No such output format %s.", value);
+        return FALSE;
     }
 
-    g_set_error (error,
-                 G_OPTION_ERROR,
-                 G_OPTION_ERROR_BAD_VALUE,
-                 "No such output format %s.", value);
-    return FALSE;
+    output_format = eval->value;
+
+    return TRUE;
 }
 
 static gboolean
@@ -505,264 +478,6 @@ read_interaction_blacklist (GInputStream  *is,
                              NULL);
     }
     while (TRUE);
-}
-
-#define COALESCE(x,d) (x == NULL ? (d) : (x))
-
-static gboolean
-write_output_to_tsv (MirbookingBroker  *mirbooking,
-                     GOutputStream     *out,
-                     GError           **error)
-{
-    g_autoptr (GDataOutputStream) output_f = g_data_output_stream_new (out);
-
-    gchar *header = "gene_accession\t"
-                    "gene_name\t"
-                    "target_accession\t"
-                    "target_name\t"
-                    "target_quantity\t"
-                    "position\t"
-                    "mirna_accession\t"
-                    "mirna_name\t"
-                    "mirna_quantity\t"
-                    "score\t"
-                    "quantity\n";
-
-    if (!g_data_output_stream_put_string (output_f, header, NULL, error))
-    {
-        return FALSE;
-    }
-
-    const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
-
-    gfloat target_quantity = 0;
-
-    const MirbookingTargetSite *target_site;
-    MirbookingTarget *cur_target = NULL;
-    for (target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
-         target_site < &g_array_index (target_sites, MirbookingTargetSite, target_sites->len);
-         target_site++)
-    {
-        // recompute each time the target changes
-        if (cur_target != target_site->target)
-        {
-            cur_target = target_site->target;
-            target_quantity = mirbooking_broker_get_sequence_quantity (mirbooking,
-                                                                       MIRBOOKING_SEQUENCE (target_site->target));
-        }
-
-        // report individual occupants
-        GSList *occupants;
-        for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
-        {
-            MirbookingOccupant *occupant = occupants->data;
-            g_autofree gchar* line = g_strdup_printf ("%s\t%s\t%s\t%s\t%e\t%lu\t%s\t%s\t%e\t%e\t%e\n",
-                                                      COALESCE (mirbooking_sequence_get_gene_accession (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
-                                                      COALESCE (mirbooking_sequence_get_gene_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
-                                                      mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
-                                                      COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
-                                                      target_quantity,
-                                                      target_site->position + 1, // 1-based
-                                                      mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
-                                                      COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
-                                                      mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna)) + mirbooking_broker_get_bound_mirna_quantity (mirbooking, occupant->mirna),
-                                                      MIRBOOKING_SCORE_KM (occupant->score) + (mirbooking_broker_get_target_site_kother (mirbooking, target_site) / occupant->score.kf),
-                                                      mirbooking_broker_get_occupant_quantity (mirbooking, occupant));
-
-            if (!g_data_output_stream_put_string (output_f, line, NULL, error))
-            {
-                return FALSE;
-            }
-        }
-    }
-
-    return TRUE;
-}
-
-static gboolean
-write_output_to_tsv_detailed (MirbookingBroker  *mirbooking,
-                              GOutputStream     *out,
-                              GError           **error)
-{
-    g_autoptr (GDataOutputStream) output_f = g_data_output_stream_new (out);
-
-    gchar *header = "gene_accession\t"
-                    "gene_name\t"
-                    "target_accession\t"
-                    "target_name\t"
-                    "target_quantity\t"
-                    "position\t"
-                    "mirna_accession\t"
-                    "mirna_name\t"
-                    "mirna_quantity\t"
-                    "kf\t"
-                    "kr\t"
-                    "kcleave\t"
-                    "krelease\t"
-                    "kcat\t"
-                    "kother\t"
-                    "kd\t"
-                    "km\t"
-                    "quantity\n";
-
-    if (!g_data_output_stream_put_string (output_f,
-                                          header,
-                                          NULL,
-                                          error))
-    {
-        return FALSE;
-    }
-
-    const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
-
-    gfloat target_quantity = 0;
-
-    const MirbookingTargetSite *target_site;
-    MirbookingTarget *cur_target = NULL;
-    for (target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
-         target_site < &g_array_index (target_sites, MirbookingTargetSite, target_sites->len);
-         target_site++)
-    {
-        // recompute each time the target changes
-        if (cur_target != target_site->target)
-        {
-            cur_target = target_site->target;
-            target_quantity = mirbooking_broker_get_sequence_quantity (mirbooking,
-                                                                       MIRBOOKING_SEQUENCE (target_site->target));
-        }
-
-        // report individual occupants
-        GSList *occupants;
-        for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
-        {
-            MirbookingOccupant *occupant = occupants->data;
-            g_autofree gchar *line = g_strdup_printf ("%s\t%s\t%s\t%s\t%e\t%lu\t%s\t%s\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
-                                                      COALESCE (mirbooking_sequence_get_gene_accession (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
-                                                      COALESCE (mirbooking_sequence_get_gene_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
-                                                      mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
-                                                      COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (target_site->target)), "N/A"),
-                                                      target_quantity,
-                                                      target_site->position + 1, // 1-based
-                                                      mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)),
-                                                      COALESCE (mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)), "N/A"),
-                                                      mirbooking_broker_get_sequence_quantity (mirbooking, MIRBOOKING_SEQUENCE (occupant->mirna)) + mirbooking_broker_get_bound_mirna_quantity (mirbooking, occupant->mirna),
-                                                      occupant->score.kf,
-                                                      occupant->score.kr,
-                                                      occupant->score.kcleave,
-                                                      occupant->score.krelease,
-                                                      occupant->score.kcat,
-                                                      mirbooking_broker_get_target_site_kother (mirbooking, target_site),
-                                                      MIRBOOKING_SCORE_KD (occupant->score),
-                                                      MIRBOOKING_SCORE_KM (occupant->score) + (mirbooking_broker_get_target_site_kother (mirbooking, target_site) / occupant->score.kf),
-                                                      mirbooking_broker_get_occupant_quantity (mirbooking, occupant));
-            if (!g_data_output_stream_put_string (output_f, line, NULL, error))
-            {
-                return FALSE;
-            }
-        }
-    }
-
-    return TRUE;
-}
-
-static gboolean
-write_output_to_gff3 (MirbookingBroker *mirbooking, GOutputStream *out, GError **error)
-{
-    g_autoptr (GDataOutputStream) output_f = g_data_output_stream_new (out);
-
-    if (!g_data_output_stream_put_string (output_f, "##gff-version 3\n", NULL, error))
-    {
-        return FALSE;
-    }
-
-    const GArray *target_sites = mirbooking_broker_get_target_sites (mirbooking);
-
-    gint i = 1;
-
-    const MirbookingTargetSite *target_site;
-    for (target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
-         target_site < &g_array_index (target_sites, MirbookingTargetSite, target_sites->len);
-         target_site++)
-    {
-        // report individual occupants
-        GSList *occupants;
-        for (occupants = target_site->occupants; occupants != NULL; occupants = occupants->next)
-        {
-            // the sequence ontology for 'miRNA_target_site' is 'SO:0000934'
-            MirbookingOccupant *occupant = occupants->data;
-            g_autofree gchar *line = g_strdup_printf ("%s\tmiRBooking\tmiRNA_target_site\t%lu\t%lu\t%e\t.\t.\tID=%d;Name=%s;Alias=%s\n",
-                                                      mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)),
-                                                      (gsize) MAX (1, (gssize) target_site->position + 1 - (gssize) prime5_footprint),
-                                                      MIN (mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target_site->target)), target_site->position + 1 + prime3_footprint),
-                                                      mirbooking_broker_get_occupant_quantity (mirbooking, occupant),
-                                                      i++,
-                                                      mirbooking_sequence_get_name (MIRBOOKING_SEQUENCE (occupant->mirna)),
-                                                      mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (occupant->mirna)));
-            if (!g_data_output_stream_put_string (output_f,
-                                                  line,
-                                                  NULL,
-                                                  error))
-            {
-                return FALSE;
-            }
-        }
-    }
-
-    return TRUE;
-}
-
-static gboolean
-write_output_to_wiggle (MirbookingBroker *broker, GOutputStream *out, GError **error)
-{
-    g_autoptr (GDataOutputStream) output_f = g_data_output_stream_new (out);
-
-    const GArray *target_sites = mirbooking_broker_get_target_sites (broker);
-
-    if (!g_data_output_stream_put_string (output_f, "track type=wiggle_0\n", NULL, error))
-    {
-        return FALSE;
-    }
-
-    MirbookingTarget *target = NULL;
-    const MirbookingTargetSite *target_site;
-    for (target_site = &g_array_index (target_sites, MirbookingTargetSite, 0);
-         target_site < &g_array_index (target_sites, MirbookingTargetSite, target_sites->len);
-         target_site++)
-    {
-        if (target != target_site->target)
-        {
-            g_autofree gchar *line = g_strdup_printf ("variableStep chrom=%s\n",
-                                                      mirbooking_sequence_get_accession (MIRBOOKING_SEQUENCE (target_site->target)));
-            if (!g_data_output_stream_put_string (output_f,
-                                                  line,
-                                                  NULL,
-                                                  error))
-            {
-                return FALSE;
-            }
-            target = target_site->target;
-        }
-
-        gdouble St  = mirbooking_broker_get_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target_site->target));
-        gdouble Stp = mirbooking_broker_get_target_site_occupants_quantity (broker, target_site);
-
-        // only report positions with activity
-        if (Stp > 0)
-        {
-            g_autofree gchar *line = g_strdup_printf ("%lu %f\n",
-                                                      target_site->position + 1,
-                                                      Stp / St);
-            if (!g_data_output_stream_put_string (output_f,
-                                                  line,
-                                                  NULL,
-                                                  error))
-            {
-                return FALSE;
-            }
-        }
-    }
-
-    return TRUE;
 }
 
 typedef struct _MixedFilterUserData
@@ -1182,6 +897,7 @@ main (gint argc, gchar **argv)
     if (rank == 0)
     {
         g_autoptr (GOutputStream) out = NULL;
+
         if (output_file == NULL)
         {
             out = g_unix_output_stream_new (fileno (stdout), FALSE);
@@ -1189,6 +905,7 @@ main (gint argc, gchar **argv)
         else
         {
             g_autoptr (GFile) outputf = g_file_new_for_path (output_file);
+
             out = G_OUTPUT_STREAM (g_file_replace (outputf,
                                                    NULL,
                                                    FALSE,
@@ -1202,20 +919,13 @@ main (gint argc, gchar **argv)
             }
         }
 
-        gint i;
-        for (i = 0; i < sizeof (MIRBOOKING_OUTPUT_FORMAT_META); i++)
+        if (!mirbooking_broker_write_output_to_stream (mirbooking,
+                                                       output_format,
+                                                       out,
+                                                       &error))
         {
-            if (MIRBOOKING_OUTPUT_FORMAT_META[i].output_format == output_format)
-            {
-                if (!MIRBOOKING_OUTPUT_FORMAT_META[i].write (mirbooking,
-                                                             out,
-                                                             &error))
-                {
-                    g_printerr ("%s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);
-                    return EXIT_FAILURE;
-                }
-                break;
-            }
+            g_printerr ("%s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
         }
     }
 

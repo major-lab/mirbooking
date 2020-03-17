@@ -3,6 +3,7 @@ mirbooking_headers = [
     'mirbooking-error.h',
     'mirbooking-broker.h',
     'mirbooking-broker-sparse-solver.h',
+    'mirbooking-broker-output-format.h',
     'mirbooking-mirna.h',
     'mirbooking-occupant.h',
     'mirbooking-default-score-table.h',
@@ -16,6 +17,7 @@ install_headers(mirbooking_headers, subdir: 'mirbooking-@0@'.format(api_version)
 mirbooking_sources = [
     'mirbooking-broker.c',
     'mirbooking-broker-sparse-solver.c',
+    'mirbooking-broker-output-format.c',
     'mirbooking-error.c',
     'mirbooking-mirna.c',
     'mirbooking-occupant.c',

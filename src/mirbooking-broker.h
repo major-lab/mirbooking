@@ -2,6 +2,7 @@
 #define __MIRBOOKING_BROKER_H__
 
 #include "mirbooking-broker-sparse-solver.h"
+#include "mirbooking-broker-output-format.h"
 #include "mirbooking-error.h"
 #include "mirbooking-mirna.h"
 #include "mirbooking-occupant.h"
@@ -124,6 +125,15 @@ gdouble                mirbooking_broker_get_target_degradation_rate   (Mirbooki
                                                                         MirbookingTarget *target);
 gdouble                mirbooking_broker_get_product_degradation_rate  (MirbookingBroker *self,
                                                                         MirbookingTarget *target);
+
+gboolean               mirbooking_broker_write_output_to_stream (MirbookingBroker              *broker,
+                                                                 MirbookingBrokerOutputFormat   output_format,
+                                                                 GOutputStream                 *out,
+                                                                 GError                       **error);
+gboolean               mirbooking_broker_write_output_to_file   (MirbookingBroker *self,
+                                                                 MirbookingBrokerOutputFormat output_format,
+                                                                 GFile *output_file,
+                                                                 GError **error);
 
 G_END_DECLS
 
