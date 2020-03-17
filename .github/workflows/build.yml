@@ -20,4 +20,6 @@ jobs:
     - name: build
       run: ninja -C build
     - name: test
-      run: ninja -C build test
+      run: meson test -C build
+    - name: dist
+      run: meson dist -C build
