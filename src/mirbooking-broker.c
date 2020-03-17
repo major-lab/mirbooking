@@ -2156,10 +2156,12 @@ static const MirbookingBrokerOutputFormatMeta OUTPUT_FORMAT_META[] =
 
 gboolean
 mirbooking_broker_write_output_to_stream (MirbookingBroker              *self,
-                                          MirbookingBrokerOutputFormat   output_format,
                                           GOutputStream                 *out,
+                                          MirbookingBrokerOutputFormat   output_format,
                                           GError                       **error)
 {
+    g_return_val_if_fail (self->priv->init, FALSE);
+
     gint i;
     for (i = 0; i < sizeof (OUTPUT_FORMAT_META); i++)
     {
@@ -2176,8 +2178,8 @@ mirbooking_broker_write_output_to_stream (MirbookingBroker              *self,
 
 gboolean
 mirbooking_broker_write_output_to_file (MirbookingBroker              *self,
-                                        MirbookingBrokerOutputFormat   output_format,
                                         GFile                         *output_file,
+                                        MirbookingBrokerOutputFormat   output_format,
                                         GError                       **error)
 {
     g_autoptr (GOutputStream) out = G_OUTPUT_STREAM (g_file_replace (output_file,
@@ -2190,7 +2192,7 @@ mirbooking_broker_write_output_to_file (MirbookingBroker              *self,
     g_return_val_if_fail (out != NULL, FALSE);
 
     return mirbooking_broker_write_output_to_stream (self,
-                                                     output_format,
                                                      out,
+                                                     output_format,
                                                      error);
 }

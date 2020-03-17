@@ -127,13 +127,13 @@ gdouble                mirbooking_broker_get_product_degradation_rate  (Mirbooki
                                                                         MirbookingTarget *target);
 
 gboolean               mirbooking_broker_write_output_to_stream (MirbookingBroker              *broker,
-                                                                 MirbookingBrokerOutputFormat   output_format,
                                                                  GOutputStream                 *out,
+                                                                 MirbookingBrokerOutputFormat   output_format,
                                                                  GError                       **error);
-gboolean               mirbooking_broker_write_output_to_file   (MirbookingBroker *self,
-                                                                 MirbookingBrokerOutputFormat output_format,
-                                                                 GFile *output_file,
-                                                                 GError **error);
+gboolean               mirbooking_broker_write_output_to_file   (MirbookingBroker              *self,
+                                                                 GFile                         *output_file,
+                                                                 MirbookingBrokerOutputFormat   output_format,
+                                                                 GError                        **error);
 
 G_END_DECLS
 

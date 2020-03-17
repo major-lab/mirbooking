@@ -674,6 +674,40 @@ test_mirbooking_mirna_knock_out ()
     g_assert_cmpfloat_with_epsilon (mirbooking_broker_get_occupant_quantity (broker, occupant), 0, 1e-6);
 }
 
+void
+test_mirbooking_output_format ()
+{
+    g_autoptr (MirbookingBroker) broker = mirbooking_broker_new ();
+    g_autoptr (GOutputStream) mos = g_memory_output_stream_new_resizable ();
+    g_autoptr (GError) error = NULL;
+
+    g_autoptr (GMappedFile) mapped_seed_scores = g_mapped_file_new (g_test_get_filename (G_TEST_DIST,  "..",  "data", "scores-7mer-3mismatch-ending", NULL), FALSE, NULL);
+    g_autoptr (GBytes) default_table = g_mapped_file_get_bytes (mapped_seed_scores);
+
+    g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table,
+                                                                                              MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_NONE,
+                                                                                              NULL);
+
+    mirbooking_broker_set_score_table (broker,
+                                       MIRBOOKING_SCORE_TABLE (score_table));
+
+    gdouble error_ratio;
+    g_assert (mirbooking_broker_evaluate (broker, &error_ratio, &error));
+
+    g_assert (mirbooking_broker_write_output_to_stream (broker,
+                                                        mos,
+                                                        MIRBOOKING_BROKER_OUTPUT_FORMAT_TSV,
+                                                        &error));
+    g_assert_null (error);
+
+    g_autoptr (GBytes) data = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (mos));
+    const gchar *header = "gene_accession\tgene_name\ttarget_accession\ttarget_name\ttarget_quantity\tposition\tmirna_accession\tmirna_name\tmirna_quantity\tscore\tquantity\n";
+    g_print (g_bytes_get_data (data, NULL));
+    g_autoptr (GBytes) expected_data = g_bytes_new_static (header, strlen (header));
+
+    g_assert (g_bytes_equal (data, expected_data));
+}
+
 gint
 main (gint argc, gchar **argv)
 {
@@ -688,6 +722,7 @@ main (gint argc, gchar **argv)
     g_test_add_func ("/mirbooking/restore-broker-state", test_mirbooking_restore_broker_state);
     g_test_add_func ("/mirbooking/target-knock-out", test_mirbooking_target_knock_out);
     g_test_add_func ("/mirbooking/mirna-knock-out", test_mirbooking_mirna_knock_out);
+    g_test_add_func ("/mirbooking/output-format", test_mirbooking_output_format);
 
     return g_test_run ();
 }

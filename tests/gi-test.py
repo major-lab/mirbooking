@@ -1,8 +1,9 @@
 import gi
 gi.require_version('Mirbooking', '2.3')
-from gi.repository import GLib, Mirbooking
+from gi.repository import GLib, Mirbooking, Gio
 import unittest
 from os.path import dirname, join
+from io import StringIO
 
 target_seq = """
 GCACACAGAGCAGCATAAAGCCCAGTTGCTTTGGGAAGTGTTTGGGACCAGATGGATTGT
@@ -174,5 +175,26 @@ class MirbookingBrokerTestCase(unittest.TestCase):
         df = mirbooking.get_target_sites_as_dataframe()
         self.assertEqual(71, len(df))
         self.assertEqual('NM_000014.4', df.index[0][1])
+
+    def test_output(self):
+        mirbooking = Mirbooking.Broker(score_table=SimpleScoreTable())
+        mirbooking.set_sequence_quantity(target, 5.0)
+        mirbooking.set_sequence_quantity(mirna, 5.0)
+        ret, norm = mirbooking.evaluate()
+        mirbooking.step(Mirbooking.BrokerStepMode.SOLVE_STEADY_STATE, 1.0)
+        out = Gio.MemoryOutputStream.new_resizable()
+        self.assertTrue(mirbooking.write_output_to_stream(out, Mirbooking.BrokerOutputFormat.TSV))
+        tsv_out = out.steal_as_bytes().get_data().decode('utf-8')
+        try:
+            import pandas
+        except ImportError:
+            return unittest.skip('Pandas is not available')
+        df = pandas.read_csv(StringIO(tsv_out), sep='\t')
+        self.assertTrue(df.columns.equals(pandas.Index(['gene_accession',
+            'gene_name', 'target_accession', 'target_name', 'target_quantity',
+            'position', 'mirna_accession', 'mirna_name', 'mirna_quantity',
+            'score', 'quantity'])))
+        self.assertEqual(71, len(df))
+        self.assertEqual('NM_000014.4', df.target_accession[0])
 
 unittest.main()

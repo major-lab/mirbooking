@@ -920,8 +920,8 @@ main (gint argc, gchar **argv)
         }
 
         if (!mirbooking_broker_write_output_to_stream (mirbooking,
-                                                       output_format,
                                                        out,
+                                                       output_format,
                                                        &error))
         {
             g_printerr ("%s (%s, %u)\n", error->message, g_quark_to_string (error->domain), error->code);
