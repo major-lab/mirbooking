@@ -2,6 +2,7 @@ import gi
 gi.require_version('Mirbooking', '2.3')
 from gi.repository import GLib, Mirbooking
 import unittest
+from os.path import dirname, join
 
 target_seq = """
 GCACACAGAGCAGCATAAAGCCCAGTTGCTTTGGGAAGTGTTTGGGACCAGATGGATTGT
@@ -127,7 +128,7 @@ class MirbookingDefaultScoreTableTestCase(unittest.TestCase):
         broker.set_sequence_quantity(target, 5.0)
         broker.set_sequence_quantity(mirna, 5.0)
 
-        score_table = Mirbooking.DefaultScoreTable(seed_scores=GLib.MappedFile('../data/scores-7mer-3mismatch-ending', False).get_bytes())
+        score_table = Mirbooking.DefaultScoreTable(seed_scores=GLib.MappedFile(join(dirname(__file__), '../data/scores-7mer-3mismatch-ending'), False).get_bytes())
 
         ud = Mirbooking.DefaultScoreTableCutoffFilterUserData()
         ud.broker = broker
