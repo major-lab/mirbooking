@@ -1,5 +1,5 @@
 project('mirbooking', 'c',
-        version: '2.3.0',
+        version: '2.4.0-dev',
         default_options: 'c_std=gnu11',
         meson_version: '>=0.46.0')
 
