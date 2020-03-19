@@ -4,19 +4,34 @@ on: [push]
 
 jobs:
   build:
-
+    strategy:
+      matrix:
+        threading:
+        - -Dwith_openmp=false
+        - -Dwith_openmp=true
+        blas:
+        - -Dwith_atlas=false # defaults to netlib blas
+        - -Dwith_atlas=true
+        solvers:
+        - -Dwith_superlu=true -Dwith_umfpack=true
+        fftw3:
+        - -Dwith_fftw3=false
+        - -Dwith_fftw3=true
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v1
       with:
         lfs: true
     - name: install-deps
-      run: sudo apt-get install libglib2.0-dev gobject-introspection libgirepository1.0-dev libblas-dev liblapacke-dev libfftw3-dev libsuperlu-dev python3-pip python3-wheel python3-setuptools ninja-build
+      run: >
+        sudo apt-get install libglib2.0-dev gobject-introspection
+        libgirepository1.0-dev libblas-dev libatlas-base-dev liblapacke-dev
+        libfftw3-dev libsuperlu-dev python3-pip python3-wheel
+        python3-setuptools ninja-build libsuitesparse-dev
     - name: install-meson
       run: sudo pip3 install meson
     - name: configure
-      run: meson -Dwith_fftw3=true -Dwith_openmp=true -Dwith_introspection=true build
+      run: meson ${{ matrix.threading }} ${{ matrix.blas }} ${{ matrix.solvers }} ${{ matrix.fftw3 }} -Dwith_introspection=true build
     - name: build
       run: ninja -C build
     - name: test
