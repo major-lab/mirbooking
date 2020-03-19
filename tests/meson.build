@@ -1,6 +1,7 @@
 mirbooking_tests = [
     'score-table',
     'sequence',
+    'sequence-iter',
     'mirbooking']
 foreach name : mirbooking_tests
     test(name, executable(name + '-test', name + '-test.c',

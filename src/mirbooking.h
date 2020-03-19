@@ -9,5 +9,6 @@
 #include "mirbooking-sequence.h"
 #include "mirbooking-target-site.h"
 #include "mirbooking-target.h"
+#include "mirbooking-utils.h"
 
 #endif /* __MIRBOOKING_H__ */

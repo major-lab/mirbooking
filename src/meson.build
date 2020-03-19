@@ -10,7 +10,8 @@ mirbooking_headers = [
     'mirbooking-score-table.h',
     'mirbooking-sequence.h',
     'mirbooking-target.h',
-    'mirbooking-target-site.h']
+    'mirbooking-target-site.h',
+    'mirbooking-utils.h']
 
 install_headers(mirbooking_headers, subdir: 'mirbooking-@0@'.format(api_version))
 
@@ -24,7 +25,8 @@ mirbooking_sources = [
     'mirbooking-default-score-table.c',
     'mirbooking-score-table.c',
     'mirbooking-sequence.c',
-    'mirbooking-target.c']
+    'mirbooking-target.c',
+    'mirbooking-utils.c']
 
 mirbooking_lib = library('mirbooking-@0@'.format(api_version), mirbooking_sources,
                          dependencies: [glib_dep, gobject_dep, gio_dep, m_dep, pb_dep, openmp_dep, mpi_dep, odeint_dep, sparse_dep, cblas_dep],

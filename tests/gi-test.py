@@ -95,6 +95,18 @@ def reverse_complement(seq):
 from math import exp
 RT = 1.987203611e-3 * 310.15
 
+class SequenceTest(unittest.TestCase):
+    def test_sequence_iter(self):
+        seq_file = GLib.MappedFile(join(dirname(__file__), 'data/GCF_000001405.39_GRCh38.p13_rna.fna'), False)
+        ret, seq_iter = Mirbooking.read_sequences_from_mapped_file(seq_file, Mirbooking.FastaFormat.NCBI, Mirbooking.Target)
+        self.assertTrue(ret)
+        while seq_iter.next():
+            seq = seq_iter.get_sequence()
+            self.assertEqual(seq.get_accession(), 'NM_000014.5')
+            self.assertEqual(seq.get_name(), 'A2M-201')
+            self.assertEqual(seq.get_gene_accession(), 'A2M')
+            self.assertEqual(seq.get_gene_name(), 'A2M')
+
 class SimpleScoreTable(Mirbooking.ScoreTable):
     def do_compute_score(self, mirna, target, position):
         score = Mirbooking.Score()

@@ -148,139 +148,26 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {0}
 };
 
-typedef enum _FastaFormat
-{
-    FASTA_FORMAT_GENERIC,
-    FASTA_FORMAT_NCBI,
-    FASTA_FORMAT_GENCODE,
-    FASTA_FORMAT_MIRBASE
-} FastaFormat;
-
-static FastaFormat
+static MirbookingFastaFormat
 detect_fasta_format (const gchar *path)
 {
     g_autofree const gchar *path_basename = g_path_get_basename (path);
 
     if (g_str_has_prefix (path_basename, "gencode."))
     {
-        return FASTA_FORMAT_GENCODE;
+        return MIRBOOKING_FASTA_FORMAT_GENCODE;
     }
     else if (g_str_has_prefix (path_basename, "mature"))
     {
-        return FASTA_FORMAT_MIRBASE;
+        return MIRBOOKING_FASTA_FORMAT_MIRBASE;
     }
     else if (g_str_has_prefix (path_basename, "GCF_") || g_str_has_prefix (path_basename, "GCA_"))
     {
-        return FASTA_FORMAT_NCBI;
+        return MIRBOOKING_FASTA_FORMAT_NCBI;
     }
     else
     {
-        return FASTA_FORMAT_GENERIC;
-    }
-}
-
-static void
-read_sequences_from_fasta (FILE        *file,
-                           GMappedFile *mapped_file,
-                           FastaFormat  fasta_format,
-                           GHashTable  *sequences_hash,
-                           gboolean     is_mirna)
-{
-    gchar *accession;
-    gchar *name;
-    gchar name_buffer[128]; /* in case the name does not appear literally */
-    gchar *gene_accession = NULL;
-    gchar *gene_name = NULL;
-    gchar *seq;
-    gchar line[1024];
-
-    while (fgets (line, sizeof (line), file))
-    {
-        if (line[0] == '>')
-        {
-            if (fasta_format == FASTA_FORMAT_MIRBASE)
-            {
-                name      = strtok (line + 1, " ");
-                accession = strtok (NULL, " ");
-            }
-            else if (fasta_format == FASTA_FORMAT_GENCODE)
-            {
-                // for GENCODE-style annotation, the name is in the sixth field
-                accession = strtok (line + 1, "|");
-                gene_accession = strtok (NULL, "|");
-
-                gint i;
-                for (i = 0; i < 3; i++)
-                {
-                    name = strtok (NULL, "|");
-                }
-
-                gene_name = strtok (NULL, "|");
-            }
-            else if (fasta_format == FASTA_FORMAT_NCBI)
-            {
-                accession = strtok (line + 1, " ");
-
-                gchar *name_p = NULL;
-                if (strtok (NULL, "(,") && (name_p = strtok (NULL, "),")))
-                {
-                    // if we parse the ")," following the gene name, name_p
-                    // will be NULL and we should look for the transcript
-                    // variant
-                    if (name_p)
-                    {
-                        gene_name = name_p;
-                    }
-                }
-
-                /* unfortunately, that's the best information we get from the FASTA */
-                gene_accession = gene_name;
-
-                /* construct the gene name with its variant number */
-                guint variant = 0;
-                sscanf (strtok (NULL, ","), " transcript variant %u", &variant);
-                g_sprintf (name_buffer, "%s-%03u", gene_name, 200 + variant);
-                name = name_buffer;
-            }
-            else
-            {
-                accession = strtok (line + 1, " ");
-                name = strtok (NULL, "\n");
-            }
-
-            glong offset = ftell (file);
-            g_return_if_fail (offset != -1);
-
-            seq = g_mapped_file_get_contents (mapped_file) + offset;
-
-            gsize remaining = g_mapped_file_get_length (mapped_file) - offset;
-            gchar *next_seq = memchr (seq, '>', remaining);
-            gsize seq_len = next_seq == NULL ? remaining - 1 : (gsize) (next_seq - seq) - 1;
-
-            g_autoptr (MirbookingSequence) sequence = NULL;
-
-            if (is_mirna)
-            {
-                sequence = MIRBOOKING_SEQUENCE (mirbooking_mirna_new_with_name (accession, name));
-            }
-            else
-            {
-                sequence = MIRBOOKING_SEQUENCE (mirbooking_target_new_with_name (accession, name));
-            }
-
-            // FIXME: add a destroy notify to clear this ref when the sequence is disposed
-            g_mapped_file_ref (mapped_file);
-
-            mirbooking_sequence_set_gene_accession (sequence, gene_accession);
-            mirbooking_sequence_set_gene_name (sequence, gene_name);
-
-            mirbooking_sequence_set_raw_sequence (sequence,
-                                                  g_bytes_new_from_bytes (g_mapped_file_get_bytes (mapped_file), offset, seq_len));
-
-            g_hash_table_insert (sequences_hash,
-                                 g_strdup (accession),
-                                 g_steal_pointer (&sequence));
-        }
+        return MIRBOOKING_FASTA_FORMAT_GENERIC;
     }
 }
 
@@ -678,18 +565,7 @@ main (gint argc, gchar **argv)
     {
         for (cur_sequences_file = targets_files; *cur_sequences_file != NULL; cur_sequences_file++)
         {
-            g_autoptr (FILE) seq_f = g_fopen (*cur_sequences_file, "r");
-
-            if (seq_f == NULL)
-            {
-                g_printerr ("Could not open the sequences file '%s': %s.\n", *cur_sequences_file, g_strerror (errno));
-                return EXIT_FAILURE;
-            }
-
-            gint seq_fileno = fileno (seq_f);
-            g_return_val_if_fail (seq_fileno != -1, EXIT_FAILURE);
-
-            g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (seq_fileno, FALSE, &error);
+            g_autoptr (GMappedFile) seq_map = g_mapped_file_new (*cur_sequences_file, FALSE, &error);
 
             if (seq_map == NULL)
             {
@@ -697,11 +573,25 @@ main (gint argc, gchar **argv)
                 return EXIT_FAILURE;
             }
 
-            read_sequences_from_fasta (seq_f,
-                                       seq_map,
-                                       detect_fasta_format (*cur_sequences_file),
-                                       sequences_hash,
-                                       FALSE);
+            g_autoptr (MirbookingSequenceIter) iter;
+            mirbooking_read_sequences_from_mapped_file (seq_map,
+                                                        detect_fasta_format (*cur_sequences_file),
+                                                        MIRBOOKING_TYPE_TARGET,
+                                                        &iter);
+
+            while (mirbooking_sequence_iter_next (iter, &error))
+            {
+                MirbookingSequence *seq = mirbooking_sequence_iter_get_sequence (iter);
+                g_hash_table_insert (sequences_hash,
+                                     g_strdup (mirbooking_sequence_get_accession (seq)),
+                                     g_object_ref (seq));
+            }
+
+            if (error != NULL)
+            {
+                g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+                return EXIT_FAILURE;
+            }
         }
     }
 
@@ -709,18 +599,7 @@ main (gint argc, gchar **argv)
     {
         for (cur_sequences_file = mirnas_files; *cur_sequences_file != NULL; cur_sequences_file++)
         {
-            g_autoptr (FILE) seq_f = g_fopen (*cur_sequences_file, "r");
-
-            if (seq_f == NULL)
-            {
-                g_printerr ("Could not open the sequences file '%s': %s.\n", *cur_sequences_file, g_strerror (errno));
-                return EXIT_FAILURE;
-            }
-
-            gint seq_fileno = fileno (seq_f);
-            g_return_val_if_fail (seq_fileno != -1, EXIT_FAILURE);
-
-            g_autoptr (GMappedFile) seq_map = g_mapped_file_new_from_fd (seq_fileno, FALSE, &error);
+            g_autoptr (GMappedFile) seq_map = g_mapped_file_new (*cur_sequences_file, FALSE, &error);
 
             if (seq_map == NULL)
             {
@@ -728,11 +607,25 @@ main (gint argc, gchar **argv)
                 return EXIT_FAILURE;
             }
 
-            read_sequences_from_fasta (seq_f,
-                                       seq_map,
-                                       detect_fasta_format (*cur_sequences_file),
-                                       sequences_hash,
-                                       TRUE);
+            g_autoptr (MirbookingSequenceIter) iter;
+            mirbooking_read_sequences_from_mapped_file (seq_map,
+                                                        detect_fasta_format (*cur_sequences_file),
+                                                        MIRBOOKING_TYPE_MIRNA,
+                                                        &iter);
+
+            while (mirbooking_sequence_iter_next (iter, &error))
+            {
+                MirbookingSequence *seq = mirbooking_sequence_iter_get_sequence (iter);
+                g_hash_table_insert (sequences_hash,
+                                     g_strdup (mirbooking_sequence_get_accession (seq)),
+                                     g_object_ref (seq));
+            }
+
+            if (error != NULL)
+            {
+                g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+                return EXIT_FAILURE;
+            }
         }
     }
 

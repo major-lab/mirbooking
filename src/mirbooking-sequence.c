@@ -112,7 +112,13 @@ mirbooking_sequence_class_init (MirbookingSequenceClass *klass)
                                      g_param_spec_string ("accession", "Accession", "", NULL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_NAME,
-                                     g_param_spec_string ("name", "name", "", NULL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+                                     g_param_spec_string ("name", "Name", "", NULL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     PROP_GENE_ACCESSION,
+                                     g_param_spec_string ("gene-accession", "Gene accession", "", NULL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+    g_object_class_install_property (object_class,
+                                     PROP_GENE_NAME,
+                                     g_param_spec_string ("gene-name", "Gene name", "", NULL, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
     g_object_class_install_property (object_class,
                                      PROP_SEQUENCE,
                                      g_param_spec_string ("sequence", "Sequence", "", NULL, G_PARAM_READWRITE));
