@@ -79,84 +79,93 @@ mirbooking_sequence_iter_next (MirbookingSequenceIter  *iter,
             return FALSE;
         }
 
-        if (line[0] == '>')
+        g_return_val_if_fail (line[0] == '>', FALSE);
+
+        if (iter->fasta_format == MIRBOOKING_FASTA_FORMAT_MIRBASE)
         {
-            if (iter->fasta_format == MIRBOOKING_FASTA_FORMAT_MIRBASE)
-            {
-                name      = strtok (line + 1, " ");
-                accession = strtok (NULL, " ");
-            }
-            else if (iter->fasta_format == MIRBOOKING_FASTA_FORMAT_GENCODE)
-            {
-                // for GENCODE-style annotation, the name is in the sixth field
-                accession = strtok (line + 1, "|");
-                gene_accession = strtok (NULL, "|");
-
-                gint i;
-                for (i = 0; i < 3; i++)
-                {
-                    name = strtok (NULL, "|");
-                }
-
-                gene_name = strtok (NULL, "|");
-            }
-            else if (iter->fasta_format == MIRBOOKING_FASTA_FORMAT_NCBI)
-            {
-                accession = strtok (line + 1, " ");
-
-                gchar *name_p = NULL;
-                if (strtok (NULL, "(,") && (name_p = strtok (NULL, "),")))
-                {
-                    // if we parse the ")," following the gene name, name_p
-                    // will be NULL and we should look for the transcript
-                    // variant
-                    if (name_p)
-                    {
-                        gene_name = name_p;
-                    }
-                }
-
-                /* unfortunately, that's the best information we get from the FASTA */
-                gene_accession = gene_name;
-
-                /* construct the gene name with its variant number */
-                guint variant = 0;
-                sscanf (strtok (NULL, ","), " transcript variant %u", &variant);
-                g_sprintf (name_buffer, "%s-%03u", gene_name, 200 + variant);
-                name = name_buffer;
-            }
-            else
-            {
-                accession = strtok (line + 1, " ");
-                name = strtok (NULL, "\n");
-            }
-
-            goffset offset = g_seekable_tell (G_SEEKABLE (iter->dis));
-            seq = g_mapped_file_get_contents (iter->mapped_file) + offset;
-
-            gsize remaining = g_mapped_file_get_length (iter->mapped_file) - offset;
-            gchar *next_seq = memchr (seq, '>', remaining);
-            gsize seq_len = next_seq == NULL ? remaining - 1 : (gsize) (next_seq - seq) - 1;
-
-            g_autoptr (MirbookingSequence) sequence = g_object_new (iter->sequence_type,
-                                                                    "accession",      accession,
-                                                                    "name",           name,
-                                                                    "gene-accession", gene_accession,
-                                                                    "gene-name",      gene_name,
-                                                                    NULL);
-
-            mirbooking_sequence_set_raw_sequence (sequence,
-                                                  g_bytes_new_from_bytes (g_mapped_file_get_bytes (iter->mapped_file), offset, seq_len));
-
-            if (iter->cur_seq)
-            {
-                g_object_unref (iter->cur_seq);
-            }
-
-            iter->cur_seq = g_steal_pointer (&sequence);
-
-            return TRUE;
+            name      = strtok (line + 1, " ");
+            accession = strtok (NULL, " ");
         }
+        else if (iter->fasta_format == MIRBOOKING_FASTA_FORMAT_GENCODE)
+        {
+            // for GENCODE-style annotation, the name is in the sixth field
+            accession = strtok (line + 1, "|");
+            gene_accession = strtok (NULL, "|");
+
+            gint i;
+            for (i = 0; i < 3; i++)
+            {
+                name = strtok (NULL, "|");
+            }
+
+            gene_name = strtok (NULL, "|");
+        }
+        else if (iter->fasta_format == MIRBOOKING_FASTA_FORMAT_NCBI)
+        {
+            accession = strtok (line + 1, " ");
+
+            gchar *name_p = NULL;
+            if (strtok (NULL, "(,") && (name_p = strtok (NULL, "),")))
+            {
+                // if we parse the ")," following the gene name, name_p
+                // will be NULL and we should look for the transcript
+                // variant
+                if (name_p)
+                {
+                    gene_name = name_p;
+                }
+            }
+
+            /* unfortunately, that's the best information we get from the FASTA */
+            gene_accession = gene_name;
+
+            /* construct the gene name with its variant number */
+            guint variant = 0;
+            sscanf (strtok (NULL, ","), " transcript variant %u", &variant);
+            g_sprintf (name_buffer, "%s-%03u", gene_name, 200 + variant);
+            name = name_buffer;
+        }
+        else
+        {
+            accession = strtok (line + 1, " ");
+            name = strtok (NULL, "\n");
+        }
+
+        goffset offset = g_seekable_tell (G_SEEKABLE (iter->dis));
+        seq = g_mapped_file_get_contents (iter->mapped_file) + offset;
+
+        gsize remaining = g_mapped_file_get_length (iter->mapped_file) - offset;
+        gchar *next_seq = memchr (seq, '>', remaining);
+        gsize seq_len = next_seq == NULL ? remaining - 1 : (gsize) (next_seq - seq) - 1;
+
+        // skip to the next sequence
+        if (!g_seekable_seek (G_SEEKABLE (iter->dis),
+                              seq_len + 1,
+                              G_SEEK_CUR,
+                              NULL,
+                              error))
+        {
+            return FALSE;
+        }
+
+        g_autoptr (MirbookingSequence) sequence = g_object_new (iter->sequence_type,
+                                                                "accession",      accession,
+                                                                "name",           name,
+                                                                "gene-accession", gene_accession,
+                                                                "gene-name",      gene_name,
+                                                                NULL);
+
+        mirbooking_sequence_set_raw_sequence (sequence,
+                                              g_bytes_new_from_bytes (g_mapped_file_get_bytes (iter->mapped_file), offset, seq_len));
+
+        if (iter->cur_seq)
+        {
+            g_object_unref (iter->cur_seq);
+        }
+
+        iter->cur_seq = g_steal_pointer (&sequence);
+
+        return TRUE;
     }
 
     return FALSE;
