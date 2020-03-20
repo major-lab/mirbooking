@@ -69,8 +69,9 @@ mirbooking_sequence_iter_next (MirbookingSequenceIter  *iter,
 
     while (TRUE)
     {
+        gsize line_len;
         g_autofree gchar *line = g_data_input_stream_read_line (iter->dis,
-                                                                NULL,
+                                                                &line_len,
                                                                 NULL,
                                                                 error);
 
@@ -79,7 +80,7 @@ mirbooking_sequence_iter_next (MirbookingSequenceIter  *iter,
             return FALSE;
         }
 
-        g_return_val_if_fail (line[0] == '>', FALSE);
+        g_return_val_if_fail (line_len > 0 && line[0] == '>', FALSE);
 
         if (iter->fasta_format == MIRBOOKING_FASTA_FORMAT_MIRBASE)
         {
