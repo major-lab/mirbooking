@@ -3,10 +3,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <gio/gio.h>
+#include <gio/gunixinputstream.h>
 #include <gio/gunixoutputstream.h>
 #include <glib.h>
-#include <glib/gprintf.h>
-#include <glib/gstdio.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,8 +17,6 @@
 #include <string.h>
 
 #include <mirbooking.h>
-
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 
 #if !GLIB_CHECK_VERSION(2,57,0)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (GEnumClass, g_type_class_unref);
@@ -171,6 +168,74 @@ detect_fasta_format (const gchar *path)
     else
     {
         return MIRBOOKING_FASTA_FORMAT_GENERIC;
+    }
+}
+
+static gboolean
+read_sequence_quantity (GInputStream     *in,
+                        GHashTable       *sequences_hash,
+                        MirbookingBroker *mirbooking,
+                        GError           **error)
+{
+    g_autoptr (GDataInputStream) din = g_data_input_stream_new (in);
+
+    guint lineno = 0;
+    while (TRUE)
+    {
+        ++lineno;
+
+        g_autofree gchar *line = g_data_input_stream_read_line (din,
+                                                                NULL,
+                                                                NULL,
+                                                                error);
+
+        if (line == NULL)
+        {
+            return *error == NULL;
+        }
+
+        // skip TSV header if present
+        if (lineno == 1 && g_str_equal (line, "accession\tquantity"))
+        {
+            continue;
+        }
+
+        gchar accession[128];
+        gdouble quantity;
+        if (sscanf (line, "%s\t%lf", accession, &quantity) != 2)
+        {
+            g_set_error (error,
+                         G_FILE_ERROR,
+                         G_FILE_ERROR_FAILED,
+                         "Malformed quantity for accession '%s' at line %u.\n", accession, lineno);
+            return FALSE;
+        }
+
+        MirbookingSequence *sequence = g_hash_table_lookup (sequences_hash, accession);
+
+        if (sequence == NULL)
+        {
+            g_set_error (error,
+                         G_FILE_ERROR,
+                         G_FILE_ERROR_FAILED,
+                         "Unknown sequence with accession '%s'.\n", accession);
+            return FALSE;
+        }
+
+        if (quantity >= cutoff)
+        {
+            mirbooking_broker_set_sequence_quantity (mirbooking,
+                                                     sequence,
+                                                     quantity);
+        }
+        else
+        {
+            // clear unused entries immediatly for reducing the work
+            // of read_sequence_accessibility
+            // however, this does not clean sequences that were not quantified
+            // in the first place
+            g_hash_table_remove (sequences_hash, accession);
+        }
     }
 }
 
@@ -549,12 +614,23 @@ main (gint argc, gchar **argv)
     mirbooking_broker_set_score_table (mirbooking,
                                        MIRBOOKING_SCORE_TABLE (score_table));
 
-    g_autoptr (FILE) input_f = NULL;
-
-    if ((input_f = input_file == NULL ? stdin : g_fopen (input_file, "r")) == NULL)
+    g_autoptr (GInputStream) in;
+    if (input_file == NULL)
     {
-        g_printerr ("Could not open the quantities file '%s': %s.\n", input_file, g_strerror (errno));
-        return EXIT_FAILURE;
+        in = g_unix_input_stream_new (fileno (stdin),
+                                      FALSE);
+    }
+    else
+    {
+        g_autoptr (GFile) input_f = g_file_new_for_path (input_file);
+        in = G_INPUT_STREAM (g_file_read (input_f,
+                                          NULL,
+                                          &error));
+        if (in == NULL)
+        {
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
+        }
     }
 
     // accession -> #MirbookingSequence
@@ -646,47 +722,13 @@ main (gint argc, gchar **argv)
         }
     }
 
-    gchar line[1024];
-    guint lineno = 0;
-    while (lineno++, fgets (line, sizeof (line), input_f))
+    if (!read_sequence_quantity (in,
+                                 sequences_hash,
+                                 mirbooking,
+                                 &error))
     {
-        if (lineno == 1 && g_str_has_prefix (line, "accession\tquantity\n"))
-        {
-            continue;
-        }
-
-        gchar *accession = strtok (line, "\t");
-        gchar *er = NULL;
-        gdouble quantity = g_strtod (strtok (NULL, "\n"), &er);
-
-        if (*er != '\0') // strtok replaces the '\n' by '\0'
-        {
-            g_printerr ("Malformed quantity for accession '%s' at line %u.\n", accession, lineno);
-            return EXIT_FAILURE;
-        }
-
-        MirbookingSequence *sequence = g_hash_table_lookup (sequences_hash, accession);
-
-        if (sequence == NULL)
-        {
-            g_printerr ("Unknown sequence with accession '%s'.\n", accession);
-            return EXIT_FAILURE;
-        }
-
-        if (quantity >= cutoff)
-        {
-            mirbooking_broker_set_sequence_quantity (mirbooking,
-                                                     sequence,
-                                                     quantity);
-        }
-        else
-        {
-            // clear unused entries immediatly for reducing the work
-            // of read_sequence_accessibility
-            // however, this does not clean sequences that were not quantified
-            // in the first place
-            g_hash_table_remove (sequences_hash, accession);
-        }
+        g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+        return EXIT_FAILURE;
     }
 
     // mark targets with  scores
