@@ -82,7 +82,7 @@ if not (get_option('with_mkl_dss') or get_option('with_pardiso') or get_option('
     warning('Any of MKL DSS, PARDISO or UMFPACK is recommended for solving sparse systems efficiently.')
 endif
 
-if get_option('with_mkl')
+if get_option('with_mkl') and get_option('with_mkl_cblas')
     add_project_arguments('-DHAVE_MKL_CBLAS', language: 'c')
     cblas_dep = mkl_dep
 elif get_option('with_openblas')
