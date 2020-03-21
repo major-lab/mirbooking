@@ -25,26 +25,28 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (FILE, fclose)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (GEnumClass, g_type_class_unref);
 #endif
 
-#define MIRBOOKING_DEFAULT_MAX_ITERATIONS 100
-#define MIRBOOKING_DEFAULT_CUTOFF         100 // pM
-#define MIRBOOKING_DEFAULT_REL_CUTOFF     0.0
+#define MIRBOOKING_DEFAULT_MAX_ITERATIONS          100
+#define MIRBOOKING_DEFAULT_CUTOFF                  100 // pM
+#define MIRBOOKING_DEFAULT_BOUND_FRACTION_CUTOFF   0.0
+#define MIRBOOKING_DEFAULT_SPONGED_FRACTION_CUTOFF 0.0
 
-static gchar                        **targets_files            = {NULL};
-static gchar                        **mirnas_files             = {NULL};
+static gchar                        **targets_files             = {NULL};
+static gchar                        **mirnas_files              = {NULL};
 static gchar                         *seed_scores_file          = MIRBOOKING_DEFAULT_SEED_SCORES_FILE;
 static gchar                         *supplementary_scores_file = NULL;
 static gchar                         *accessibility_scores_file = NULL;
 static gchar                         *input_file                = NULL;
 static gchar                         *output_file               = NULL;
-static MirbookingBrokerOutputFormat   output_format              = MIRBOOKING_BROKER_OUTPUT_FORMAT_TSV;
+static MirbookingBrokerOutputFormat   output_format             = MIRBOOKING_BROKER_OUTPUT_FORMAT_TSV;
 static MirbookingBrokerSparseSolver   sparse_solver;
-static guint64                        max_iterations             = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
-static gsize                          prime5_footprint           = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
-static gsize                          prime3_footprint           = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
-static gdouble                        cutoff                     = MIRBOOKING_DEFAULT_CUTOFF;
-static gdouble                        rel_cutoff                 = MIRBOOKING_DEFAULT_REL_CUTOFF;
-static gboolean                       version                    = FALSE;
-static gchar                         *blacklist                  = NULL;
+static guint64                        max_iterations            = MIRBOOKING_DEFAULT_MAX_ITERATIONS;
+static gsize                          prime5_footprint          = MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT;
+static gsize                          prime3_footprint          = MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT;
+static gdouble                        cutoff                    = MIRBOOKING_DEFAULT_CUTOFF;
+static gdouble                        bound_fraction_cutoff     = MIRBOOKING_DEFAULT_BOUND_FRACTION_CUTOFF;
+static gdouble                        sponged_fraction_cutoff   = MIRBOOKING_DEFAULT_SPONGED_FRACTION_CUTOFF;
+static gboolean                       version                   = FALSE;
+static gchar                         *blacklist                 = NULL;
 
 static MirbookingDefaultScoreTableSupplementaryModel supplementary_model = MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL;
 
@@ -128,23 +130,24 @@ set_sparse_solver(const gchar   *key,
 
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
-    {"targets",              0, 0, G_OPTION_ARG_FILENAME_ARRAY, &targets_files,             "Targets FASTA files",                                                                             NULL},
-    {"mirnas",               0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirnas_files,              "miRNA FASTA files",                                                                               NULL},
-    {"seed-scores",          0, 0, G_OPTION_ARG_FILENAME,       &seed_scores_file,          "Precomputed seed::MRE binding free energy duplex table",                                          "FILE"},
-    {"supplementary-model",  0, 0, G_OPTION_ARG_CALLBACK,       &set_supplementary_model,   "Supplementary bindings model to use",                                                             "none"},
-    {"supplementary-scores", 0, 0, G_OPTION_ARG_FILENAME,       &supplementary_scores_file, "Precomputed supplementary::MRE binding free energy duplex table",                                 "FILE"},
-    {"accessibility-scores", 0, 0, G_OPTION_ARG_FILENAME,       &accessibility_scores_file, "Accessibility scores as a variable columns (accession, positions...) TSV file",                   "FILE"},
-    {"input",                0, 0, G_OPTION_ARG_FILENAME,       &input_file,                "MiRNA and targets quantities as a two-column (accession, quantity) TSV file (defaults to stdin)", "FILE"},
-    {"output",               0, 0, G_OPTION_ARG_FILENAME,       &output_file,               "Output destination file (defaults to stdout)",                                                    "FILE"},
-    {"output-format",        0, 0, G_OPTION_ARG_CALLBACK,       &set_output_format,         "Output format (i.e. 'tsv', 'tsv-detailed', 'gff3', 'wig')",                                       "tsv"},
-    {"sparse-solver",        0, 0, G_OPTION_ARG_CALLBACK,       &set_sparse_solver,         "Sparse solver implementation to use",                                                             "best-available"},
-    {"max-iterations",       0, 0, G_OPTION_ARG_INT,            &max_iterations,            "Maximum number of iterations",                                                                    G_STRINGIFY (MIRBOOKING_DEFAULT_MAX_ITERATIONS)},
-    {"5prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime5_footprint,          "Footprint in the MRE's 5' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
-    {"3prime-footprint",     0, 0, G_OPTION_ARG_INT,            &prime3_footprint,          "Footprint in the MRE's 3' direction",                                                             G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
-    {"cutoff",               0, 0, G_OPTION_ARG_DOUBLE,         &cutoff,                    "Cutoff on the duplex concentration",                                                              G_STRINGIFY (MIRBOOKING_DEFAULT_CUTOFF)},
-    {"relative-cutoff",      0, 0, G_OPTION_ARG_DOUBLE,         &rel_cutoff,                "Relative cutoff on the bound fraction",                                                           G_STRINGIFY (MIRBOOKING_DEFAULT_REL_CUTOFF)},
-    {"blacklist",            0, 0, G_OPTION_ARG_FILENAME,       &blacklist,                 "Interaction blacklist",                                                                           NULL},
-    {"version",              0, 0, G_OPTION_ARG_NONE,           &version,                   "Show version and exit",                                                                           NULL},
+    {"targets",                 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &targets_files,             "Targets FASTA files",                                                                              NULL},
+    {"mirnas",                  0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirnas_files,              "miRNA FASTA files",                                                                                NULL},
+    {"seed-scores",             0, 0, G_OPTION_ARG_FILENAME,       &seed_scores_file,          "Precomputed seed::MRE binding free energy duplex table",                                           "FILE"},
+    {"supplementary-model",     0, 0, G_OPTION_ARG_CALLBACK,       &set_supplementary_model,   "Supplementary bindings model to use",                                                              "none"},
+    {"supplementary-scores",    0, 0, G_OPTION_ARG_FILENAME,       &supplementary_scores_file, "Precomputed supplementary::MRE binding free energy duplex table",                                  "FILE"},
+    {"accessibility-scores",    0, 0, G_OPTION_ARG_FILENAME,       &accessibility_scores_file, "Accessibility scores as a variable columns (accession, positions...) TSV file",                    "FILE"},
+    {"input",                   0, 0, G_OPTION_ARG_FILENAME,       &input_file,                "MiRNA and targets quantities as a two columns (accession, quantity) TSV file (defaults to stdin)", "FILE"},
+    {"output",                  0, 0, G_OPTION_ARG_FILENAME,       &output_file,               "Output destination file (defaults to stdout)",                                                     "FILE"},
+    {"output-format",           0, 0, G_OPTION_ARG_CALLBACK,       &set_output_format,         "Output format (i.e. 'tsv', 'tsv-detailed', 'gff3', 'wig')",                                        "tsv"},
+    {"sparse-solver",           0, 0, G_OPTION_ARG_CALLBACK,       &set_sparse_solver,         "Sparse solver implementation to use",                                                              "best-available"},
+    {"max-iterations",          0, 0, G_OPTION_ARG_INT,            &max_iterations,            "Maximum number of iterations",                                                                     G_STRINGIFY (MIRBOOKING_DEFAULT_MAX_ITERATIONS)},
+    {"5prime-footprint",        0, 0, G_OPTION_ARG_INT,            &prime5_footprint,          "Footprint in the MRE's 5' direction",                                                              G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_5PRIME_FOOTPRINT)},
+    {"3prime-footprint",        0, 0, G_OPTION_ARG_INT,            &prime3_footprint,          "Footprint in the MRE's 3' direction",                                                              G_STRINGIFY (MIRBOOKING_BROKER_DEFAULT_3PRIME_FOOTPRINT)},
+    {"cutoff",                  0, 0, G_OPTION_ARG_DOUBLE,         &cutoff,                    "Cutoff on the duplex concentration",                                                               G_STRINGIFY (MIRBOOKING_DEFAULT_CUTOFF)},
+    {"bound-fraction-cutoff",   0, 0, G_OPTION_ARG_DOUBLE,         &bound_fraction_cutoff,     "Cutoff on the bound fraction",                                                                     G_STRINGIFY (MIRBOOKING_DEFAULT_BOUND_FRACTION_CUTOFF)},
+    {"sponged-fraction-cutoff", 0, 0, G_OPTION_ARG_DOUBLE,         &sponged_fraction_cutoff,   "Cutoff on the sponged fraction",                                                                   G_STRINGIFY (MIRBOOKING_DEFAULT_SPONGED_FRACTION_CUTOFF)},
+    {"blacklist",               0, 0, G_OPTION_ARG_FILENAME,       &blacklist,                 "Interaction blacklist as a three columns (accession, position, quantity) TSV file",                NULL},
+    {"version",                 0, 0, G_OPTION_ARG_NONE,           &version,                   "Show version and exit",                                                                            NULL},
     {0}
 };
 
@@ -515,9 +518,10 @@ main (gint argc, gchar **argv)
 
     MirbookingDefaultScoreTableCutoffFilterUserData cutoff_filter_ud =
     {
-        .broker          = g_object_ref (mirbooking),
-        .cutoff          = cutoff,
-        .relative_cutoff = rel_cutoff
+        .broker                  = g_object_ref (mirbooking),
+        .cutoff                  = cutoff,
+        .bound_fraction_cutoff   = bound_fraction_cutoff,
+        .sponged_fraction_cutoff = sponged_fraction_cutoff
     };
 
 

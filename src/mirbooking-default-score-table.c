@@ -63,7 +63,9 @@ mirbooking_default_score_table_cutoff_filter  (MirbookingDefaultScoreTable *scor
 
     gdouble ES = ((Z - sqrt (pow (Z, 2) - 4 * E0 * S0)) / 2.0);
 
-    return ES >= cutoff_filter_user_data->cutoff && ((ES / S0) >= cutoff_filter_user_data->relative_cutoff);
+    return ES >= cutoff_filter_user_data->cutoff &&
+        ((ES / S0) >= cutoff_filter_user_data->bound_fraction_cutoff) &&
+        ((ES / E0) >= cutoff_filter_user_data->sponged_fraction_cutoff);
 }
 
 /**

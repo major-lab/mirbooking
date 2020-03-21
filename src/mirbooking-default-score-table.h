@@ -35,7 +35,8 @@ typedef struct _MirbookingDefaultScoreTableCutoffFilterUserData
 {
     MirbookingBroker *broker;
     gdouble           cutoff;
-    gdouble           relative_cutoff;
+    gdouble           bound_fraction_cutoff;
+    gdouble           sponged_fraction_cutoff;
 } MirbookingDefaultScoreTableCutoffFilterUserData;
 
 gboolean
