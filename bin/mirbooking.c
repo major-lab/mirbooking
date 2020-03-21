@@ -755,7 +755,7 @@ main (gint argc, gchar **argv)
         guint64 accessibility_read_begin = g_get_monotonic_time ();
 
         // update sequence
-        if (!read_sequence_accessibility (G_INPUT_STREAM (accessibility_scores_in),
+        if (!read_sequence_accessibility (accessibility_scores_in,
                                           sequences_hash,
                                           &error))
 
