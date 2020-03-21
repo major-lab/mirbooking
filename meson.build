@@ -17,7 +17,7 @@ if get_option('with_openmp')
 else
     openmp_dep = []
     add_project_arguments('-Wno-unknown-pragmas', language: 'c')
-    warning('OpenMP is recommended for parallelizing the workload.')
+    warning('OpenMP (-Dwith_openmp=true) is recommended for parallelizing the workload.')
 endif
 
 if get_option('with_mpi')
@@ -37,7 +37,7 @@ if get_option('with_mkl')
                                        dependencies: meson.get_compiler('c').find_library('mkl_intel_ilp64', dirs: mkl_libdir))
     else
         mkl_interface = meson.get_compiler('c').find_library('mkl_intel_lp64', dirs: mkl_libdir)
-        warning('MKL 64-bit interface is required for solving large systems.')
+        warning('MKL 64-bit interface (-Dwith_mkl_ilp64=true) is required for solving large systems.')
     endif
     mkl_core = meson.get_compiler('c').find_library('mkl_core', dirs: mkl_libdir)
 
@@ -50,6 +50,7 @@ if get_option('with_mkl')
         mkl_thread = declare_dependency(dependencies: [mkl_gnu_thread, openmp_dep])
     else
         mkl_thread = meson.get_compiler('c').find_library('mkl_sequential', dirs: mkl_libdir)
+        warning('OpenMP (-Dwith_openmp=true) or MKL TBB (-Dwith_mkl_tbb=true) is recommended for parallelizing MKL solvers.')
     endif
 
     if get_option('with_mpi')
@@ -70,16 +71,20 @@ if get_option('with_mkl')
                                  dependencies: [mkl_interface, mkl_thread, mkl_core, mkl_blacs, mpi_dep, mkl_pthread, mkl_m, mkl_dl])
 
     if get_option('with_pardiso')
-        error('MKL conflicts with the following solvers: PARDISO.')
+        error('MKL conflicts with PARDISO solver, use -Dwith_pardiso=false instead.')
+    endif
+
+    if not get_option('with_mkl_lapack')
+        error('MKL 64-bit interface conflicts with LAPACK solver, use -Dwith_mkl_lapack=true instead.')
     endif
 
     if get_option('with_mkl_ilp64') and (get_option('with_superlu') or get_option('with_superlu_mt') or get_option('with_umfpack') or get_option('with_pardiso'))
-        error('MKL 64-bit interface conflicts with the following solvers: SuperLU, SuperLU-MT, UMFPACK and PARDISO.')
+        error('MKL 64-bit interface conflicts with the following solvers: LAPACK, SuperLU, SuperLU-MT, UMFPACK and PARDISO.')
     endif
 endif
 
 if not (get_option('with_mkl_dss') or get_option('with_pardiso') or get_option('with_umfpack'))
-    warning('Any of MKL DSS, PARDISO or UMFPACK is recommended for solving sparse systems efficiently.')
+    warning('Any of MKL DSS (-Dwith_mkl_dss=true), PARDISO (-Dwith_pardiso=true) or UMFPACK (-Dwith_umfpack=true) is recommended for solving sparse systems efficiently.')
 endif
 
 if get_option('with_mkl') and get_option('with_mkl_cblas')
@@ -109,19 +114,17 @@ if get_option('with_mkl') and get_option('with_mkl_fftw3')
     add_project_arguments('-DHAVE_FFTW3', language: 'c')
     fftw3_dep = declare_dependency(include_directories: include_directories(join_paths(mkl_root, 'include/fftw')),
                                    dependencies: mkl_dep)
-    message('MKL FFTW3 will be used.')
 elif get_option('with_fftw3')
     add_project_arguments('-DHAVE_FFTW3', language: 'c')
     fftw3_dep = dependency('fftw3')
 else
     fftw3_dep = []
-    warning('FFTW3 is recommended to compute accurate target silencing.')
+    warning('Any of FFTW3 (-Dwith_fftw3=true) or MKL FFTW3 (-Dwith_mkl_fftw3=true) is recommended to compute accurate target silencing.')
 endif
 
 if get_option('with_mkl') and get_option('with_mkl_lapack')
     lapack_dep = declare_dependency(dependencies: mkl_dep,
                                     compile_args: '-DHAVE_MKL_LAPACK')
-    message('MKL LAPACK will be used.')
 else
     lapack_dep = dependency('lapacke', required: false)
     if not lapack_dep.found()
