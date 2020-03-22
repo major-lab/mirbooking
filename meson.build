@@ -74,8 +74,8 @@ if get_option('with_mkl')
         error('MKL conflicts with PARDISO solver, use -Dwith_pardiso=false instead.')
     endif
 
-    if not get_option('with_mkl_cblas')
-        error('MKL 64-bit interface conflicts with BLAS, use -Dwith_mkl_cblas=true instead.')
+    if not (get_option('with_mkl_cblas') or get_option('with_openblas64'))
+        error('MKL 64-bit interface conflicts with 32-bit BLAS, use -Dwith_mkl_cblas=true or -Dwith_openblas64=true instead.')
     endif
 
     if not get_option('with_mkl_lapack')
@@ -94,14 +94,19 @@ endif
 if get_option('with_mkl') and get_option('with_mkl_cblas')
     add_project_arguments('-DHAVE_MKL_CBLAS', language: 'c')
     cblas_dep = mkl_dep
-elif get_option('with_openblas')
+elif get_option('with_openblas') or get_option('with_openblas64')
     add_project_arguments('-DHAVE_OPENBLAS', language: 'c')
     if get_option('with_openmp')
         openblas_flavour = 'o'
     else
         openblas_flavour = ''
     endif
-    cblas_dep = meson.get_compiler('c').find_library('openblas' + openblas_flavour)
+    if get_option('with_openblas64')
+        openblas_interface = '64'
+    else
+        openblas_interface = ''
+    endif
+    cblas_dep = meson.get_compiler('c').find_library('openblas' + openblas_flavour + openblas_interface)
 elif get_option('with_atlas')
     cblas_dep = dependency('atlas', required: false)
     if not cblas_dep.found()

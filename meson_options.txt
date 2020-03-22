@@ -4,6 +4,7 @@ option('with_mpi', type: 'boolean', value: false)
 
 # BLAS implementation
 option('with_openblas', type: 'boolean', value: false)
+option('with_openblas64', type: 'boolean', value: false)
 option('with_atlas', type: 'boolean', value: false)
 
 option('with_superlu', type: 'boolean', value: false)
