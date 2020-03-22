@@ -74,6 +74,10 @@ if get_option('with_mkl')
         error('MKL conflicts with PARDISO solver, use -Dwith_pardiso=false instead.')
     endif
 
+    if not get_option('with_mkl_cblas')
+        error('MKL 64-bit interface conflicts with BLAS, use -Dwith_mkl_cblas=true instead.')
+    endif
+
     if not get_option('with_mkl_lapack')
         error('MKL 64-bit interface conflicts with LAPACK solver, use -Dwith_mkl_lapack=true instead.')
     endif

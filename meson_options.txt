@@ -9,19 +9,19 @@ option('with_atlas', type: 'boolean', value: false)
 option('with_superlu', type: 'boolean', value: false)
 option('with_superlu_mt', type: 'boolean', value: false)
 option('with_umfpack', type: 'boolean', value: false)
-option('with_mkl_dss', type: 'boolean', value: false)
-option('with_mkl_cluster', type: 'boolean', value: false)
 option('with_pardiso', type: 'boolean', value: false)
 
 # Intel MKL
-option('mkl_root', type: 'string')
-option('mkl_arch', type: 'string', value: 'intel64')
 option('with_mkl', type: 'boolean', value: false)
+option('mkl_root', type: 'string', value: '/opt/intel/mkl')
+option('mkl_arch', type: 'string', value: 'intel64')
 option('with_mkl_ilp64', type: 'boolean', value: false)
 option('with_mkl_tbb', type: 'boolean', value: false)
 option('with_mkl_cblas', type: 'boolean', value: false)
 option('with_mkl_fftw3', type: 'boolean', value: false)
 option('with_mkl_lapack', type: 'boolean', value: false)
+option('with_mkl_dss', type: 'boolean', value: false)
+option('with_mkl_cluster', type: 'boolean', value: false)
 
 # NVIDIA CUDA
 option('with_cuda', type: 'string')
