@@ -41,6 +41,15 @@ foreach t : mirbooking_integration_tests
     endif
 endforeach
 
+mirdesign_test_args = mirbooking_integration_test_args + [
+    '--mirbooking', mirbooking_bin,
+    '--initial-candidate', 'NGGGCAGGNNNCCANNNNNNNN',
+    '--designs-output-dir', meson.current_build_dir(),
+    '--cutoff', '0.001',
+    '--sparse-solver', 'lapack']
+test('mirdesign', python3,
+     args: [join_paths(meson.current_source_dir(), '../bin/mirdesign')] + mirdesign_test_args)
+
 if get_option('with_introspection')
     test('gi', python3,
          args: [join_paths(meson.current_source_dir(), 'gi-test.py')],
