@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--target', action='append', help='Target transcripts or everything if not specified')
 parser.add_argument('--non-target', action='append', help='Non-target transcripts')
-parser.add_argument('--initial-candidate', help='Initial candidate')
+parser.add_argument('--initial-candidate', default=22*'N', help='Initial candidate')
 parser.add_argument('--alpha', type=float, default=0.1, help='Heuristic weight')
 parser.add_argument('--workers', type=int, default=2, help='Number of workers spawning processes')
 parser.add_argument('--threads-per-worker', type=int, default=1, help='Number of threads per worker')
@@ -37,18 +37,16 @@ parser.add_argument('--input', required=True, help=argparse.SUPPRESS)
 
 args, mirbooking_args = parser.parse_known_args()
 
-if args.initial_candidate is None:
-    args.initial_candidate = 22 * 'N'
-
-os.environ['OMP_NUM_THREADS'] = str(args.threads_per_worker)
-
 def run_mirbooking(candidate, quantities, q=args.design_quantity):
     quantities = quantities.copy()
     quantities.loc['smart','quantity'] = q
-    # TODO: use a named pipe to bypass the filesystem
     with tempfile.NamedTemporaryFile(dir='/dev/shm') as design_file:
         write([SeqRecord(Seq(candidate), 'smart')], design_file.name, format='fasta')
-        return pd.read_csv(StringIO(check_output([args.mirbooking] + mirbooking_args + ['--mirnas', design_file.name], input=quantities.to_csv(sep='\t'), universal_newlines=True)), index_col=['target_accession', 'position', 'mirna_accession'], sep='\t')
+        mirbooking_final_args = [args.mirbooking] + mirbooking_args + ['--mirnas', design_file.name]
+        mirbooking_final_env = os.environ.copy()
+        mirbooking_final_env.update({'OMP_NUM_THREADS': str(args.threads_per_worker)})
+        ret = subprocess.run(mirbooking_final_args, env=mirbooking_final_env, input=quantities.to_csv(sep='\t'), universal_newlines=True, text=True, capture_output=True, check=True)
+        return pd.read_csv(StringIO(ret.stdout), index_col=['target_accession', 'position', 'mirna_accession'], sep='\t')
 
 def expressed_fraction(df):
     # fraction of targets without any microRNA bound (following Poisson-Binomial model)
@@ -125,10 +123,9 @@ def work(candidates, pb, designs_out):
         for s in successors(candidate):
             try:
                 successor_score = evaluate(s)
-            except Exception as err:
+            except subprocess.CalledProcessError as err:
                 pb.write(f'Failed to process candidate: {s}')
-                if hasattr(err, 'output'):
-                    pb.write(err.output)
+                pb.write(err.stderr)
                 continue
             finally:
                 pb.update()
