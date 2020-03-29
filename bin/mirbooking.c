@@ -494,7 +494,7 @@ main (gint argc, gchar **argv)
 
     sparse_solver = MIRBOOKING_BROKER_DEFAULT_SPARSE_SOLVER;
 
-    g_autoptr (GOptionContext) context = g_option_context_new ("[FILE]");
+    g_autoptr (GOptionContext) context = g_option_context_new (NULL);
 
     g_option_context_add_main_entries (context,
                                        MIRBOOKING_OPTION_ENTRIES,
