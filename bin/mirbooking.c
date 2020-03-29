@@ -239,7 +239,7 @@ read_sequence_quantity (GInputStream     *in,
     }
 }
 
-gboolean
+static gboolean
 read_sequence_accessibility (GInputStream     *in,
                              GHashTable       *sequences_hash,
                              GError          **error)
@@ -324,8 +324,7 @@ read_sequence_accessibility (GInputStream     *in,
     return TRUE;
 }
 
-
-gboolean
+static gboolean
 read_interaction_blacklist (GInputStream  *is,
                             GHashTable    *blacklist,
                             GHashTable    *sequences_hash,
