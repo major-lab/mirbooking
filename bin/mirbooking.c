@@ -130,7 +130,7 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {"targets",                 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &targets_files,             "Targets FASTA files",                                                                              NULL},
     {"mirnas",                  0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirnas_files,              "miRNA FASTA files",                                                                                NULL},
     {"seed-scores",             0, 0, G_OPTION_ARG_FILENAME,       &seed_scores_file,          "Precomputed seed::MRE binding free energy duplex table",                                           "FILE"},
-    {"supplementary-model",     0, 0, G_OPTION_ARG_CALLBACK,       &set_supplementary_model,   "Supplementary bindings model to use",                                                              "none"},
+    {"supplementary-model",     0, 0, G_OPTION_ARG_CALLBACK,       &set_supplementary_model,   "Supplementary bindings model to use",                                                              "yan-et-al-2018"},
     {"supplementary-scores",    0, 0, G_OPTION_ARG_FILENAME,       &supplementary_scores_file, "Precomputed supplementary::MRE binding free energy duplex table",                                  "FILE"},
     {"accessibility-scores",    0, 0, G_OPTION_ARG_FILENAME,       &accessibility_scores_file, "Accessibility scores as a variable columns (accession, positions...) TSV file",                    "FILE"},
     {"input",                   0, 0, G_OPTION_ARG_FILENAME,       &input_file,                "MiRNA and targets quantities as a two columns (accession, quantity) TSV file (defaults to stdin)", "FILE"},

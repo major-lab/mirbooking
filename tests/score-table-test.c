@@ -42,7 +42,7 @@ test_score_table_compute_seed_score ()
 {
     g_autoptr (GBytes) default_table = g_bytes_new_static (&SEED_SCORES, sizeof (SEED_SCORES));
     g_autoptr (MirbookingDefaultScoreTable) score_table = mirbooking_default_score_table_new (default_table,
-                                                                                              MIRBOOKING_DEFAULT_SCORE_TABLE_DEFAULT_SUPPLEMENTARY_MODEL,
+                                                                                              MIRBOOKING_DEFAULT_SCORE_TABLE_SUPPLEMENTARY_MODEL_NONE,
                                                                                               NULL);
 
     g_autoptr (MirbookingTarget) target = mirbooking_target_new ("NM");
