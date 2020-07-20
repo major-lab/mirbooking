@@ -28,7 +28,10 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (GEnumClass, g_type_class_unref);
 #define MIRBOOKING_DEFAULT_SPONGED_FRACTION_CUTOFF 0.0
 
 static gchar                        **targets_files             = {NULL};
+static gchar                        **ncbi_targets_files        = {NULL};
+static gchar                        **gencode_targets_files     = {NULL};
 static gchar                        **mirnas_files              = {NULL};
+static gchar                        **mirbase_mirnas_files      = {NULL};
 static gchar                         *seed_scores_file          = MIRBOOKING_DEFAULT_SEED_SCORES_FILE;
 static gchar                         *supplementary_scores_file = NULL;
 static gchar                         *accessibility_scores_file = NULL;
@@ -131,8 +134,11 @@ set_sparse_solver(const gchar   *key,
 
 static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
 {
-    {"targets",                 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &targets_files,             "Targets FASTA files",                                                                              NULL},
-    {"mirnas",                  0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirnas_files,              "miRNA FASTA files",                                                                                NULL},
+    {"targets",                 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &targets_files,             "Targets FASTA files (generic format)",                                                             NULL},
+    {"ncbi-targets",            0, 0, G_OPTION_ARG_FILENAME_ARRAY, &ncbi_targets_files,        "Targets FASTA files (NCBI format)",                                                                NULL},
+    {"gencode-targets",         0, 0, G_OPTION_ARG_FILENAME_ARRAY, &gencode_targets_files,     "Targets FASTA files (GENCODE format)",                                                             NULL},
+    {"mirnas",                  0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirnas_files,              "miRNA FASTA files (generic format)",                                                               NULL},
+    {"mirbase-mirnas",          0, 0, G_OPTION_ARG_FILENAME_ARRAY, &mirbase_mirnas_files,      "miRNA FASTA files (miRBase format)",                                                               NULL},
     {"seed-scores",             0, 0, G_OPTION_ARG_FILENAME,       &seed_scores_file,          "Precomputed seed::MRE binding free energy duplex table",                                           "FILE"},
     {"supplementary-model",     0, 0, G_OPTION_ARG_CALLBACK,       &set_supplementary_model,   "Supplementary bindings model to use",                                                              "yan-et-al-2018"},
     {"supplementary-scores",    0, 0, G_OPTION_ARG_FILENAME,       &supplementary_scores_file, "Precomputed supplementary::MRE binding free energy duplex table",                                  "FILE"},
@@ -152,28 +158,29 @@ static GOptionEntry MIRBOOKING_OPTION_ENTRIES[] =
     {0}
 };
 
-static MirbookingFastaFormat
-detect_fasta_format (const gchar *path)
+typedef struct _FormattedFastaFile
 {
-    g_autofree const gchar *path_basename = g_path_get_basename (path);
+    gchar                 *path;
+    MirbookingFastaFormat  fasta_format;
+} FormattedFastaFile;
 
-    if (g_str_has_prefix (path_basename, "gencode."))
+static void
+append_formatted_sequences_files (gchar                 **sequences_files,
+                                  MirbookingFastaFormat   fasta_format,
+                                  GArray                 *sequences)
+{
+    if (sequences_files == NULL)
+        return;
+
+    gchar **cur_sequences_file;
+    for (cur_sequences_file = sequences_files; *cur_sequences_file != NULL; cur_sequences_file++)
     {
-        return MIRBOOKING_FASTA_FORMAT_GENCODE;
-    }
-    else if (g_str_has_prefix (path_basename, "mature"))
-    {
-        return MIRBOOKING_FASTA_FORMAT_MIRBASE;
-    }
-    else if (g_str_has_prefix (path_basename, "GCF_") || g_str_has_prefix (path_basename, "GCA_"))
-    {
-        return MIRBOOKING_FASTA_FORMAT_NCBI;
-    }
-    else
-    {
-        return MIRBOOKING_FASTA_FORMAT_GENERIC;
+        FormattedFastaFile ff = { .path = *cur_sequences_file, .fasta_format = fasta_format };
+        g_array_append_val (sequences,
+                            ff);
     }
 }
+
 
 static gboolean
 read_sequence_quantity (GInputStream     *in,
@@ -636,79 +643,92 @@ main (gint argc, gchar **argv)
         }
     }
 
+    g_autoptr (GArray) targets = g_array_new (TRUE,
+                                              FALSE,
+                                              sizeof (FormattedFastaFile));
+
+    append_formatted_sequences_files (targets_files,         MIRBOOKING_FASTA_FORMAT_GENERIC, targets);
+    append_formatted_sequences_files (ncbi_targets_files,    MIRBOOKING_FASTA_FORMAT_NCBI,    targets);
+    append_formatted_sequences_files (gencode_targets_files, MIRBOOKING_FASTA_FORMAT_GENCODE, targets);
+
+    g_autoptr (GArray) mirnas = g_array_new (TRUE,
+                                             FALSE,
+                                             sizeof (FormattedFastaFile));
+
+    append_formatted_sequences_files (mirnas_files,         MIRBOOKING_FASTA_FORMAT_GENERIC, mirnas);
+    append_formatted_sequences_files (mirbase_mirnas_files, MIRBOOKING_FASTA_FORMAT_MIRBASE, mirnas);
+
     // accession -> #MirbookingSequence
     g_autoptr (GHashTable) sequences_hash = g_hash_table_new_full (g_str_hash,
                                                                    g_str_equal,
                                                                    g_free,
                                                                    g_object_unref);
 
-    // precondition all sequences
-    gchar **cur_sequences_file = NULL;
-    if (targets_files != NULL)
+    gint i;
+    for (i = 0; i < targets->len; i++)
     {
-        for (cur_sequences_file = targets_files; *cur_sequences_file != NULL; cur_sequences_file++)
+        // precondition all sequences
+        FormattedFastaFile cur_sequences_file = g_array_index (targets, FormattedFastaFile, i);
+
+        g_autoptr (GMappedFile) seq_map = g_mapped_file_new (cur_sequences_file.path, FALSE, &error);
+
+        if (seq_map == NULL)
         {
-            g_autoptr (GMappedFile) seq_map = g_mapped_file_new (*cur_sequences_file, FALSE, &error);
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
+        }
 
-            if (seq_map == NULL)
-            {
-                g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-                return EXIT_FAILURE;
-            }
+        g_autoptr (MirbookingSequenceIter) iter;
+        mirbooking_read_sequences_from_mapped_file (seq_map,
+                                                    cur_sequences_file.fasta_format,
+                                                    MIRBOOKING_TYPE_TARGET,
+                                                    &iter);
 
-            g_autoptr (MirbookingSequenceIter) iter;
-            mirbooking_read_sequences_from_mapped_file (seq_map,
-                                                        detect_fasta_format (*cur_sequences_file),
-                                                        MIRBOOKING_TYPE_TARGET,
-                                                        &iter);
+        while (mirbooking_sequence_iter_next (iter, &error))
+        {
+            MirbookingSequence *seq = mirbooking_sequence_iter_get_sequence (iter);
+            g_hash_table_insert (sequences_hash,
+                                 g_strdup (mirbooking_sequence_get_accession (seq)),
+                                 g_object_ref (seq));
+        }
 
-            while (mirbooking_sequence_iter_next (iter, &error))
-            {
-                MirbookingSequence *seq = mirbooking_sequence_iter_get_sequence (iter);
-                g_hash_table_insert (sequences_hash,
-                                     g_strdup (mirbooking_sequence_get_accession (seq)),
-                                     g_object_ref (seq));
-            }
-
-            if (error != NULL)
-            {
-                g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-                return EXIT_FAILURE;
-            }
+        if (error != NULL)
+        {
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
         }
     }
 
-    if (mirnas_files != NULL)
+    for (i = 0; i < mirnas->len; i++)
     {
-        for (cur_sequences_file = mirnas_files; *cur_sequences_file != NULL; cur_sequences_file++)
+        FormattedFastaFile cur_sequences_file = g_array_index (mirnas, FormattedFastaFile, i);
+
+        g_autoptr (GMappedFile) seq_map = g_mapped_file_new (cur_sequences_file.path, FALSE, &error);
+
+        if (seq_map == NULL)
         {
-            g_autoptr (GMappedFile) seq_map = g_mapped_file_new (*cur_sequences_file, FALSE, &error);
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
+        }
 
-            if (seq_map == NULL)
-            {
-                g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-                return EXIT_FAILURE;
-            }
+        g_autoptr (MirbookingSequenceIter) iter;
+        mirbooking_read_sequences_from_mapped_file (seq_map,
+                                                    cur_sequences_file.fasta_format,
+                                                    MIRBOOKING_TYPE_MIRNA,
+                                                    &iter);
 
-            g_autoptr (MirbookingSequenceIter) iter;
-            mirbooking_read_sequences_from_mapped_file (seq_map,
-                                                        detect_fasta_format (*cur_sequences_file),
-                                                        MIRBOOKING_TYPE_MIRNA,
-                                                        &iter);
+        while (mirbooking_sequence_iter_next (iter, &error))
+        {
+            MirbookingSequence *seq = mirbooking_sequence_iter_get_sequence (iter);
+            g_hash_table_insert (sequences_hash,
+                                 g_strdup (mirbooking_sequence_get_accession (seq)),
+                                 g_object_ref (seq));
+        }
 
-            while (mirbooking_sequence_iter_next (iter, &error))
-            {
-                MirbookingSequence *seq = mirbooking_sequence_iter_get_sequence (iter);
-                g_hash_table_insert (sequences_hash,
-                                     g_strdup (mirbooking_sequence_get_accession (seq)),
-                                     g_object_ref (seq));
-            }
-
-            if (error != NULL)
-            {
-                g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
-                return EXIT_FAILURE;
-            }
+        if (error != NULL)
+        {
+            g_printerr ("%s (%s, %u).\n", error->message, g_quark_to_string (error->domain), error->code);
+            return EXIT_FAILURE;
         }
     }
 
