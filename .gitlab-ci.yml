@@ -1,0 +1,8 @@
+before_script:
+  - env
+
+run-tests:
+  script:
+    - meson -C build
+    - ninja -C build
+    - meson -C build test
