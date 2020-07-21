@@ -6,16 +6,16 @@ Implementation of the miRBooking algorithm and metrics in C
 
  - fast and memory efficient
  - usable from Python, JavaScript and Vala via GObject introspection
- - memory-mapped score tables, target and mirnas FASTA for  low memory
-   footprint in parallel execution
+ - memory-mapped score tables, target and miRNAs FASTA for low memory footprint
+   in parallel execution
  - binary with support for static linking for more portability
  - stdin/stdout for piping from and into other tools
 
 ## Usage
 
 ```bash
-mirbooking --targets GCF_000001405.37_GRCh38.p11_rna.fna
-           --mirnas mature.fa
+mirbooking --targets targets.fa
+           --mirnas mirnas.fa
            --seed-scores scores-7mer-3mismatch-ending
            [--accessibility-scores accessibility-scores[.gz]]
            [--supplementary-model none]
@@ -37,16 +37,17 @@ To obtain detailed usage and options, launch `mirbooking --help`.
 The command line program expects a number of inputs:
 
  - `--targets`, a FASTA containing RNA transcripts where the identifier is the
-   accession (i.e. NM_002710.3)
- - `--mirnas`, a FASTA containing mature miRNAs where the first token in the
-   comment is the accession (i.e. MIMAT0004792)
+   accession with support for alternative flavours from NCBI RefSeq and GenBank
+   via `--ncbi-targets`, and GENCODE via `--gencode-targets`
+ - `--mirnas`, a FASTA containing mature miRNAs where the identifier is the
+   accession with support for alternative flavour from miRBase via `--mirbase-mirnas`
  - `--seed-scores`, a sparse score table of seed free energies which can be
    generated using `generate-score-table` program described below
  - `--accessibilitiy-scores` contains entries with position-wise free energy
    contribution (or penalty) on the targets
  - `--supplementary-scores` contains either 4mer or 3mer
- - `--input`, a quantity file mapping target and mirna accessions to
-   expressed quantity in picomolars
+ - `--input`, a quantity file mapping target and miRNA accessions to expressed
+   quantity in picomolars units
 
 Tables for seed and supplementary scores are provided in the `data` folder.
 These were computed with RNAcofold binding energy from ViennaRNA package.
