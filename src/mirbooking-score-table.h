@@ -7,6 +7,8 @@
 
 #include <glib-object.h>
 
+#include <math.h>
+
 G_BEGIN_DECLS
 
 #define MIRBOOKING_TYPE_SCORE_TABLE mirbooking_score_table_get_type ()
@@ -23,6 +25,7 @@ typedef struct _MirbookingScore
 
 #define MIRBOOKING_SCORE_KD(score) (score.kr / score.kf)
 #define MIRBOOKING_SCORE_KM(score) ((score.kr + score.kcat) / score.kf)
+#define MIRBOOKING_SCORE_IS_FINITE(score) isfinite((score.kr + score.kcat) / score.kf)
 
 struct _MirbookingScoreTableClass
 {

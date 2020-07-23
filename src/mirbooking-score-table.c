@@ -30,7 +30,7 @@ default_compute_positions (MirbookingScoreTable *self,
             return FALSE;
         }
 
-        if (MIRBOOKING_SCORE_KD (score) < INFINITY)
+        if (MIRBOOKING_SCORE_IS_FINITE (score))
         {
             _positions = g_realloc (_positions, (j + 1) * sizeof (gsize));
             _positions[j] = i;

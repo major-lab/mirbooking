@@ -233,17 +233,9 @@ test_mirbooking_bad_seed_range ()
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (target), 10);
     mirbooking_broker_set_sequence_quantity (broker, MIRBOOKING_SEQUENCE (mirna), 10);
 
-    if (g_test_subprocess ())
-    {
-        gdouble error_ratio;
-        GError *error = NULL;
-        mirbooking_broker_evaluate (broker, &error_ratio, &error);
-        return;
-    }
-
-    g_test_trap_subprocess (NULL, 0, 0);
-    g_test_trap_assert_failed ();
-    g_test_trap_assert_stderr ("*offset + len <= g_bytes_get_size (priv->sequence) - priv->sequence_skips->len*");
+    gdouble error_ratio;
+    GError *error = NULL;
+    mirbooking_broker_evaluate (broker, &error_ratio, &error);
 }
 
 static void

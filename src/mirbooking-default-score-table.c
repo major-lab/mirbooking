@@ -427,68 +427,32 @@ compute_positions (MirbookingScoreTable  *score_table,
 {
     MirbookingDefaultScoreTable *self = MIRBOOKING_DEFAULT_SCORE_TABLE (score_table);
 
-    gsize k = 0;
+    g_autofree gsize *_positions = NULL;
 
-    gssize i = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (mirna), SEED_OFFSET, SEED_LENGTH);
-
-    // miRNA seed is undefined (thus no suitable targets)
-    if (i == -1)
+    if (self->priv->filter != NULL &&
+        !self->priv->filter (self, mirna, target, -1, self->priv->filter_user_data))
     {
         *positions = NULL;
         *positions_len = 0;
         return TRUE;
     }
 
-    gsize j = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), 0, SEED_LENGTH);
-
-    gsize seq_len = mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target));
-
-    gsize total_positions_len = seq_len - SEED_LENGTH + 1;
-
-    g_autofree gsize  *_positions = NULL;
-
-    if (self->priv->filter != NULL && !self->priv->filter (self, mirna, target, -1, self->priv->filter_user_data))
-    {
-        *positions = NULL;
-        *positions_len = 0;
-        return TRUE;
-    }
+    gsize seq_len = mirbooking_sequence_get_sequence_length (MIRBOOKING_SEQUENCE (target)) - SEED_LENGTH + 1;
 
     gsize p;
-    for (p = 0; p < total_positions_len; p++)
+    gsize k = 0;
+    for (p = 0; p < seq_len; p++)
     {
-        if ((sparse_matrix_get_float (&self->priv->seed_scores, i, j) < INFINITY || is_g_bulge (target, p)) &&
-            mirbooking_target_get_accessibility_score (target, p) < INFINITY                                &&
-            (self->priv->filter == NULL || self->priv->filter (self, mirna, target, p, self->priv->filter_user_data)))
+        if (self->priv->filter == NULL ||
+            self->priv->filter (self, mirna, target, p, self->priv->filter_user_data))
         {
             MirbookingScore score;
             mirbooking_score_table_compute_score (MIRBOOKING_SCORE_TABLE (self), mirna, target, p, &score, NULL);
-            if (MIRBOOKING_SCORE_KM (score) < INFINITY)
+            if (MIRBOOKING_SCORE_IS_FINITE (score))
             {
                 _positions = g_realloc (_positions, (k + 1) * sizeof (gsize));
                 _positions[k++] = p;
             }
-        }
-
-        if (p < seq_len - SEED_LENGTH)
-        {
-            gssize out = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p, 1);
-            gssize in  = mirbooking_sequence_get_subsequence_index (MIRBOOKING_SEQUENCE (target), p+SEED_LENGTH, 1);
-
-            if (in == -1)
-            {
-                break; // FIXME
-            }
-
-            g_assert_cmpint (in, !=, -1);
-            g_assert_cmpint (out, !=, -1);
-
-            j -= out * (2l << (2 * (SEED_LENGTH - 1) - 1));
-            j *= 4;
-            j += in;
-
-            g_assert_cmpint (j, <, 16384);
-            g_assert_cmpint (j, >=, 0);
         }
     }
 
