@@ -1,5 +1,6 @@
-#include "sparse.h"
-#include "sparse-private.h"
+#include "sparse-matrix.h"
+#include "sparse-solver.h"
+#include "sparse-solver-private.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -8,9 +9,9 @@
 extern void pardisoinit        (void *, int *, int *, int *, double *, int *);
 extern void pardiso            (void *, int *, int *, int *, int *, int *,
                                 double *, int *, int *, int *, int *, int *,
-                                int *, double *, double *, int *, double *);
+                                int *, const double *, double *, int *, double *);
 extern void pardiso_chkmatrix  (int *, int *, double *, int *, int *, int *);
-extern void pardiso_chkvec     (int *, int *, double *, int *);
+extern void pardiso_chkvec     (int *, int *, const double *, int *);
 extern void pardiso_printstats (int *, int *, double *, int *, int *, int *,
                                 double *, int *);
 
@@ -54,7 +55,7 @@ sparse_pardiso_clear (SparseSolver *solver)
 }
 
 int
-sparse_pardiso_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
+sparse_pardiso_solve (SparseSolver *solver, SparseMatrix *A, void *x, const void *b)
 {
     int maxfct = 1;
     int mtype;

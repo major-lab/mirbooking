@@ -75,7 +75,7 @@ if get_option('with_pardiso')
     sparse_solvers_modules += sparse_pardiso_lib
 endif
 
-sparse_lib = static_library('sparse', 'sparse.c',
+sparse_lib = static_library('sparse', ['sparse-matrix.c', 'sparse-solver.c'],
                             c_args: sparse_solvers_compile_args,
                             link_with: sparse_solvers_modules)
 sparse_dep = declare_dependency(include_directories: include_directories('.'),

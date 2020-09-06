@@ -1,5 +1,6 @@
-#include "sparse.h"
-#include "sparse-private.h"
+#include "sparse-matrix.h"
+#include "sparse-solver.h"
+#include "sparse-solver-private.h"
 
 #include <assert.h>
 #include <mkl_dss.h>
@@ -46,7 +47,7 @@ free_solver_storage (void *ptr)
 }
 
 int
-sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
+sparse_mkl_dss_solve (SparseSolver *solver, SparseMatrix *A, void *x, const void *b)
 {
     int ret = 0;
 

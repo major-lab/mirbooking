@@ -1,5 +1,6 @@
-#include "sparse.h"
-#include "sparse-private.h"
+#include "sparse-matrix.h"
+#include "sparse-solver.h"
+#include "sparse-solver-private.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +26,7 @@ int
 sparse_cusolver_solve (SparseSolver *solver,
                        SparseMatrix *A,
                        void         *x,
-                       void         *b)
+                       const void   *b)
 {
     cusolverSpHandle_t handle;
     cusparseMatDescr_t descrA;

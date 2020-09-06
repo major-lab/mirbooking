@@ -1,5 +1,6 @@
-#include "sparse.h"
-#include "sparse-private.h"
+#include "sparse-matrix.h"
+#include "sparse-solver.h"
+#include "sparse-solver-private.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -24,9 +25,9 @@ sparse_lapack_clear (SparseSolver *solver)
 
 int
 sparse_lapack_solve (SparseSolver *solver,
-                      SparseMatrix *A,
-                      void         *x,
-                      const void   *b)
+                     SparseMatrix *A,
+                     void         *x,
+                     const void   *b)
 {
     lapack_int ret;
 

@@ -1,5 +1,7 @@
-#include "sparse.h"
-#include "sparse-private.h"
+#include "sparse-matrix.h"
+#include "sparse-solver.h"
+#include "sparse-solver-private.h"
+
 #include <suitesparse/umfpack.h>
 #include <math.h>
 #include <assert.h>
@@ -30,7 +32,7 @@ free_solver_storage (void* ptr)
 }
 
 int
-sparse_umfpack_solve (SparseSolver *solver, SparseMatrix *A, void *x, void *b)
+sparse_umfpack_solve (SparseSolver *solver, SparseMatrix *A, void *x, const void *b)
 {
     double control[UMFPACK_CONTROL];
     double info[UMFPACK_INFO];

@@ -1,5 +1,6 @@
-#include "sparse.h"
-#include "sparse-private.h"
+#include "sparse-matrix.h"
+#include "sparse-solver.h"
+#include "sparse-solver-private.h"
 
 #include <mkl_dss.h>
 #include <mkl_cluster_sparse_solver.h>
@@ -27,7 +28,7 @@ int
 sparse_mkl_cluster_solve (SparseSolver *solver,
                           SparseMatrix *A,
                           void         *x,
-                          void         *b)
+                          const void   *b)
 {
     void *handle[64] = {0};
     int ret = 0;
@@ -115,7 +116,7 @@ sparse_mkl_cluster_solve (SparseSolver *solver,
                            &nrhs,
                            iparm,
                            &msglvl,
-                           b,
+                           (void*) b,
                            x,
                            &comm,
                            &error);
@@ -145,7 +146,7 @@ sparse_mkl_cluster_solve (SparseSolver *solver,
                            &nrhs,
                            iparm,
                            &msglvl,
-                           b,
+                           (void*) b,
                            x,
                            &comm,
                            &error);
@@ -175,7 +176,7 @@ sparse_mkl_cluster_solve (SparseSolver *solver,
                            &nrhs,
                            iparm,
                            &msglvl,
-                           b,
+                           (void*) b,
                            x,
                            &comm,
                            &error);
@@ -217,7 +218,7 @@ cleanup:
                            &nrhs,
                            iparm,
                            &msglvl,
-                           b,
+                           (void*) b,
                            x,
                            &comm,
                            &error);

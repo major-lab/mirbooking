@@ -1,5 +1,6 @@
-#include "sparse.h"
-#include "sparse-private.h"
+#include "sparse-matrix.h"
+#include "sparse-solver.h"
+#include "sparse-solver-private.h"
 
 #include <SuperLUMT/slu_mt_ddefs.h>
 #include <assert.h>
@@ -22,7 +23,7 @@ int
 sparse_superlu_mt_solve (SparseSolver *solver,
                          SparseMatrix *A,
                          void         *x,
-                         void         *b)
+                         const void   *b)
 {
     SuperMatrix AA, L, U, BB;
     int_t *rowperm;
