@@ -73,16 +73,13 @@ if get_option('with_mkl')
         error('MKL conflicts with PARDISO solver, use -Dwith_pardiso=false instead.')
     endif
 
-    if not (get_option('with_mkl_cblas') or get_option('with_openblas64'))
-        error('MKL 64-bit interface conflicts with 32-bit BLAS, use -Dwith_mkl_cblas=true or -Dwith_openblas64=true instead.')
-    endif
-
-    if not get_option('with_mkl_lapack')
-        error('MKL 64-bit interface conflicts with LAPACK solver, use -Dwith_mkl_lapack=true instead.')
-    endif
-
-    if get_option('with_mkl_ilp64') and (get_option('with_superlu') or get_option('with_superlu_mt') or get_option('with_umfpack') or get_option('with_pardiso'))
-        error('MKL 64-bit interface conflicts with the following solvers: LAPACK, SuperLU, SuperLU-MT, UMFPACK and PARDISO.')
+    if get_option('with_mkl_ilp64')
+        if not (get_option('with_mkl_cblas') or get_option('with_openblas64'))
+            error('MKL 64-bit interface conflicts with 32-bit BLAS, use -Dwith_mkl_cblas=true or -Dwith_openblas64=true instead.')
+        endif
+        if get_option('with_superlu') or get_option('with_superlu_mt') or get_option('with_umfpack') or get_option('with_pardiso')
+            error('MKL 64-bit interface conflicts with the following solvers: LAPACK, SuperLU, SuperLU-MT, UMFPACK and PARDISO.')
+        endif
     endif
 endif
 
@@ -130,7 +127,7 @@ else
     warning('Any of FFTW3 (-Dwith_fftw3=true) or MKL FFTW3 (-Dwith_mkl_fftw3=true) is recommended to compute accurate target silencing.')
 endif
 
-if get_option('with_mkl') and get_option('with_mkl_lapack')
+if get_option('with_mkl')
     lapack_dep = declare_dependency(dependencies: mkl_dep,
                                     compile_args: '-DHAVE_MKL_LAPACK')
 else

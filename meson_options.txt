@@ -20,7 +20,6 @@ option('with_mkl_ilp64', type: 'boolean', value: false)
 option('with_mkl_tbb', type: 'boolean', value: false)
 option('with_mkl_cblas', type: 'boolean', value: false)
 option('with_mkl_fftw3', type: 'boolean', value: false)
-option('with_mkl_lapack', type: 'boolean', value: false)
 option('with_mkl_dss', type: 'boolean', value: false)
 option('with_mkl_cluster', type: 'boolean', value: false)
 
