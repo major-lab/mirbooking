@@ -81,6 +81,10 @@ if get_option('with_mkl')
             error('MKL 64-bit interface conflicts with the following solvers: LAPACK, SuperLU, SuperLU-MT, UMFPACK and PARDISO.')
         endif
     endif
+
+    if get_option('with_mkl_cluster') and not get_option('with_mpi')
+        error('MKL Cluster requires MPI (-Dwith_mpi=true).')
+    endif
 endif
 
 if not (get_option('with_mkl_dss') or get_option('with_pardiso') or get_option('with_umfpack'))
