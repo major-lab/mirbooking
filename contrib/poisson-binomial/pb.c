@@ -4,7 +4,10 @@
 #include <string.h>
 #include <math.h>
 
-#if HAVE_FFTW3
+#if HAVE_MKL_FFTW3
+#include <complex.h>
+#include <fftw/fftw3.h>
+#elif HAVE_FFTW3
 #include <complex.h>
 #include <fftw3.h>
 #endif
@@ -12,7 +15,7 @@
 static void
 pb_compute_pmf (PoissonBinomial *pb)
 {
-#if HAVE_FFTW3
+#if HAVE_MKL_FFTW3 || HAVE_FFTW3
     fftw_complex *in;
     fftw_plan plan;
     size_t N = pb->n + 1;

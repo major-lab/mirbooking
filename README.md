@@ -103,6 +103,14 @@ three column TSV containing only the columns `target_accession`, `position` and
 You'll need [Meson](http://mesonbuild.com/) and [Ninja](http://ninja-build.org/)
 as well as GLib development files installed on your system.
 
+If you need to link against MKL, run the following command first:
+
+```bash
+source /opt/intel/bin/compilervars.sh intel64
+```
+
+Then build miRBooking with:
+
 ```bash
 mkdir build && cd build
 meson --buildtype=release

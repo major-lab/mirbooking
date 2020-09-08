@@ -15,8 +15,6 @@ option('with_mkl_cluster', type: 'boolean', value: false)
 option('with_pardiso', type: 'boolean', value: false)
 
 # Intel MKL
-option('mkl_root', type: 'string')
-option('mkl_arch', type: 'string', value: 'intel64')
 option('with_mkl', type: 'boolean', value: false)
 option('with_mkl_ilp64', type: 'boolean', value: false)
 option('with_mkl_tbb', type: 'boolean', value: false)
