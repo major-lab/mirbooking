@@ -2162,7 +2162,7 @@ mirbooking_broker_write_output_to_stream (MirbookingBroker              *self,
 {
     g_return_val_if_fail (self->priv->init, FALSE);
 
-    gint i;
+    gsize i;
     for (i = 0; i < sizeof (OUTPUT_FORMAT_META); i++)
     {
         if (OUTPUT_FORMAT_META[i].output_format == output_format)

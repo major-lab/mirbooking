@@ -120,7 +120,7 @@ fold_duplex_mcff (gchar *a, gchar *b, gchar *a_mask, gchar *b_mask, GError **err
     gfloat mfe;
     g_autofree gchar *mask = g_strdup_printf ("%sxx%s", a_mask, b_mask);
 
-    gint i;
+    gsize i;
     for (i = 0; i < strlen (mask); i++)
     {
         switch (mask[i])
@@ -226,7 +226,7 @@ main (gint argc, gchar **argv)
     g_autofree gchar *mre_mask = g_new0 (gchar, seed_length + 1);
     g_autofree gchar *mir_mask = g_new0 (gchar, seed_length + 1);
     {
-        gint i;
+        gsize i;
         for (i = 0; i < seed_length; i++)
         {
             mir_mask[i] = (mask[i] == '|') ? ')' : mask[i];

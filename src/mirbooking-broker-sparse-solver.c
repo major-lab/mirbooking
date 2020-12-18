@@ -1,7 +1,7 @@
 #include "mirbooking-broker-sparse-solver.h"
 #include <sparse.h>
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (SparseSolver, sparse_solver_free);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SparseSolver, sparse_solver_free)
 
 GType
 mirbooking_broker_sparse_solver_get_type (void)
@@ -44,7 +44,7 @@ static MirbookingBrokerSparseSolver MIRBOOKING_BROKER_SPARSE_SOLVER_WITH_PRIORIT
 MirbookingBrokerSparseSolver
 mirbooking_broker_sparse_solver_get_default (void)
 {
-    gint i;
+    gsize i;
     for (i = 0; i < sizeof (MIRBOOKING_BROKER_SPARSE_SOLVER_WITH_PRIORITY) / sizeof (MIRBOOKING_BROKER_SPARSE_SOLVER_WITH_PRIORITY[0]); i++)
     {
         if (mirbooking_broker_sparse_solver_is_available (MIRBOOKING_BROKER_SPARSE_SOLVER_WITH_PRIORITY[i]))
