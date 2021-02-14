@@ -2,7 +2,7 @@ project('mirbooking', 'c',
         version: '2.4.0',
         meson_version: '>=0.46.0')
 
-api_version = '2.3'
+api_version = '2.4'
 
 glib_dep = dependency('glib-2.0', version: '>=2.44')
 gobject_dep = dependency('gobject-2.0', version: '>=2.44')
