@@ -31,6 +31,7 @@ sparse_cusolver_solve (SparseSolver *solver,
     cusolverSpHandle_t handle;
     cusparseMatDescr_t descrA;
     cusolverStatus_t status;
+    cusparseStatus_t sp_status;
     cudaError_t err;
 
     assert (A->shape[0] < INT_MAX);
@@ -43,9 +44,9 @@ sparse_cusolver_solve (SparseSolver *solver,
         goto cleanup;
     }
 
-    status = cusparseCreateMatDescr (&descrA);
+    sp_status = cusparseCreateMatDescr (&descrA);
 
-    if (status != CUSOLVER_STATUS_SUCCESS)
+    if (sp_status != CUSPARSE_STATUS_SUCCESS)
     {
         goto cleanup_handle;
     }
