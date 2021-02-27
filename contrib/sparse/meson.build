@@ -56,6 +56,7 @@ if get_option('with_mkl_cluster')
 endif
 
 if get_option('with_cuda') != '' and get_option('with_cusolver')
+    cuda_toolkit_api_version = get_option('with_cuda')
     cudart_dep = dependency('cudart-@0@'.format(cuda_toolkit_api_version))
     cusparse_dep = dependency('cusparse-@0@'.format(cuda_toolkit_api_version))
     cusolver_dep = dependency('cusolver-@0@'.format(cuda_toolkit_api_version))

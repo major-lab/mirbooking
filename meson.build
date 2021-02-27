@@ -145,8 +145,6 @@ endif
 pymod = import('python')
 python3 = pymod.find_installation('python3')
 
-cuda_toolkit_api_version = get_option('with_cuda')
-
 subdir('contrib/poisson-binomial')
 subdir('contrib/sparse')
 subdir('contrib/odeint')
