@@ -7,7 +7,7 @@ main (void)
 {
     SparseMatrix J;
     size_t shape[2] = {2,2};
-    sparse_matrix_init (&J, SPARSE_MATRIX_STORAGE_CSR, SPARSE_MATRIX_TYPE_DOUBLE, shape, 2);
+    sparse_matrix_init (&J, SPARSE_MATRIX_STORAGE_DENSE, SPARSE_MATRIX_TYPE_DOUBLE, shape, 2);
 
     sparse_matrix_set_double (&J, 0, 1, 1);
     sparse_matrix_set_double (&J, 1, 0, 2);
@@ -21,7 +21,7 @@ main (void)
     double x[2] = {0, 0};
     double b[2] = {1, 1};
 
-    SparseSolver *solver = sparse_solver_new (SPARSE_SOLVER_METHOD_SUPERLU);
+    SparseSolver *solver = sparse_solver_new (SPARSE_SOLVER_METHOD_LAPACK);
     assert (solver);
     assert (sparse_solver_solve (solver,
                                  &J,

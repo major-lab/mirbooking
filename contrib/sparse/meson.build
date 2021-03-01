@@ -82,10 +82,8 @@ sparse_lib = static_library('sparse', ['sparse-matrix.c', 'sparse-solver.c'],
 sparse_dep = declare_dependency(include_directories: include_directories('.'),
                                 link_with: sparse_lib)
 
-if get_option('with_superlu')
-    test('sparse', executable('sparse-test', 'sparse-test.c',
-                              dependencies: sparse_dep))
-endif
+test('sparse', executable('sparse-test', 'sparse-test.c',
+                          dependencies: sparse_dep))
 
 if get_option('with_mkl') and get_option('with_mkl_cluster')
     test('sparse-mpi', executable('sparse-mpi-test', 'sparse-mpi-test.c',

@@ -35,10 +35,11 @@ sparse_matrix_init (SparseMatrix        *matrix,
         matrix->s.csr.nnz    = nnz;
         matrix->s.csr.colind = calloc (nnz, sizeof (size_t));
         matrix->s.csr.rowptr = calloc (shape[0] + 1, sizeof (size_t));
+        matrix->data = calloc (nnz, _size_for_type (matrix->type));
     }
     else if (matrix->storage == SPARSE_MATRIX_STORAGE_DENSE)
     {
-        // no structure to initialize
+        matrix->data = calloc (shape[0] * shape[1], _size_for_type (matrix->type));
     }
     else
     {
@@ -47,9 +48,6 @@ sparse_matrix_init (SparseMatrix        *matrix,
 
     /* default is zero */
     memset (&matrix->default_data, 0, sizeof (matrix->default_data));
-
-    /* storage */
-    matrix->data = calloc (nnz, _size_for_type (matrix->type));
 
     /* solver-specific storage */
     matrix->solver_storage_owner = NULL;
