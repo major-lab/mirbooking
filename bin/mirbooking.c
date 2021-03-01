@@ -664,7 +664,7 @@ main (gint argc, gchar **argv)
                                                                    g_free,
                                                                    g_object_unref);
 
-    gint i;
+    gsize i;
     for (i = 0; i < targets->len; i++)
     {
         // precondition all sequences
