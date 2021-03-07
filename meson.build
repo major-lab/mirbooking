@@ -1,5 +1,5 @@
 project('mirbooking', 'c',
-        version: '2.4.0-dev',
+        version: '2.4.0',
         meson_version: '>=0.46.0')
 
 api_version = '2.3'
