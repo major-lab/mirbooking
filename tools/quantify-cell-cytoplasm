@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+
+# Default numbers are for HeLa S3 cell
+# Number of protein-coding transcripts comes from Thermofisher specifications
+# Number of microRNA were mesured by Janas et al. 2012
+# Cytoplasmic volume was picked from bionumbers
+
+from abc import abstractmethod
+from math import isfinite
+from functools import partial
+import argparse
+import sys
+
+from Bio.SeqIO import parse
+from scipy.constants import N_A
+from scipy.stats import gmean
+import numpy as np
+import pandas as pd
+
+parse_fasta = partial(parse, format='fasta')
+
+def gmeanp1(X):
+    """Geometric mean that uses the common log(X+1) transformation."""
+    return gmean(np.asarray(X) + 1) - 1
+
+class Reader:
+    name, title = NotImplemented, NotImplemented
+    @abstractmethod
+    def read_file(self, f):
+        raise NotImplementedError
+
+class RsemReader(Reader):
+    name = 'rsem'
+    title = 'RSEM'
+    def read_file(self, f):
+        return pd.read_csv(f, index_col=0, sep='\t').FPKM
+
+class HtSeqReader(Reader):
+    name = 'htseq'
+    title = 'HTSeq'
+    def read_file(self, f):
+        return pd.read_csv(f, names=['feature', 'counts'], index_col=0, comment='_', sep='\t').counts
+
+class TabularReader(Reader):
+    name = 'tsv'
+    title = 'TSV'
+    def read_file(self, f):
+        try:
+            return pd.read_csv(f, index_col='accession', sep='\t').quantity
+        except TypeError:
+            return pd.read_csv(f, names=['accession', 'quantity'], index_col='accession', sep='\t').quantity
+
+QUANTITIES_READERS = {reader.name: reader for reader in Reader.__subclasses__()}
+
+# List of GENCODE protein-coding biotypes
+GENCODE_PROTEIN_CODING_BIOTYPES = ['protein_coding', 'nonsense_mediated_decay',
+        'non_stop_decay', 'IG_C_gene', 'IG_D_gene', 'IG_J_gene', 'IG_LV_gene',
+        'IG_V_gene', 'TR_C_gene', 'TR_J_gene', 'TR_V_gene', 'TR_D_gene',
+        'polymorphic_pseudogene']
+
+# List of biotypes that are ignored for various reasons
+# Ribosomal RNAs are not included because of the bias introduced by
+# ribodepletion protocols.
+GENCODE_IGNORED_BIOTYPES = ['Mt_rRNA', 'rRNA', 'rRNA_pseudogene']
+
+def main(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gencode-targets', required=True, help='Targets sequences')
+    parser.add_argument('--mirbase-mirnas', required=True, help='microRNAs sequences')
+    for qr in QUANTITIES_READERS.values():
+        parser.add_argument(f'--{qr.name}-quantifications', action='append', default=[], help=f'{qr.title} quantifications')
+    parser.add_argument('--num-mirnas', type=float, default=1e4, help='Number of microRNAs in cytoplasm per cell')
+    parser.add_argument('--num-protein-coding-transcripts', type=float, default=7e5, help='Number of protein-coding transcripts in cytoplasm per cell')
+    parser.add_argument('--cytoplasm-volume', type=float, default=940, help='Volume of cell cytoplasm in µm^3')
+    parser.add_argument('--output-file', required=True, help='Destination for quantifications')
+
+    args = parser.parse_args(argv)
+
+    number_of_protein_coding = args.num_protein_coding_transcripts
+    number_of_microrna = args.num_mirnas
+    cytoplasm_volume = args.cytoplasm_volume # µm^3
+    total_protein_coding_concentration = 1e12 * number_of_protein_coding / (N_A * 1e-15 * cytoplasm_volume) # pM
+    total_microrna_concentration = 1e12 * number_of_microrna / (N_A * 1e-15 * cytoplasm_volume) # pM
+
+    quantifications = pd.concat([qr_cls().read_file(f).fillna(0) for qr_cls in QUANTITIES_READERS.values()
+        for f in getattr(args, f'{qr_cls.name}_quantifications')])
+
+    # take geometric mean of duplicated species
+    quantifications = quantifications.groupby(level=0).apply(gmeanp1)
+
+    protein_coding_accessions = set(record.id.split('|')[0] for record in parse_fasta(args.gencode_targets)
+            if record.id.split('|')[7] in GENCODE_PROTEIN_CODING_BIOTYPES)
+    transcripts_accessions = set(record.id.split('|')[0] for record in parse_fasta(args.gencode_targets)
+        if record.id.split('|')[7] not in GENCODE_IGNORED_BIOTYPES)
+    transcripts_quantifications = quantifications.reindex(transcripts_accessions).dropna()
+
+    mirnas_accessions = set(record.description.split()[1] for record in parse_fasta(args.mirbase_mirnas))
+    mirnas_quantifications = quantifications.reindex(mirnas_accessions).dropna()
+
+    print(f'Cell model:')
+    print(f'\tNumber of miRNA: {number_of_microrna}')
+    print(f'\tNumber of protein-coding target RNAs: {number_of_protein_coding}')
+    print(f'\tCytoplasmic volume: {cytoplasm_volume} µm³')
+    print()
+
+    k1 = total_protein_coding_concentration / transcripts_quantifications.reindex(protein_coding_accessions).sum()
+    k2 = total_microrna_concentration / mirnas_quantifications.sum()
+
+    if not isfinite(k1):
+        print('Concentration ratio for targets is not finite. Make sure that you provide enough protein-coding transcripts to estimate this value.')
+        return 1
+
+    if not isfinite(k2):
+        print('Concentration ratio for microRNAs is not finite. Make sure that at least one microRNA is expressed.')
+        return 1
+
+    transcripts_q = k1 * transcripts_quantifications
+    mirnas_q = k2 * mirnas_quantifications
+
+    print(f'Estimated targets concentration ratio: {k1:.2f} pM/FPKM')
+    print('Top 10 targets:')
+    print(transcripts_q.sort_values(ascending=False).head(10).to_csv(sep='\t', header=False))
+
+    print(f'Estimated microRNAs concentration ratio: {k2:.2f} pM/count')
+    print('Top 10 microRNAs:')
+    print(mirnas_q.sort_values(ascending=False).head(10).to_csv(sep='\t', header=False))
+
+    pd.concat([transcripts_q, mirnas_q]).to_csv(args.output_file, header=True, sep='\t')
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
