@@ -1,5 +1,5 @@
 import gi
-gi.require_version('Mirbooking', '2.3')
+gi.require_version('Mirbooking', '2.4')
 from gi.repository import GLib, Mirbooking, Gio
 import unittest
 from os.path import dirname, join
