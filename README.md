@@ -229,3 +229,8 @@ experimentation session is:
 For a more detailed usage and code example, the main program source in
 `bin/mirbooking.c` is very explicit as it perform a full session and fully
 output the target sites.
+
+## Cite this software
+
+Poirier-Morency, G. Modélisation des réseaux de régulation de l’expression des
+gènes par les microARN. (Université de Montréal, 2021).
