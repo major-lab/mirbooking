@@ -87,8 +87,8 @@ if get_option('with_mkl')
     endif
 endif
 
-if not (get_option('with_mkl_dss') or get_option('with_pardiso') or get_option('with_umfpack'))
-    warning('Any of MKL DSS (-Dwith_mkl_dss=true), PARDISO (-Dwith_pardiso=true) or UMFPACK (-Dwith_umfpack=true) is recommended for solving sparse systems efficiently.')
+if not ((get_option('with_mkl') and get_option('with_mkl_dss')) or get_option('with_pardiso') or get_option('with_umfpack'))
+    warning('Any of MKL DSS (-Dwith_mkl=true -Dwith_mkl_dss=true), PARDISO (-Dwith_pardiso=true) or UMFPACK (-Dwith_umfpack=true) is recommended for solving sparse systems efficiently.')
 endif
 
 if get_option('with_mkl') and get_option('with_mkl_cblas')
@@ -128,7 +128,7 @@ elif get_option('with_fftw3')
     fftw3_dep = dependency('fftw3')
 else
     fftw3_dep = []
-    warning('Any of FFTW3 (-Dwith_fftw3=true) or MKL FFTW3 (-Dwith_mkl_fftw3=true) is recommended to compute accurate target silencing.')
+    warning('Any of FFTW3 (-Dwith_fftw3=true) or MKL FFTW3 (-Dwith_mkl=true -Dwith_mkl_fftw3=true) is recommended to compute accurate target silencing.')
 endif
 
 if get_option('with_mkl')
