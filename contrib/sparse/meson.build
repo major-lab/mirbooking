@@ -41,14 +41,14 @@ if get_option('with_umfpack')
     sparse_solvers_modules += sparse_umfpack_lib
 endif
 
-if get_option('with_mkl_dss')
+if get_option('with_mkl') and get_option('with_mkl_dss')
     sparse_solvers_compile_args += ['-DHAVE_MKL_DSS']
     sparse_mkl_dss_lib = static_library('sparse-mkl-dss', 'sparse-mkl-dss.c',
                                         dependencies: mkl_dep)
     sparse_solvers_modules += sparse_mkl_dss_lib
 endif
 
-if get_option('with_mkl_cluster')
+if get_option('with_mkl') and get_option('with_mkl_cluster')
     sparse_solvers_compile_args += ['-DHAVE_MKL_CLUSTER']
     sparse_mkl_cluster_lib = static_library('sparse-mkl-cluster', 'sparse-mkl-cluster.c',
                                             dependencies: mkl_dep)
