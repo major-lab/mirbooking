@@ -233,4 +233,4 @@ output the target sites.
 ## Cite this software
 
 Poirier-Morency, G. Modélisation des réseaux de régulation de l’expression des
-gènes par les microARN. (Université de Montréal, 2021).
+gènes par les microARN. (Université de Montréal, 2021). https://doi.org/1866/25104
